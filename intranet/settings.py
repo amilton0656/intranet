@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from decouple import config, Csv 
 
@@ -20,7 +21,7 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECRET_KEY = 'django-insecure-y8p-o(ni1y=$8!klpiekq*57(0^*^9x(55(envp&_)(qa2d%!!'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["apicota.com.br", "www.apicota.com.br", "127.0.0.1", "localhost"]
 
@@ -124,9 +125,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = "/opt/intranet/intranet/staticfiles"
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    BASE_DIR / "static",  # opcional: se você mantém uma pasta 'static' do projeto
+]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Default primary key field type
