@@ -1,0 +1,34 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Intranet{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="{% static 'css/app.css' %}" rel="stylesheet">
+</head>
+<body class="content">
+
+  <form method="post" class="form corpoform" autocomplete="on">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="alert">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <label for="id_username">Usuário</label>
+    <input
+      id="id_username" name="username" type="text"
+      placeholder="Seu usuário" required autofocus>
+
+    <label for="id_password">Senha</label>
+    <input
+      id="id_password" name="password" type="password"
+      placeholder="Sua senha" required>
+
+    <div style="margin-top:16px; display:flex; gap:10px; align-items:center;">
+      <button class="btn" type="submit">Entrar</button>
+    </div>
+  </form>
+</body>
+</html>
