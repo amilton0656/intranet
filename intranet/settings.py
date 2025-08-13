@@ -45,9 +45,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "widget_tweaks",
-    # "crispy_forms",
-    # "crispy_bootstrap5",
     'portal',
+    'bliss',
 ]
 
 # CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"

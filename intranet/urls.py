@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from portal.views import home
 
@@ -16,4 +16,5 @@ urlpatterns = [
         name="logout",
     ),
     path("", home, name="home"),
+    path("tab_bliss/", include('bliss.urls')),
 ]

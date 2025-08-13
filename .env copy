@@ -1,0 +1,14 @@
+# Segurança / Django
+SECRET_KEY=django-insecure-y8p-o(ni1y=$8!klpiekq*57(0^*^9x(55(envp&_)(qa2d%!!
+DEBUG=True
+ALLOWED_HOSTS=191.252.182.151,apicota.com.br,127.0.0.1,localhost
+# Se usar domínio, adicione aqui (e no CSRF):
+# ALLOWED_HOSTS=127.0.0.1,localhost,seu-dominio.com
+# CSRF_TRUSTED_ORIGINS=https://seu-dominio.com
+
+# Banco de dados
+DB_NAME=amilton
+DB_USER=amilton
+DB_PASSWORD=310885
+DB_HOST=127.0.0.1
+DB_PORT=5433
