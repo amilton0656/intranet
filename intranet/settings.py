@@ -21,7 +21,7 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECRET_KEY = 'django-insecure-y8p-o(ni1y=$8!klpiekq*57(0^*^9x(55(envp&_)(qa2d%!!'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ["apicota.com.br", "www.apicota.com.br", "127.0.0.1", "localhost"]
 
