@@ -44,11 +44,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'widget_tweaks',
+    "widget_tweaks",
+    "crispy_forms",
+    "crispy_bootstrap5",
     'portal',
 ]
 
-INSTALLED_APPS += ["crispy_forms", "crispy_bootstrap5"]
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
