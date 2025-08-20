@@ -303,7 +303,7 @@ def bliss_import(request):
                 cliente=row[10] or '',
                 email=row[11] or ''
             )
-        return redirect('index')
+        return redirect('tab_bliss')
     return render(request, 'bliss/import.html')
 
 
