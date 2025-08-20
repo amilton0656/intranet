@@ -40,7 +40,7 @@ sqlparse>=0.4.4,<0.5
 svglib==1.5.1
 tinycss2==1.2.1
 tzdata; sys_platform == "win32"
-tzlocal==5.3.1
+tzlocal==5.2
 uritools==5.0.0
 urllib3==2.5.0
 weasyprint==61.2
