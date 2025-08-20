@@ -42,7 +42,7 @@ def bliss_update(request, pk):
     form = BlissForm(request.POST or None, instance=registro)
     if form.is_valid():
         form.save()
-        return redirect('index')
+        return redirect('tab_bliss')
     return render(request, 'bliss/form.html', {'form': form})
 
 # Excluir
@@ -50,7 +50,7 @@ def bliss_delete(request, pk):
     registro = get_object_or_404(Bliss, pk=pk)
     if request.method == 'POST':
         registro.delete()
-        return redirect('index')
+        return redirect('tab_bliss')
     return render(request, 'bliss/delete_confirm.html', {'registro': registro})
 
 # Relatório HTML
