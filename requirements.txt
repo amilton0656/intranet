@@ -25,7 +25,7 @@ psycopg2-binary==2.9.9
 pycparser==2.22
 pydyf==0.11.0
 pyHanko==0.27.1
-pyhanko-certvalidator==0.27.0
+pyhanko-certvalidator==0.26.8
 pypdf==6.0.0
 pyphen==0.17.2
 python-bidi==0.6.6
