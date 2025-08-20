@@ -27,7 +27,7 @@ pydyf==0.11.0
 pyHanko==0.27.1
 pyhanko-certvalidator==0.26.8
 pypdf==5.9.0
-pyphen==0.17.2
+pyphen==0.16.0
 python-bidi==0.6.6
 python-dateutil==2.9.0.post0
 python-decouple==3.8
