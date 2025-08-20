@@ -1,0 +1,11 @@
+{% extends 'portal/base.html' %}
+{% block title %}Formulário{% endblock %}
+{% block content %}
+<h3>{{ form.instance.pk|yesno:"Editar Registro,Novo Registro" }}</h3>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a href="{% url 'tab_bliss' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}
