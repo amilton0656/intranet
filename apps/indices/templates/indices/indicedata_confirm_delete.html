@@ -1,0 +1,12 @@
+{% extends "intranet/intranet_base.html" %}
+{% block title %}Excluir valor de índice{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Excluir valor</h1>
+<p>Tem certeza que deseja excluir o registro <strong>{{ object.indice.descricao }}</strong> em <strong>{{
+        object.data|date:"Y-m-d" }}</strong>?</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Excluir</button>
+    <a href="{% url 'indices:indicedata_list' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

@@ -1,0 +1,11 @@
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-2 mt-2">
+        <h1 class="h3 m-0">{{page_title}}</h1>
+        <div>
+            <a class="btn btn-primary" href="{% url 'indices:indice_list' %}">Índices</a>
+            <a class="btn btn-primary" href="{% url 'indices:indice_create' %}">+</a>
+            <a class="btn btn-primary" href="{% url 'indices:indicedata_list' %}">Datas</a>
+            <a class="btn btn-primary" href="{% url 'indices:indicedata_create' %}">+</a>
+        </div>
+    </div>
+</div>

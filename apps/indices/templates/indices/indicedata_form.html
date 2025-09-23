@@ -1,0 +1,28 @@
+{% extends "intranet/intranet_base.html" %}
+{% block title %}{{ view.object|default:'Novo valor' }}{% endblock %}
+{% block content %}
+{% include 'indices/indice_navbar.html' %}
+<div class="container">
+    <form method="post" class="row gy-3">
+        {% csrf_token %}
+        <div class="col-12 col-md-6">
+            <label class="form-label">Índice</label>
+            {{ form.indice }}
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label">Data</label>
+            {{ form.data }}
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label">Valor</label>
+            {{ form.valor }}
+            <div class="form-text">Use ponto decimal. Ex.: 0.01234567</div>
+        </div>
+
+        <div class="col-12 d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Salvar</button>
+            <a class="btn btn-secondary" href="{% url 'indices:indicedata_list' %}">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

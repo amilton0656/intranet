@@ -1,0 +1,88 @@
+{% extends "intranet/intranet_base.html" %}
+{% block title %}Valores de Índice{% endblock %}
+{% block content %}
+{% include 'indices/indice_navbar.html' %}
+
+<div class="ms-3 me-3">
+
+
+    <form method="get" class="row gy-2 gx-2 mb-3">
+        <div class="col-sm-6 col-md-4">
+            <input type="text" name="q" value="{{ request.GET.q }}" class="form-control"
+                placeholder="Buscar por índice ou data...">
+        </div>
+        <div class="col-sm-6 col-md-4">
+            <select name="indice" class="form-select">
+                <option value="">— Filtrar por índice —</option>
+                {% for i in indices %}
+
+
+
+
+
+
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-secondary">Filtrar</button>
+        </div>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Índice</th>
+                    <th>Data</th>
+                    <th>Valor</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for obj in object_list %}
+                <tr>
+                    <td>{{ obj.indice.descricao }}</td>
+                    <td>{{ obj.data|date:"Y-m-d" }}</td>
+                    <td>{{ obj.valor }}</td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary"
+                            href="{% url 'indices:indicedata_update' obj.id %}">Editar</a>
+                        <a class="btn btn-sm btn-outline-danger"
+                            href="{% url 'indices:indicedata_delete' obj.id %}">Excluir</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-muted">Nenhum valor cadastrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <nav>
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link"
+                    href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q }}&indice={{ request.GET.indice }}">«</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">«</span></li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{
+                    page_obj.paginator.num_pages
+                    }}</span></li>
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link"
+                    href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q }}&indice={{ request.GET.indice }}">»</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">»</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}
+{% endblock %}

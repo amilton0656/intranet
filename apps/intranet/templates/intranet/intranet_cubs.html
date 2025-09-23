@@ -1,0 +1,143 @@
+<div class="bg-light card">
+    <a class="btn btn-transparent d-block w-100 cub-toggle" data-bs-toggle="collapse" href="#collapseExample" role="button" aria-expanded="false" aria-controls="collapseExample">
+        <div class="row">
+            <div class="col-12 fs-3">CUB de {{cubs.mes}}</div>
+            <div class="col-lg-6 col-sm-12" style="font-size: 1.4rem" >{{cubs.cubres}}</div>
+            <div class="col-lg-6 col-sm-12" style="font-size: 1.4rem">{{cubs.cubcom}}</div>
+        </div>
+    </a>
+</div>
+<div class="collapse" id="collapseExample">
+    <div class="card card-body p-0 cub-dropdown">
+        <div class="p-3 border-bottom fw-semibold d-sm-none">
+            Histórico dos últimos 12 meses
+        </div>
+        <div class="d-none d-sm-flex flex-wrap justify-content-between align-items-center gap-2 p-3 border-bottom">
+            <span class="fw-semibold">Histórico dos últimos 12 meses</span>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="printCubsTable()">
+                    Imprimir
+                </button>
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="downloadCubsTablePdf()">
+                    Salvar PDF
+                </button>
+            </div>
+        </div>
+
+        <div class="cubs-mobile-table d-sm-none px-3 pb-3">
+            {% if cubs_history %}
+                <div class="cubs-mobile-header">
+                    <span>Mes</span>
+                    <span>Res-valor</span>
+                    <span>%</span>
+                </div>
+                <div class="cubs-mobile-subheader">
+                    <span></span>
+                    <span>Com-valor</span>
+                    <span>%</span>
+                </div>
+                {% for linha in cubs_history %}
+                    <div class="cubs-mobile-entry">
+                        <div class="cubs-mobile-row">
+                            <span class="cubs-mobile-month">{{ linha.mes }}</span>
+                            <span class="cubs-mobile-value">{{ linha.res_valor }}</span>
+                            <span class="cubs-mobile-percent">{{ linha.res_percentual }}</span>
+                        </div>
+                        <div class="cubs-mobile-row cubs-mobile-row-secondary">
+                            <span></span>
+                            <span class="cubs-mobile-value">{{ linha.com_valor }}</span>
+                            <span class="cubs-mobile-percent">{{ linha.com_percentual }}</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-3">Nenhum dado encontrado.</div>
+            {% endif %}
+        </div>
+
+        <div class="table-responsive d-none d-sm-block">
+            <table id="cubs-history-table" class="table table-sm table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col">Mes</th>
+                        <th scope="col">Res-valor</th>
+                        <th scope="col">%</th>
+                        <th scope="col">Com-valor</th>
+                        <th scope="col">%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for linha in cubs_history %}
+                    <tr>
+                        <td>{{ linha.mes }}</td>
+                        <td>{{ linha.res_valor }}</td>
+                        <td>{{ linha.res_percentual }}</td>
+                        <td>{{ linha.com_valor }}</td>
+                        <td>{{ linha.com_percentual }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-3">Nenhum dado encontrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    function buildCubsTableDocument() {
+        const table = document.getElementById('cubs-history-table');
+        if (!table) {
+            return null;
+        }
+        const styles = '\n            <style>\n                body { font-family: Arial, sans-serif; margin: 16px; }\n                h1 { font-size: 18px; margin-bottom: 16px; }\n                table { width: 100%; border-collapse: collapse; }\n                th, td { border: 1px solid #6c757d; padding: 6px 8px; font-size: 12px; text-align: left; }\n                thead { background-color: #f8f9fa; }\n            </style>\n        ';
+        return '<!doctype html><html><head><title>Historico CUB</title>' +
+            styles +
+            '</head><body>' +
+            '<h1>Historico CUB - ultimos 12 meses</h1>' +
+            table.outerHTML +
+            '</body></html>';
+    }
+
+    function openCubsTableWindow() {
+        const docHtml = buildCubsTableDocument();
+        if (!docHtml) {
+            alert('Tabela nao encontrada para impressao.');
+            return null;
+        }
+        const printWindow = window.open('', '_blank', 'width=900,height=700');
+        if (!printWindow) {
+            alert('Nao foi possivel abrir a janela de impressao.');
+            return null;
+        }
+        printWindow.document.write(docHtml);
+        printWindow.document.close();
+        return printWindow;
+    }
+
+    window.printCubsTable = function printCubsTable() {
+        const printWindow = openCubsTableWindow();
+        if (!printWindow) {
+            return;
+        }
+        printWindow.focus();
+        printWindow.print();
+    };
+
+    window.downloadCubsTablePdf = function downloadCubsTablePdf() {
+        const printWindow = openCubsTableWindow();
+        if (!printWindow) {
+            return;
+        }
+        printWindow.addEventListener('afterprint', function() {
+            printWindow.close();
+        });
+        printWindow.focus();
+        alert('Selecione a opcao "Salvar como PDF" na janela de impressao.');
+        printWindow.print();
+    };
+})();
+</script>

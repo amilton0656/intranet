@@ -1,0 +1,77 @@
+{% extends "intranet/intranet_base.html" %}
+{% block title %}Índices{% endblock %}
+{% block content %}
+{% include 'indices/indice_navbar.html' %}
+
+<div class="ms-3 me-3">
+
+    <form method="get" class="row gy-2 gx-2 mb-3">
+        <div class="col-sm-8 col-md-6">
+            <input type="text" name="q" value="{{ request.GET.q }}" class="form-control"
+                placeholder="Buscar por descrição...">
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-secondary">Buscar</button>
+        </div>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Descrição</th>
+                    <th>Período</th>
+                    <th>Cálculo</th>
+                    <th>Tipo</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for obj in object_list %}
+                <tr>
+                    <td>{{ obj.id }}</td>
+                    <td>{{ obj.descricao }}</td>
+                    <td>{{ obj.get_periodo_display }}</td>
+                    <td>{{ obj.get_calculo_display }}</td>
+                    <td>{{ obj.get_tipo_display }}</td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary"
+                            href="{% url 'indices:indice_update' obj.id %}">Editar</a>
+                        <a class="btn btn-sm btn-outline-danger"
+                            href="{% url 'indices:indice_delete' obj.id %}">Excluir</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-muted">Nenhum índice encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <nav>
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link"
+                    href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q }}">«</a></li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">«</span></li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{
+                    page_obj.paginator.num_pages
+                    }}</span></li>
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link"
+                    href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q }}">»</a></li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">»</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+</div>
+{% endblock %}

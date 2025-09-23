@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Excluir índice{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Excluir índice</h1>
+<p>Tem certeza que deseja excluir o índice <strong>{{ object.descricao }}</strong>?</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Excluir</button>
+    <a href="{% url 'indices:indice_list' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

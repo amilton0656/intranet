@@ -1,0 +1,123 @@
+{% load static %}
+<nav id="navbar" class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a href="{% url 'intranet_home' %}">
+            <img src="{% static 'intranet/img/Logo-3.png' %}" alt="COTA" class="navbar-brand-logo me-5">
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- 
+        Itens do menu
+        Isto injeta o arquivo context_processors dentro do template
+        TEMPLATES = [
+            {
+                ...
+                'OPTIONS': {
+                    'context_processors': [
+                        ...
+                        'apps.intranet.context_processors.navbar_links',        
+        -->
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle me-4 me-4" href="#" id="navbarDropdown" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        Empreendimentos
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        {% for link in empreendimento_links %}
+                        <li>
+                            <a class="dropdown-item" href="{{ link.url }}" target="_blank"
+                                rel="noopener noreferrer">{{link.name }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+
+
+
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        Notícias
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        {% for link in news_links %}
+                        <li>
+                            <a class="dropdown-item" href="{{ link.url }}" target="_blank"
+                                rel="noopener noreferrer">{{link.name }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+
+
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        Bancos
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        {% for link in bank_links %}
+                        <li>
+                            <a class="dropdown-item" href="{{ link.url }}" target="_blank"
+                                rel="noopener noreferrer">{{link.name }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+
+
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        Órgãos Públicos
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        {% for link in public_agency_links %}
+                        <li>
+                            <a class="dropdown-item" href="{{ link.url }}" target="_blank"
+                                rel="noopener noreferrer">{{link.name }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+
+
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        Sites Úteis
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        {% for link in useful_links %}
+                        <li>
+                            <a class="dropdown-item" href="{{ link.url }}" target="_blank"
+                                rel="noopener noreferrer">{{link.name }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+
+
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        Módulos
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        {% for link in modulo_links %}
+                        <li>
+                            <a class="dropdown-item" href="{{ link.url }}">{{link.name }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>

@@ -1,0 +1,33 @@
+{% extends "intranet/intranet_base.html" %}
+{% block title %}{{ view.object|default:'Novo índice' }}{% endblock %}
+{% block content %}
+{% include 'indices/indice_navbar.html' %}
+<div class="container">
+    <form method="post" class="row gy-3">
+        {% csrf_token %}
+        <div class="row g-3">
+            <div class="col-lg-6 col-sm-12">
+                <label class="form-label">Descrição</label>
+                {{ form.descricao }}
+            </div>
+            <div class="col-lg-2 col-sm-12">
+                <label class="form-label">Período</label>
+                {{ form.periodo }}
+            </div>
+            <div class="col-lg-2 col-sm-12">
+                <label class="form-label">Cálculo</label>
+                {{ form.calculo }}
+            </div>
+            <div class="col-lg-2 col-sm-12">
+                <label class="form-label">Tipo</label>
+                {{ form.tipo }}
+            </div>
+            <div class="col-2 d-flex gap-2">
+                <button class="btn btn-primary" type="submit">Salvar</button>
+                <a class="btn btn-secondary" href="{% url 'indices:indice_list' %}">Cancelar</a>
+            </div>
+        </div>
+</div>
+
+</form>
+{% endblock %}
