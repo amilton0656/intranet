@@ -18,7 +18,7 @@ SECRET_KEY = 'django-insecure-__=g*pnp%=$xt58=gqsipqfp&@dr105ils$gq6-td(p(!28bf=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["apicota.com.br", "www.apicota.com.br"]
 
 
 # Application definition
