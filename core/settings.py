@@ -70,8 +70,12 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME', os.environ.get('REPORTING_DB_NAME', 'nome_do_banco')),
+        'USER': os.environ.get('DB_USER', os.environ.get('REPORTING_DB_USER', 'usuario')),
+        'PASSWORD': os.environ.get('DB_PASSWORD', os.environ.get('REPORTING_DB_PASSWORD', 'senha')),
+        'HOST': os.environ.get('DB_HOST', os.environ.get('REPORTING_DB_HOST', 'localhost')),
+        'PORT': os.environ.get('DB_PORT', os.environ.get('REPORTING_DB_PORT', '5432')),
     },
     'reporting': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -107,19 +111,20 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
+LANGUAGE_CODE = 'pt-br'
+TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
-
 USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+MEDIA_ROOT  = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
