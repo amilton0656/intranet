@@ -118,6 +118,18 @@
                     </ul>
                 </li>
             </ul>
+            <div class="d-flex align-items-center ms-auto mt-3 mt-lg-0 gap-2">
+                {% if user.is_authenticated %}
+                <span class="navbar-text small text-white-50">{{ user.get_short_name|default:user.username }}</span>
+                <form method="post" action="{% url 'logout' %}" class="m-0">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'login' %}">
+                    <button type="submit" class="btn btn-outline-light btn-sm">Sair</button>
+                </form>
+                {% else %}
+                <a class="btn btn-outline-light btn-sm" href="{% url 'login' %}">Entrar</a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </nav>

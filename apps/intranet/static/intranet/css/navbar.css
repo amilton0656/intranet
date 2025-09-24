@@ -200,7 +200,7 @@ body {
     width: 140px;
     height: 140px;
     object-fit: cover;
-    border: 2px solid rgba(0, 0, 0, 0.1);
+    border: none;
     flex: 0 0 auto;
     border-radius: 0.75rem;
 }
@@ -282,6 +282,16 @@ body {
 
 .promo-card__image--photo {
     border-radius: 0.65rem;
+}
+
+#ocupa_espaco {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+}
+
+#ocupa_espaco .card-body {
+    flex: 1 1 auto;
 }
 
 

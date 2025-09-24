@@ -2,11 +2,47 @@
 {% include 'intranet/intranet_base.html' %}
 {% block content' %}
 <div class="container-fluid fundo1 px-0 px-lg-2">
-    <div class="row">
+    <div class="row min-vh-100 align-items-stretch">
         <!-- Coluna com 80% da largura -->
         <div class="col-12 col-md-9 pt-2">
 
             {% include 'intranet/intranet_cubs.html' %}
+
+            <!-- Aniversário Eugenio-Cida -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #a7a3ab">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">24/09/2025</span>
+                </div>
+                <div class="card-body birthday-card__body">
+                    <p class="mb-0">
+                        <span class="birthday-card__highlight-name">Eugênio e Cida</span>, comemorando os seus aniversários, convidam a
+                        todos para aquele tradicional
+                        <span class="birthday-card__highlight-event">bolinho</span>, hoje, às 15:30, no 11º andar
+                        (recepção).
+                    </p>
+                </div>
+            </div>
+            <!-------------------->
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #a7a3ab">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">24/09/2025</span>
+                </div>
+                <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+                    <img src="{% static 'intranet/img/aniv12.png' %}" alt="Feliz aniversario"
+                        class="birthday-card__image rounded-2">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1 text-primary fw-bold fs-4">EUGÊNIO <small class="text-muted fw-normal"
+                                style="font-size: 1rem">(Engenharia)</small></h5>
+                        <h5 class="mb-1 text-primary fw-bold fs-4">CIDA <small class="text-muted fw-normal"
+                                style="font-size: 1rem">(Copa)</small></h5>
+                        <p class="mb-2 text-secondary fs-5">24/setembro - Quarta-feira</p>
+                        <p class="mb-0 birthday-card__congrats">PARABÉNS!!!</p>
+                    </div>
+                </div>
+            </div>
 
             <!-- Aniversário Lidia -->
 
@@ -37,12 +73,12 @@
                         <h5 class="mb-1 text-primary fw-bold fs-4">LIDIA <small class="text-muted fw-normal"
                                 style="font-size: 1rem">(Engenharia)</small></h5>
                         <p class="mb-2 text-secondary fs-5">15/setembro - Segunda-feira</p>
-                        <p class="mb-0 birthday-card__congrats">PARABENS!!!</p>
+                        <p class="mb-0 birthday-card__congrats">PARABÉNS!!!</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Aniversário Lidia -->
+            <!-- Aniversário Steffany -->
 
             <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
                 <div class="birthday-card__header" style="background-color: #a7a3ab">
@@ -51,10 +87,10 @@
                 </div>
                 <div class="card-body birthday-card__body">
                     <p class="mb-0">
-                        <span class="birthday-card__highlight-name">Lidia</span>, comemorando seu aniversario, convida a
+                        <span class="birthday-card__highlight-name">Steffany</span>, comemorando seu aniversário, convida a
                         todos para aquele tradicional
-                        <span class="birthday-card__highlight-event">bolinho</span>, hoje, as 16:00, no 11o andar
-                        (recepcao).
+                        <span class="birthday-card__highlight-event">bolinho</span>, hoje, às 16:00, no 11º andar
+                        (recepção).
                     </p>
                 </div>
             </div>
@@ -65,22 +101,535 @@
                     <span class="birthday-card__date">15/09/2025</span>
                 </div>
                 <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
-                    <img src="https://i.imgur.com/v8ZP01C.png" alt="Feliz aniversario"
+                    <img src="{% static 'intranet/img/aniv11.png' %}" alt="Feliz aniversário"
                         class="birthday-card__image rounded-2">
                     <div class="flex-grow-1">
-                        <h5 class="mb-1 text-primary fw-bold fs-4">LIDIA <small class="text-muted fw-normal"
-                                style="font-size: 1rem">(Engenharia)</small></h5>
-                        <p class="mb-2 text-secondary fs-5">15/setembro - Segunda-feira</p>
-                        <p class="mb-0 birthday-card__congrats">PARABENS!!!</p>
+                        <h5 class="mb-1 text-primary fw-bold fs-4">STEFFANY <small class="text-muted fw-normal"
+                                style="font-size: 1rem">(Marketing)</small></h5>
+                        <p class="mb-2 text-secondary fs-5">03/setembro - Quarta-feira</p>
+                        <p class="mb-0 birthday-card__congrats">PARABÉNS!!!</p>
                     </div>
                 </div>
             </div>
+
+            <!-- Aniversário Tânia -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #ff8026">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">12/08/2025</span>
+                </div>
+                <div class="card-body birthday-card__body">
+                    <p class="mb-0">
+                        <span class="birthday-card__highlight-name">Tânia</span>, comemorando seu aniversário, convida a
+                        todos para aquele tradicional
+                        <span class="birthday-card__highlight-event">bolinho</span>, hoje, às 16:00, no 11º andar
+                        (recepção).
+                    </p>
+                </div>
+            </div>
+            <!-------------------->
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #ff8026">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">12/08/2025</span>
+                </div>
+                <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+                    <img src="{% static 'intranet/img/aniv08.png' %}" alt="Feliz aniversario"
+                        class="birthday-card__image rounded-2">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1 text-primary fw-bold fs-4">TÂNIA <small class="text-muted fw-normal"
+                                style="font-size: 1rem">(Financeiro)</small></h5>
+                        <p class="mb-2 text-secondary fs-5">12/agosto - Terça-feira</p>
+                        <p class="mb-0 birthday-card__congrats">PARABÉNS!!!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aniversário Ana Clara -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #a7a3ab">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">06/08/2025</span>
+                </div>
+                <div class="card-body birthday-card__body">
+                    <p class="mb-0">
+                        <span class="birthday-card__highlight-name">Ana Clara</span>, comemorando seu aniversário, convida a
+                        todos para aquele tradicional
+                        <span class="birthday-card__highlight-event">bolinho</span>, hoje, às 16:00, no 11º andar
+                        (recepção).
+                    </p>
+                </div>
+            </div>
+            <!-------------------->
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #a7a3ab">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">06/08/2025</span>
+                </div>
+                <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+                    <img src="{% static 'intranet/img/aniv04.png' %}" alt="Feliz aniversario"
+                        class="birthday-card__image rounded-2">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1 text-primary fw-bold fs-4">ANA CLARA <small class="text-muted fw-normal"
+                                style="font-size: 1rem">(Assistência Técnica)</small></h5>
+                        <p class="mb-2 text-secondary fs-5">05/agosto - Terça-feira</p>
+                        <p class="mb-0 birthday-card__congrats">PARABÉNS!!!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aniversário Antônio -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #ff8026">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">04/08/2025</span>
+                </div>
+                <div class="card-body birthday-card__body">
+                    <p class="mb-0">
+                        <span class="birthday-card__highlight-name">Antônio</span>, comemorando seu aniversário, convida a
+                        todos para aquele tradicional
+                        <span class="birthday-card__highlight-event">bolinho</span>, hoje, às 16:00, no 11º andar
+                        (recepção).
+                    </p>
+                </div>
+            </div>
+            <!-------------------->
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #ff8026">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">04/08/2025</span>
+                </div>
+                <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+                    <img src="{% static 'intranet/img/aniv11.png' %}" alt="Feliz aniversario"
+                        class="birthday-card__image rounded-2">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1 text-primary fw-bold fs-4">ANTÔNIO <small class="text-muted fw-normal"
+                                style="font-size: 1rem">(Compras)</small></h5>
+                        <p class="mb-2 text-secondary fs-5">02/agosto - Sábado</p>
+                        <p class="mb-0 birthday-card__congrats">PARABÉNS!!!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aniversário Fábio -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #a7a3ab">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">01/07/2025</span>
+                </div>
+                <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+                    <img src="{% static 'intranet/img/aniv04.png' %}" alt="Feliz aniversario"
+                        class="birthday-card__image rounded-2">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1 text-primary fw-bold fs-4">FÁBIO <small class="text-muted fw-normal"
+                                style="font-size: 1rem">(Presidência)</small></h5>
+                        <p class="mb-2 text-secondary fs-5">01/julho - Terça-feira</p>
+                        <p class="mb-0 birthday-card__congrats">PARABÉNS!!!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feriado Corpus Chisti -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #ff8026">
+                    <span class="birthday-card__title">EXPEDIENTE - FERIADO DE CORPUS CHRISTI</span>
+                    <span class="birthday-card__date">16/06/2025</span>
+                </div>
+                <div class="card-body birthday-card__body">
+                    <div class="fw-bold">
+                        <p>Administração / Assistência Técnica</p>
+                        
+                    </div>
+                    <div class="row">
+                        <div class="ms-2">
+                            <p><u>Encerramento:</u></p>
+                        </div>
+                        <div class="ms-4">
+                            Dia 18/JUN/2025
+                        </div>
+                        <div class="ms-4">
+                            Quarta-feira, às 18:00
+                        </div>
+                        <p></p>
+                        <div class="ms-2">
+                            <p><u>Retorno:</u></p>
+                        </div>
+                        <div class="ms-4">
+                            Dia 23/JUN/2025
+                        </div>
+                        <div class="ms-4">
+                            Segunda-feira, às 08:00
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Aniversário Amilton -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #a7a3ab">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">13/06/2025</span>
+                </div>
+                <div class="card-body birthday-card__body">
+                    <p class="mb-0">
+                        <span class="birthday-card__highlight-name">Amilton</span>, comemorando seu aniversário, convida a
+                        todos para aquele tradicional
+                        <span class="birthday-card__highlight-event">bolinho</span>, hoje, às 16:00, no 11º andar
+                        (recepção).
+                    </p>
+                </div>
+            </div>
+            <!-------------------->
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #a7a3ab">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">13/06/2025</span>
+                </div>
+                <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+                    <img src="{% static 'intranet/img/aniv11.png' %}" alt="Feliz aniversario"
+                        class="birthday-card__image rounded-2">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1 text-primary fw-bold fs-4">AMILTON <small class="text-muted fw-normal"
+                                style="font-size: 1rem">(TI)</small></h5>
+                        <p class="mb-2 text-secondary fs-5">13/junho - Sexta-feira</p>
+                        <p class="mb-0 birthday-card__congrats">PARABÉNS!!!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aniversário Liliane -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #ff8026">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">20/05/2025</span>
+                </div>
+                <div class="card-body birthday-card__body">
+                    <p class="mb-0">
+                        <span class="birthday-card__highlight-name">Liliane</span>, comemorando seu aniversário, convida a
+                        todos para aquele tradicional
+                        <span class="birthday-card__highlight-event">bolinho</span>, hoje, às 16:00, no 11º andar
+                        (recepção).
+                    </p>
+                </div>
+            </div>
+            <!-------------------->
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #ff8026">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">20/05/2025</span>
+                </div>
+                <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+                    <img src="{% static 'intranet/img/aniv01.png' %}" alt="Feliz aniversario"
+                        class="birthday-card__image rounded-2">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1 text-primary fw-bold fs-4">LILIANE <small class="text-muted fw-normal"
+                                style="font-size: 1rem">(Diretoria)</small></h5>
+                        <p class="mb-2 text-secondary fs-5">02/agosto - Terça-feira</p>
+                        <p class="mb-0 birthday-card__congrats">PARABÉNS!!!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aniversário Heliane -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #a7a3ab">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">28/04/2025</span>
+                </div>
+                <div class="card-body birthday-card__body">
+                    <p class="mb-0">
+                        <span class="birthday-card__highlight-name">Heliane</span>, comemorando seu aniversário, convida a
+                        todos para aquele tradicional
+                        <span class="birthday-card__highlight-event">bolinho</span>, hoje, às 16:00, no 11º andar
+                        (recepção).
+                    </p>
+                </div>
+            </div>
+            <!-------------------->
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #a7a3ab">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">28/04/2025</span>
+                </div>
+                <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+                    <img src="{% static 'intranet/img/aniv04.png' %}" alt="Feliz aniversario"
+                        class="birthday-card__image rounded-2">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1 text-primary fw-bold fs-4">HELIANE <small class="text-muted fw-normal"
+                                style="font-size: 1rem">(Financeiro)</small></h5>
+                        <p class="mb-2 text-secondary fs-5">26/abril - Sábado</p>
+                        <p class="mb-0 birthday-card__congrats">PARABÉNS!!!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aniversário Marco -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #ff8026">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">24/05/2025</span>
+                </div>
+                <div class="card-body birthday-card__body">
+                    <p class="mb-0">
+                        <span class="birthday-card__highlight-name">Marco</span>, comemorando seu aniversário, convida a
+                        todos para aquele tradicional
+                        <span class="birthday-card__highlight-event">bolinho</span>, hoje, às 16:00, no 11º andar
+                        (recepção).
+                    </p>
+                </div>
+            </div>
+            <!-------------------->
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #ff8026">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">24/05/2025</span>
+                </div>
+                <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+                    <img src="{% static 'intranet/img/aniv08.png' %}" alt="Feliz aniversario"
+                        class="birthday-card__image rounded-2">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1 text-primary fw-bold fs-4">MARCO <small class="text-muted fw-normal"
+                                style="font-size: 1rem">(Diretor Técnico)</small></h5>
+                        <p class="mb-2 text-secondary fs-5">24/abril - Quinta-feira</p>
+                        <p class="mb-0 birthday-card__congrats">PARABÉNS!!!</p>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Carnaval -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #a7a3ab">
+                    <span class="birthday-card__title">EXPEDIENTE - CARNAVAL</span>
+                    <span class="birthday-card__date">13/02/2025</span>
+                </div>
+                <div class="card-body birthday-card__body">
+                    <div class="fw-bold">
+                        <p>Administração / Assistência Técnica</p>
+                        
+                    </div>
+                    <div class="row">
+                        <div class="ms-2">
+                            <p><u>Encerramento:</u></p>
+                        </div>
+                        <div class="ms-4">
+                            Dia 28/fev/2025
+                        </div>
+                        <div class="ms-4">
+                            Sexta-feira, no horário normal
+                        </div>
+                        <p></p>
+                        <div class="ms-2">
+                            <p><u>Retorno:</u></p>
+                        </div>
+                        <div class="ms-4">
+                            Dia 05/mar/2025
+                        </div>
+                        <div class="ms-4">
+                            Quarta-feira, às 13:30
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+
+            <!-- Aniversário Sueli -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #ff8026">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">05/02/2025</span>
+                </div>
+                <div class="card-body birthday-card__body">
+                    <p class="mb-0">
+                        <span class="birthday-card__highlight-name">Sueli</span>, comemorando seu aniversário, convida a
+                        todos para aquele tradicional
+                        <span class="birthday-card__highlight-event">bolinho</span>, hoje, às 16:00, no 11º andar
+                        (recepção).
+                    </p>
+                </div>
+            </div>
+            <!-------------------->
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #ff8026">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">05/02/2025</span>
+                </div>
+                <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+                    <img src="{% static 'intranet/img/aniv01.png' %}" alt="Feliz aniversario"
+                        class="birthday-card__image rounded-2">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1 text-primary fw-bold fs-4">SUELI <small class="text-muted fw-normal"
+                                style="font-size: 1rem">(RH)</small></h5>
+                        <p class="mb-2 text-secondary fs-5">05/fevereiro - Quarta-feira</p>
+                        <p class="mb-0 birthday-card__congrats">PARABÉNS!!!</p>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Aniversário Carine -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #a7a3ab">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">25/11/2024</span>
+                </div>
+                <div class="card-body birthday-card__body">
+                    <p class="mb-0">
+                        <span class="birthday-card__highlight-name">Carine</span>, comemorando seu aniversário, convida a
+                        todos para aquele tradicional
+                        <span class="birthday-card__highlight-event">bolinho</span>, hoje, às 16:00, no 11º andar
+                        (recepção).
+                    </p>
+                </div>
+            </div>
+            <!-------------------->
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #a7a3ab">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">25/11/2024</span>
+                </div>
+                <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+                    <img src="{% static 'intranet/img/aniv04.png' %}" alt="Feliz aniversario"
+                        class="birthday-card__image rounded-2">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1 text-primary fw-bold fs-4">CARINE <small class="text-muted fw-normal"
+                                style="font-size: 1rem">(Recepção)</small></h5>
+                        <p class="mb-2 text-secondary fs-5">24/novembro - Domingo</p>
+                        <p class="mb-0 birthday-card__congrats">PARABÉNS!!!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aniversário Cinira -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #ff8026">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">18/11/2024</span>
+                </div>
+                <div class="card-body birthday-card__body">
+                    <p class="mb-0">
+                        <span class="birthday-card__highlight-name">Cinira</span>, comemorando seu aniversário, convida a
+                        todos para aquele tradicional
+                        <span class="birthday-card__highlight-event">bolinho</span>, hoje, às 16:00, no 11º andar
+                        (recepção).
+                    </p>
+                </div>
+            </div>
+            <!-------------------->
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #ff8026">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">18/11/2024</span>
+                </div>
+                <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+                    <img src="{% static 'intranet/img/aniv04.png' %}" alt="Feliz aniversario"
+                        class="birthday-card__image rounded-2">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1 text-primary fw-bold fs-4">CINIRA <small class="text-muted fw-normal"
+                                style="font-size: 1rem">(Contabilidade)</small></h5>
+                        <p class="mb-2 text-secondary fs-5">15/novembro - Sexta-feira</p>
+                        <p class="mb-0 birthday-card__congrats">PARABÉNS!!!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expediente - Fim de Ano -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #a7a3ab">
+                    <span class="birthday-card__title">EXPEDIENTE - CARNAVAL</span>
+                    <span class="birthday-card__date">12/11/2024</span>
+                </div>
+                <div class="card-body birthday-card__body">
+                    <div class="fw-bold">
+                        <p>Administração / Assistência Técnica</p>
+                        
+                    </div>
+                    <div class="row">
+                        <div class="ms-2">
+                            <p><u>Encerramento:</u></p>
+                        </div>
+                        <div class="ms-4">
+                            Dia 18/dez/2024
+                        </div>
+                        <div class="ms-4">
+                            Quarta-feira, no horário normal
+                        </div>
+                        <p></p>
+                        <div class="ms-2">
+                            <p><u>Retorno:</u></p>
+                        </div>
+                        <div class="ms-4">
+                            Dia 08/jan/2025
+                        </div>
+                        <div class="ms-4">
+                            Quarta-feira, no horário normal
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aniversário David -->
+
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #ff8026">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">11/11/2024</span>
+                </div>
+                <div class="card-body birthday-card__body">
+                    <p class="mb-0">
+                        <span class="birthday-card__highlight-name">David</span>, comemorando seu aniversário, convida a
+                        todos para aquele tradicional
+                        <span class="birthday-card__highlight-event">bolinho</span>, hoje, às 16:00, no 11º andar
+                        (recepção).
+                    </p>
+                </div>
+            </div>
+            <!-------------------->
+            <div class="card shadow-sm border-0 rounded-3 birthday-card mt-2">
+                <div class="birthday-card__header" style="background-color: #ff8026">
+                    <span class="birthday-card__title">Aniversário</span>
+                    <span class="birthday-card__date">11/11/2024</span>
+                </div>
+                <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+                    <img src="{% static 'intranet/img/aniv08.png' %}" alt="Feliz aniversario"
+                        class="birthday-card__image rounded-2">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1 text-primary fw-bold fs-4">DAVID <small class="text-muted fw-normal"
+                                style="font-size: 1rem">(Compras)</small></h5>
+                        <p class="mb-2 text-secondary fs-5">11/novembro - Segunda-feira</p>
+                        <p class="mb-0 birthday-card__congrats">PARABÉNS!!!</p>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+
+
+
+            <!-------------------->
 
         </div>
 
 
         <!-- Coluna com 20% da largura -->
-        <div class="col-12 col-md-3 pt-2 px-1 px-lg-2 ps-lg-0">
+        <div class="col-12 col-md-3 pt-2 px-1 px-lg-2 ps-lg-0 d-flex flex-column h-100 min-vh-100">
 
             <!-- Ramais -->
 
@@ -107,6 +656,82 @@
                         alt="Bliss Living fachada" class="promo-card__image promo-card__image--photo">
                 </div>
             </div>
+
+            <!-- Vivaz Condomínio Jardim-->
+
+            <div class="card shadow-sm border-0 rounded-3 promo-card mt-2">
+                <div class="promo-card__media">
+                    <img src="{% static 'intranet/img/Vivaz Condominio Jardim - Logo.jpg' %}" alt="Bliss Living logo"
+                        class="promo-card__image promo-card__image--logo">
+                    <img src="{% static 'intranet/img/Vivaz Condominio Jardim - Fachada.jpg' %}"
+                        alt="Bliss Living fachada" class="promo-card__image promo-card__image--photo">
+                </div>
+            </div>
+
+            <!-- Porto Mare-->
+
+            <div class="card shadow-sm border-0 rounded-3 promo-card mt-2">
+                <div class="promo-card__media">
+                    <img src="{% static 'intranet/img/Porto Mare Residence - Logo.jpg' %}" alt="Bliss Living logo"
+                        class="promo-card__image promo-card__image--logo">
+                    <img src="{% static 'intranet/img/Porto Mare Residence - Fachada.jpg' %}"
+                        alt="Bliss Living fachada" class="promo-card__image promo-card__image--photo">
+                </div>
+            </div>
+
+            <!-- Horizonte Novo Estreito-->
+
+            <div class="card shadow-sm border-0 rounded-3 promo-card mt-2">
+                <div class="promo-card__media">
+                    <img src="{% static 'intranet/img/Horizonte Novo Estreito - Logo.jpg' %}" alt="Bliss Living logo"
+                        class="promo-card__image promo-card__image--logo">
+                    <img src="{% static 'intranet/img/Horizonte Novo Estreito - Fachada.jpg' %}"
+                        alt="Bliss Living fachada" class="promo-card__image promo-card__image--photo">
+                </div>
+            </div>
+
+            <!-- Urban Classic-->
+
+            <div class="card shadow-sm border-0 rounded-3 promo-card mt-2">
+                <div class="promo-card__media">
+                    <img src="{% static 'intranet/img/Urban Classic - Logo.jpg' %}" alt="Bliss Living logo"
+                        class="promo-card__image promo-card__image--logo">
+                    <img src="{% static 'intranet/img/Urban Classic - Fachada.jpg' %}"
+                        alt="Bliss Living fachada" class="promo-card__image promo-card__image--photo">
+                </div>
+            </div>
+
+            <!-- City Office Square-->
+
+            <div class="card shadow-sm border-0 rounded-3 promo-card mt-2">
+                <div class="promo-card__media">
+                    <img src="{% static 'intranet/img/City_Logo.jpg' %}" alt="Bliss Living logo"
+                        class="promo-card__image promo-card__image--logo">
+                    <img src="{% static 'intranet/img/City_Fachada.jpg' %}"
+                        alt="Bliss Living fachada" class="promo-card__image promo-card__image--photo">
+                </div>
+            </div>
+
+            <!-- Solar de Gaia-->
+
+            <div class="card shadow-sm border-0 rounded-3 promo-card mt-2">
+                <div class="promo-card__media">
+                    <img src="{% static 'intranet/img/SolarDeGaia - Logo.jpg' %}" alt="Bliss Living logo"
+                        class="promo-card__image promo-card__image--logo">
+                    <img src="{% static 'intranet/img/SolarDeGaia - Fachada.jpg' %}"
+                        alt="Bliss Living fachada" class="promo-card__image promo-card__image--photo">
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 rounded-3 promo-card mt-2">
+                <div style="height: 3990px">
+                    
+                </div>
+            </div>
+
+
+
+
         </div>
     </div>
 
