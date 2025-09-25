@@ -103,7 +103,32 @@ class Uteis:
         }
 
     def mes_atual_extenso(self) -> str:
-        locale.setlocale(locale.LC_TIME, 'pt_BR.utf8')  # ou 'pt_BR.UTF-8' conforme SO
         hoje = date.today()
-        mes_atual = calendar.month_name[hoje.month].capitalize() + '/' + str(hoje.year)
-        return mes_atual
+        mes_pt_br = None
+
+        for loc in ('pt_BR.UTF-8', 'pt_BR.utf8', 'pt_BR'):
+            try:
+                locale.setlocale(locale.LC_TIME, loc)
+                mes_pt_br = hoje.strftime('%B')
+                break
+            except locale.Error:
+                continue
+
+        if not mes_pt_br:
+            meses_pt = {
+                1: 'janeiro',
+                2: 'fevereiro',
+                3: 'mar\u00e7o',
+                4: 'abril',
+                5: 'maio',
+                6: 'junho',
+                7: 'julho',
+                8: 'agosto',
+                9: 'setembro',
+                10: 'outubro',
+                11: 'novembro',
+                12: 'dezembro',
+            }
+            mes_pt_br = meses_pt.get(hoje.month, calendar.month_name[hoje.month].lower())
+
+        return f"{mes_pt_br.capitalize()}/{hoje.year}"
