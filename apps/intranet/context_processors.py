@@ -110,15 +110,29 @@ USEFUL_LINKS = [
     {"name": "ChatGPT", "url": "https://chat.openai.com/auth/login"},
 ]
 
-MODULO_LINKS = [
+GERENCIAL_LINKS = [
     
+    {"name": "Testes", "url": "#"},
+]
+
+ADMIN_LINKS = [
+    {"name": "Testes", "url": "#"},
     {"name": "Índices", "url": reverse('indices:indice_list')},
     {"name": "Tabela Bliss", "url": "#"},
 ]
 
 # reverse("indice_list")
 
-def navbar_links(_request):
+def navbar_links(request):
+    user = getattr(request, 'user', None)
+    show_gerencial_menu = False
+    show_admin_menu = False
+
+    if user and user.is_authenticated:
+        group_names = set(user.groups.values_list("name", flat=True))
+        show_gerencial_menu = bool(group_names & {"admin", "manager"})
+        show_admin_menu = "admin" in group_names
+
     return {
         "empreendimento_links": EMPREENDEDIMENTO_LINKS,
         "administrativo_links": ADMINISTRATIVO_LINKS,
@@ -127,5 +141,8 @@ def navbar_links(_request):
         "bank_links": BANK_LINKS,
         "public_agency_links": PUBLIC_AGENCY_LINKS,
         "useful_links": USEFUL_LINKS,
-        "modulo_links": MODULO_LINKS,
+        "gerencial_links": GERENCIAL_LINKS if show_gerencial_menu else [],
+        "admin_links": ADMIN_LINKS if show_admin_menu else [],
+        "show_gerencial_menu": show_gerencial_menu,
+        "show_admin_menu": show_admin_menu,
     }

@@ -104,19 +104,37 @@
                 </li>
 
 
+                {% if show_gerencial_menu %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
                         data-bs-toggle="dropdown" aria-expanded="false">
-                        Módulos
+                        Gerencial
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        {% for link in modulo_links %}
+                        {% for link in gerencial_links %}
                         <li>
                             <a class="dropdown-item" href="{{ link.url }}">{{link.name }}</a>
                         </li>
                         {% endfor %}
                     </ul>
                 </li>
+                {% endif %}
+
+                {% if show_admin_menu %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        Admin
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        {% for link in admin_links %}
+                        <li>
+                            <a class="dropdown-item" href="{{ link.url }}">{{link.name }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                {% endif %}
             </ul>
             <div class="d-flex align-items-center ms-auto mt-3 mt-lg-0 gap-2">
                 {% if user.is_authenticated %}
