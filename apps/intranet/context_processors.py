@@ -116,7 +116,6 @@ GERENCIAL_LINKS = [
 ]
 
 ADMIN_LINKS = [
-    {"name": "Testes", "url": "#"},
     {"name": "Índices", "url": reverse('indices:indice_list')},
     {"name": "Tabela Bliss", "url": "#"},
 ]

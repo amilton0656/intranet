@@ -13,15 +13,11 @@
         </div>
         <div class="col-sm-6 col-md-4">
             <select name="indice" class="form-select">
-                <option value="">— Filtrar por índice —</option>
-                {% for i in indices %}
-
-
-
-
-
-
+                <option value="">Filtrar por indice</option>
+                {% for indice in indices %}
+                <option value="{{ indice.id }}"{% if request.GET.indice|default:'' == indice.id|stringformat:'s' %} selected{% endif %}>{{ indice.descricao }}</option>
                 {% endfor %}
+            </select>
             </select>
         </div>
         <div class="col-auto">

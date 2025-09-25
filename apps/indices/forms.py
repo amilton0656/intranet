@@ -5,6 +5,10 @@ from .models import Indice, IndiceData
 class DateInput(forms.DateInput):
     input_type = 'date'
 
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('format', '%Y-%m-%d')
+        super().__init__(*args, **kwargs)
+
 class DecimalInput(forms.NumberInput):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('attrs', {}).update({'step': '0.00000001'})
