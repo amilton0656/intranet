@@ -5,6 +5,9 @@ import calendar
 from django.db import connection
 from django.shortcuts import render
 
+from datetime import date
+import locale
+
 
 class Uteis:
     def fetch_indices_data(self, id_indice, indice_data):
@@ -103,19 +106,39 @@ class Uteis:
 
     def mes_atual_extenso(self) -> str:
         hoje = date.today()
-        meses_pt = {
-            1: 'janeiro',
-            2: 'fevereiro',
-            3: 'mar\u00e7o',
-            4: 'abril',
-            5: 'maio',
-            6: 'junho',
-            7: 'julho',
-            8: 'agosto',
-            9: 'setembro',
-            10: 'outubro',
-            11: 'novembro',
-            12: 'dezembro',
-        }
-        mes_pt_br = meses_pt.get(hoje.month, calendar.month_name[hoje.month].lower())
-        return f"{mes_pt_br.capitalize()}/{hoje.year}"
+        try:
+            original_locale = locale.setlocale(locale.LC_TIME)
+        except locale.Error:
+            original_locale = None
+
+        for loc in ("pt_BR.UTF-8", "pt_BR.utf8", "pt_BR", "pt_BR.ISO8859-1"):
+            try:
+                locale.setlocale(locale.LC_TIME, loc)
+                month_name = hoje.strftime("%B").capitalize()
+                if original_locale:
+                    locale.setlocale(locale.LC_TIME, original_locale)
+                else:
+                    try:
+                        locale.setlocale(locale.LC_TIME, 'C')
+                    except locale.Error:
+                        pass
+                return f"{month_name}/{hoje.year}"
+            except locale.Error:
+                continue
+
+        if original_locale:
+            try:
+                locale.setlocale(locale.LC_TIME, original_locale)
+            except locale.Error:
+                pass
+        else:
+            try:
+                locale.setlocale(locale.LC_TIME, 'C')
+            except locale.Error:
+                pass
+
+        meses_pt = [
+            "Janeiro", "Fevereiro", "Mar\u00e7o", "Abril", "Maio", "Junho",
+            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+        ]
+        return f"{meses_pt[hoje.month - 1]}/{hoje.year}"
