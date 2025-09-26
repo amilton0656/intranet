@@ -1,11 +1,32 @@
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-2 mt-2">
-        <h1 class="h3 m-0">{{page_title}}</h1>
-        <div>
-            <a class="btn btn-primary" href="{% url 'indices:indice_list' %}">Índices</a>
-            <a class="btn btn-primary" href="{% url 'indices:indice_create' %}">+</a>
-            <a class="btn btn-primary" href="{% url 'indices:indicedata_list' %}">Datas</a>
-            <a class="btn btn-primary" href="{% url 'indices:indicedata_create' %}">+</a>
-        </div>
-    </div>
+{% with current=request.resolver_match.url_name %}
+<div class="indice-menu d-flex flex-wrap gap-3 py-1 ps-3">
+    <a class="indice-menu__item{% if current == 'indice_list' or current == 'indice_update' or current == 'indice_delete' %} is-active{% endif %}" href="{% url 'indices:indice_list' %}">Indices</a>
+    <a class="indice-menu__item{% if current == 'indice_create' %} is-active{% endif %}" href="{% url 'indices:indice_create' %}">Novo Indice</a>
+    <a class="indice-menu__item{% if current == 'indicedata_list' or current == 'indicedata_update' or current == 'indicedata_delete' %} is-active{% endif %}" href="{% url 'indices:indicedata_list' %}">Valores</a>
+    <a class="indice-menu__item{% if current == 'indicedata_create' %} is-active{% endif %}" href="{% url 'indices:indicedata_create' %}">Novo Valor</a>
 </div>
+{% endwith %}
+
+<style>
+.indice-menu {
+    margin-top: -0.25rem;
+}
+
+.indice-menu__item {
+    color: #404040;
+    text-decoration: none;
+    border-bottom: 5px solid transparent;
+    padding-bottom: 2px;
+    transition: border-color .2s ease, color .2s ease;
+}
+
+.indice-menu__item.is-active {
+    color: #000000;
+}
+
+.indice-menu__item:hover,
+.indice-menu__item:focus {
+    color: #404040;
+    border-bottom-color: orange;
+}
+</style>

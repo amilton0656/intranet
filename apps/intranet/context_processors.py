@@ -1,4 +1,4 @@
-﻿from django.urls import reverse
+from django.urls import reverse
 
 EMPREENDEDIMENTO_LINKS = [
     {"name": "America Officenter", "url": "#"},
@@ -40,7 +40,7 @@ NEWS_LINKS = [
     {"name": "Jovem Pan", "url": "https://jovempan.com.br"},
     {"name": "Revista Veja", "url": "https://veja.abril.com.br"},
     {"name": "Revista Época", "url": "https://oglobo.globo.com/epoca"},
-    {"name": "Revista Isto É", "url": "https://istoe.com.br"},
+    {"name": "Revista Isto é", "url": "https://istoe.com.br"},
     {"name": "NSC Total", "url": "https://www.nsctotal.com.br/dc"},
     {"name": "Notícias do Dia", "url": "https://ndmais.com.br"},
     {"name": "Revista Exame", "url": "https://exame.com"},
@@ -52,7 +52,7 @@ NEWS_LINKS_SECONDARY = [
     {"name": "Jovem Pan", "url": "https://jovempan.com.br"},
     {"name": "Revista Veja", "url": "https://veja.abril.com.br"},
     {"name": "Revista Época", "url": "https://oglobo.globo.com/epoca"},
-    {"name": "Revista Isto É", "url": "https://istoe.com.br"},
+    {"name": "Revista Isto e", "url": "https://istoe.com.br"},
     {"name": "NSC Total", "url": "https://www.nsctotal.com.br/dc"},
     {"name": "Notícias do Dia", "url": "https://ndmais.com.br"},
     {"name": "Revista Exame", "url": "https://exame.com"},
@@ -67,7 +67,7 @@ BANK_LINKS = [
     {"name": "Credicard", "url": "https://www.credicard.com.br"},
     {"name": "Banco Fibra", "url": "https://portal.bancofibra.com.br"},
     {"name": "Banco Inter", "url": "https://www.bancointer.com.br"},
-    {"name": "Itaú Empresas", "url": "https://www.itau.com.br/empresas"},
+    {"name": "Itau Empresas", "url": "https://www.itau.com.br/empresas"},
     {"name": "Safra", "url": "https://www.safra.com.br"},
     {"name": "Santander", "url": "https://www.santander.com.br"},
     {"name": "Sicoob", "url": "https://www.sicoob.com.br"},
@@ -111,13 +111,13 @@ USEFUL_LINKS = [
 ]
 
 GERENCIAL_LINKS = [
-    
-    {"name": "Testes", "url": "#"},
+    {"name": "Bliss - Unidades", "url": reverse('bliss_report')},
+    {"name": "Bliss - Resumo", "url": reverse('bliss_summary')},
 ]
 
 ADMIN_LINKS = [
     {"name": "Índices", "url": reverse('indices:indice_list')},
-    {"name": "Tabela Bliss", "url": "#"},
+    {"name": "Tabela Bliss", "url": "/bliss/"},
 ]
 
 # reverse("indice_list")
@@ -145,3 +145,4 @@ def navbar_links(request):
         "show_gerencial_menu": show_gerencial_menu,
         "show_admin_menu": show_admin_menu,
     }
+

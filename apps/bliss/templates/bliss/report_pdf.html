@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        table, th, td { border: 1px solid black; border-collapse: collapse; padding: 5px; }
+        th { background-color: #eee; }
+    </style>
+</head>
+<body>
+    <h3>Relatório PDF</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Bloco</th>
+                <th>Unidade</th>
+                <th>Garagem</th>
+                <th>Situação</th>
+                <th>Valor Tabela</th>
+                <th>Valor Venda</th>
+                <th>Cliente</th>
+                <th>Corretor</th>
+                <th>Data Venda</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in registros %}
+            <tr>
+                <td>{{ item.bloco }}</td>
+                <td>{{ item.unidade }}</td>
+                <td>{{ item.garagem }}</td>
+                <td>{{ item.situacao }}</td>
+                <td>R$ {{ item.valor_tabela|floatformat:2 }}</td>
+                <td>R$ {{ item.valor_venda|floatformat:2 }}</td>
+                <td>{{ item.cliente }}</td>
+                <td>{{ item.corretor }}</td>
+                <td>{{ item.data_venda }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

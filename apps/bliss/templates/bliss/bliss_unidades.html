@@ -1,0 +1,33 @@
+{% extends 'intranet/intranet_base.html' %}
+{% load humanize %}
+{% block content %}
+{% include 'bliss/bliss_navbar.html' %}
+<h4>Unidades</h4>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Bloco</th>
+            <th>Unidade</th>
+            <th>Situação</th>
+            <th class="text-end">Valor Tabela</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in registros %}
+        <tr>
+            <td>{{ item.bloco }}</td>
+            <td>{{ item.unidade }}</td>
+            <td>{{ item.situacao }}</td>
+            <td class="text-end">R$ {{ item.valor_tabela|floatformat:2|intcomma }}</td>
+            <td>
+                <a href="{% url 'bliss_update' item.pk %}" class="btn btn-sm btn-warning">Editar</a>
+                <a href="{% url 'bliss_delete' item.pk %}" class="btn btn-sm btn-danger">Excluir</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">Nenhum registro encontrado.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

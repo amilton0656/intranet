@@ -1,0 +1,11 @@
+{% extends 'intranet/intranet_base.html' %}
+{% block title %}Excluir Registro{% endblock %}
+{% block content %}
+{% include 'bliss/bliss_navbar.html' %}
+<h3>Tem certeza que deseja excluir este registro?</h3>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Confirmar</button>
+    <a href="{% url 'tab_bliss' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

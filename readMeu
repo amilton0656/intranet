@@ -1,4 +1,8 @@
 .\.venv\Scripts\activate
+py manage.py runserver 8001
 
 pip install django python-dotenv psycopg2-binary
-xxx
+pip install openpyxl xhtml2pdf
+
+python manage.py collectstatic --noinput
+sudo systemctl restart gunicorn-intranet

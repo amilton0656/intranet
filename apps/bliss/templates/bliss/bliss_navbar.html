@@ -1,0 +1,44 @@
+﻿{% load custom_filters %}
+{% with current=request.resolver_match.url_name %}
+<div class="bliss-menu d-flex flex-wrap gap-3 py-1 ps-3">
+    {% if request.user|has_group:'admin' %}
+    <a class="bliss-menu__item{% if current == 'tab_bliss' or current == 'bliss_update' or current == 'bliss_delete' %} is-active{% endif %}" href="{% url 'tab_bliss' %}">Bliss</a>
+    <a class="bliss-menu__item{% if current == 'bliss_create' %} is-active{% endif %}" href="{% url 'bliss_create' %}">Novo Registro</a>
+    <a class="bliss-menu__item{% if current == 'bliss_import' %} is-active{% endif %}" href="{% url 'bliss_import' %}">Importar Excel</a>
+    <a class="bliss-menu__item{% if current == 'bliss_report' or current == 'bliss_pdf_report' %} is-active{% endif %}" href="{% url 'bliss_report' %}">Relatório</a>
+    <a class="bliss-menu__item{% if current == 'bliss_summary' %} is-active{% endif %}" href="{% url 'bliss_summary' %}">Resumo</a>
+    <a class="bliss-menu__item{% if current == 'atualizar_situacoes' %} is-active{% endif %}" href="{% url 'atualizar_situacoes' %}">Atualizar Situações</a>
+    <a class="bliss-menu__item{% if current == 'atualizacao_mensal' %} is-active{% endif %}" href="{% url 'atualizacao_mensal' %}">Atualização Mensal</a>
+    {% else %}
+    <a class="bliss-menu__item{% if current == 'bliss_report' or current == 'bliss_pdf_report' %} is-active{% endif %}" href="{% url 'bliss_report' %}">Relatório</a>
+    <a class="bliss-menu__item{% if current == 'bliss_summary' %} is-active{% endif %}" href="{% url 'bliss_summary' %}">Resumo</a>
+    {% endif %}
+</div>
+{% endwith %}
+
+<style>
+.bliss-menu {
+    margin-top: -0.25rem;
+}
+
+.bliss-menu__item {
+    color: #404040;
+    text-decoration: none;
+    border-bottom: 5px solid transparent;
+    padding-bottom: 2px;
+    transition: border-color .2s ease, color .2s ease;
+}
+
+.bliss-menu__item.is-active {
+    color: #000000;
+}
+
+.bliss-menu__item:hover,
+.bliss-menu__item:focus {
+    color: #404040;
+    border-bottom-color: orange;
+}
+</style>
+
+
+

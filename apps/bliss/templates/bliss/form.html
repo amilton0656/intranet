@@ -1,0 +1,93 @@
+{% extends 'intranet/intranet_base.html' %}
+{% block title %}{{ form.instance.pk|yesno:'Editar Registro,Novo Registro' }}{% endblock %}
+{% block content %}
+{% include 'bliss/bliss_navbar.html' %}
+<div class="container">
+    <form method="post" class="row gy-3">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="col-12">
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        <div class="col-12 col-md-2">
+            <label class="form-label" for="{{ form.bloco.id_for_label }}">{{ form.bloco.label }}</label>
+            {{ form.bloco }}
+            {% for error in form.bloco.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-md-2">
+            <label class="form-label" for="{{ form.unidade.id_for_label }}">{{ form.unidade.label }}</label>
+            {{ form.unidade }}
+            {% for error in form.unidade.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-md-2">
+            <label class="form-label" for="{{ form.perc_permuta.id_for_label }}">{{ form.perc_permuta.label }}</label>
+            {{ form.perc_permuta }}
+            {% for error in form.perc_permuta.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label" for="{{ form.area_privativa.id_for_label }}">{{ form.area_privativa.label }}</label>
+            {{ form.area_privativa }}
+            {% for error in form.area_privativa.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label" for="{{ form.area_total.id_for_label }}">{{ form.area_total.label }}</label>
+            {{ form.area_total }}
+            {% for error in form.area_total.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label" for="{{ form.garagem.id_for_label }}">{{ form.garagem.label }}</label>
+            {{ form.garagem }}
+            {% for error in form.garagem.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label" for="{{ form.deposito.id_for_label }}">{{ form.deposito.label }}</label>
+            {{ form.deposito }}
+            {% for error in form.deposito.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label" for="{{ form.tipologia.id_for_label }}">{{ form.tipologia.label }}</label>
+            {{ form.tipologia }}
+            {% for error in form.tipologia.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label" for="{{ form.situacao.id_for_label }}">{{ form.situacao.label }}</label>
+            {{ form.situacao }}
+            {% for error in form.situacao.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label" for="{{ form.valor_tabela.id_for_label }}">{{ form.valor_tabela.label }}</label>
+            {{ form.valor_tabela }}
+            {% for error in form.valor_tabela.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label" for="{{ form.valor_venda.id_for_label }}">{{ form.valor_venda.label }}</label>
+            {{ form.valor_venda }}
+            {% for error in form.valor_venda.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label" for="{{ form.data_venda.id_for_label }}">{{ form.data_venda.label }}</label>
+            {{ form.data_venda }}
+            {% for error in form.data_venda.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12">
+            <label class="form-label" for="{{ form.cliente.id_for_label }}">{{ form.cliente.label }}</label>
+            {{ form.cliente }}
+            {% for error in form.cliente.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-md-6">
+            <label class="form-label" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+            {{ form.email }}
+            {% for error in form.email.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Salvar</button>
+            <a href="{% url 'tab_bliss' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
