@@ -1,4 +1,4 @@
-import os
+﻿import os
 import datetime
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
@@ -25,7 +25,7 @@ from django.db import transaction
 #     return render(request, "bliss/tab_bliss.html")
 
 # @login_required
-def tab_bliss(request):
+def bliss_unidades(request):
     registros = Bliss.objects.all()
     return render(request, 'bliss/bliss_unidades.html', {'registros': registros})
 
@@ -38,7 +38,7 @@ def bliss_create(request):
             return redirect('tab_bliss')
     else:
         form = BlissForm()
-    return render(request, 'bliss/form.html', {'form': form})
+    return render(request, 'bliss/bliss_form.html', {'form': form})
 
 # Editar
 def bliss_update(request, pk):
@@ -47,7 +47,7 @@ def bliss_update(request, pk):
     if form.is_valid():
         form.save()
         return redirect('tab_bliss')
-    return render(request, 'bliss/form.html', {'form': form})
+    return render(request, 'bliss/bliss_form.html', {'form': form})
 
 # Excluir
 def bliss_delete(request, pk):
@@ -55,10 +55,10 @@ def bliss_delete(request, pk):
     if request.method == 'POST':
         registro.delete()
         return redirect('tab_bliss')
-    return render(request, 'bliss/delete_confirm.html', {'registro': registro})
+    return render(request, 'bliss/bliss_delete_confirm.html', {'registro': registro})
 
-# Relatório HTML
-def bliss_report(request):
+# RelatÃ³rio HTML
+def bliss_unidades_full(request):
     sort = request.GET.get('sort', 'bloco')
     direction = request.GET.get('dir', 'asc')  # 'asc' ou 'desc'
 
@@ -75,10 +75,10 @@ def bliss_report(request):
     def with_dir(field: str) -> str:
         return field if direction == 'asc' else f'-{field}'
 
-    # monta a ordenação
+    # monta a ordenaÃ§Ã£o
     order_by = []
     if sort == 'bloco':
-        # 1º por bloco, 2º por unidade (mesma direção escolhida)
+        # 1Âº por bloco, 2Âº por unidade (mesma direÃ§Ã£o escolhida)
         order_by.append(with_dir('bloco'))
         order_by.append(with_dir('unidade'))
     else:
@@ -92,19 +92,19 @@ def bliss_report(request):
         'dir': direction,
         'invert_dir': 'desc' if direction == 'asc' else 'asc',
     }
-    return render(request, 'bliss/report.html', context)
+    return render(request, 'bliss/bliss_unidades_full.html', context)
 
-# Relatório PDF
-def bliss_pdf_report(request):
+# RelatÃ³rio PDF
+def bliss_unidades_full_pdf(request):
     registros = Bliss.objects.all()
-    template = get_template('bliss/report_pdf.html')
+    template = get_template('bliss/bliss_unidades_full_pdf.html')
     html = template.render({'registros': registros})
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="relatorio.pdf"'
     pisa_status = pisa.CreatePDF(html, dest=response)
     return response
 
-# Resumo de Situações
+# Resumo de SituaÃ§Ãµes
 def bliss_summary(request):
     registros = Bliss.objects.all()
 
@@ -120,7 +120,7 @@ def bliss_summary(request):
         unidade = reg.unidade.lower()
         situacao = reg.situacao
 
-        # Caso normal (não é loja)
+        # Caso normal (nÃ£o Ã© loja)
         if unidade != 'loja':
             if situacao not in resumo_dict:
                 resumo_dict[situacao] = {
@@ -159,8 +159,8 @@ def bliss_summary(request):
             resumo_dict['Permuta']['total_valor_venda'] += valor_permuta_venda
             resumo_dict['Permuta']['total_unidades'] += 1
 
-            # Grupo restante — se situação == Permuta, o restante vai para "Disponível"
-            grupo_restante = 'Disponível' if situacao.lower() == 'permuta' else situacao
+            # Grupo restante â€” se situaÃ§Ã£o == Permuta, o restante vai para "DisponÃ­vel"
+            grupo_restante = 'DisponÃ­vel' if situacao.lower() == 'permuta' else situacao
 
             if grupo_restante not in resumo_dict:
                 resumo_dict[grupo_restante] = {
@@ -202,7 +202,7 @@ def bliss_summary(request):
     valor_m2_lojas = venda_lojas / m2_lojas if m2_lojas else Decimal('0')
 
     # Tipos (exceto loja)
-    tipos = registros.filter(situacao__iexact='disponível').exclude(unidade__iexact='loja')
+    tipos = registros.filter(situacao__iexact='disponÃ­vel').exclude(unidade__iexact='loja')
     qtd_tipos = tipos.count()
     m2_tipos = tipos.aggregate(area=models.Sum('area_privativa'))['area'] or Decimal('0')
     venda_tipos = tipos.aggregate(total=models.Sum('valor_tabela'))['total'] or Decimal('0')
@@ -325,7 +325,7 @@ def bliss_import(request):
                 email=row[11] or ''
             )
         return redirect('tab_bliss')
-    return render(request, 'bliss/import.html')
+    return render(request, 'bliss/bliss_import.html')
 
 
 EXCECOES = {
@@ -365,7 +365,7 @@ def _get_ci(row, key_lower):
 def atualizacao_mensal(request):
     """
     Atualiza valor_tabela e situacao casando por (bloco, unidade).
-    Aceita delimitadores ; , \t | e cabeçalhos em qualquer ordem:
+    Aceita delimitadores ; , \t | e cabeÃ§alhos em qualquer ordem:
     bloco, unidade, valor_tabela, situacao
     """
     if request.method == 'POST' and request.FILES.get('csv_file'):
@@ -376,7 +376,7 @@ def atualizacao_mensal(request):
         sample = wrapper.read(2048)
         wrapper.seek(0)
 
-        # tenta detectar o delimitador; se falhar, força ';'
+        # tenta detectar o delimitador; se falhar, forÃ§a ';'
         try:
             dialect = csv.Sniffer().sniff(sample, delimiters=';,|\t')
             delimiter = dialect.delimiter
@@ -385,13 +385,13 @@ def atualizacao_mensal(request):
 
         reader = csv.DictReader(wrapper, delimiter=delimiter)
         if not reader.fieldnames:
-            messages.error(request, 'Não foi possível ler os cabeçalhos do CSV.')
+            messages.error(request, 'NÃ£o foi possÃ­vel ler os cabeÃ§alhos do CSV.')
             return redirect('tab_bliss')
 
         obrigatorios = {'bloco', 'unidade', 'valor_tabela', 'situacao'}
         faltando = obrigatorios - {h.lower().strip() for h in reader.fieldnames if h}
         if faltando:
-            messages.error(request, f'Cabeçalhos ausentes no CSV: {", ".join(sorted(faltando))}.')
+            messages.error(request, f'CabeÃ§alhos ausentes no CSV: {", ".join(sorted(faltando))}.')
             return redirect('tab_bliss')
 
         total = puladas_excecao = nao_encontradas = sem_mudanca = 0
@@ -441,15 +441,110 @@ def atualizacao_mensal(request):
             (
                 f'Processadas: {total}. '
                 f'Atualizadas: {len(objetos_para_update)}. '
-                f'Sem mudança: {sem_mudanca}. '
-                f'Puladas (exceções): {puladas_excecao}. '
-                f'Não encontradas: {nao_encontradas}. '
+                f'Sem mudanÃ§a: {sem_mudanca}. '
+                f'Puladas (exceÃ§Ãµes): {puladas_excecao}. '
+                f'NÃ£o encontradas: {nao_encontradas}. '
                 f'(Delimitador detectado: "{delimiter}")'
             )
         )
         return redirect('tab_bliss')
 
-    return render(request, 'bliss/atualizacao_mensal.html')
+    return render(request, 'bliss/bliss_atualizacao_mensal.html')
+
+def bliss_resumo(request):
+    registros = Bliss.objects.all()
+
+    situacao = {
+        'Bloqueada': {'qtde': 0, 'valor': Decimal('0')},
+        'DisponÃ­vel': {'qtde': 0, 'valor': Decimal('0')},
+        'Permuta': {'qtde': 0, 'valor': Decimal('0')},
+        'QA': {'qtde': 0, 'valor': Decimal('0')},
+        'Vendida': {'qtde': 0, 'valor': Decimal('0')},
+        'Total': {'qtde': 0, 'valor': Decimal('0')},
+    }
+
+    resumo = {
+        'preco_medio_tipo': 0,
+        'qtde_lojas': 0,
+        'qtde_tipos': 0,
+        'qtde_total': 0,
+
+        'valor_loja': 0,
+        'valor_tipos': 0,
+        'valor_total': 0,
+
+        'priv_loja': 0,
+        'priv_tipos': 0,
+        'priv_avenda': 0,
+
+        'm2_loja': 0,
+        'm2_tipos': 0,
+        'm2_avenda': 0,
+    }
+
+    for registro in registros:
+        chave = (registro.situacao or '').strip()
+        valor = registro.valor_tabela or Decimal('0')
+
+        if registro.unidade == 'Loja':
+            situacao["Permuta"]['qtde'] += 1
+            situacao["Permuta"]['valor'] += (valor * Decimal('0.12826'))
+            if registro.situacao == "DisponÃ­vel":
+                situacao["DisponÃ­vel"]['qtde'] += 1
+                situacao["DisponÃ­vel"]['valor'] += (valor * Decimal('0.87174'))
+                resumo["qtde_lojas"] = 1
+                resumo["valor_loja"] = (valor * Decimal('0.87174'))
+                resumo["priv_loja"] = registro.area_privativa * Decimal('0.87174')
+            else:
+                situacao["Vendida"]['qtde'] += 1
+                situacao["Vendida"]['valor'] += (valor * Decimal('0.87174'))    
+
+        else:    
+            if chave in situacao:
+                situacao[chave]['qtde'] += 1
+                situacao[chave]['valor'] += valor
+                if registro.situacao == "DisponÃ­vel":
+                    resumo["qtde_tipos"] += 1
+                    resumo["priv_tipos"] += registro.area_privativa
+                    resumo["valor_tipos"] += registro.valor_tabela
+
+        situacao['Total']['qtde'] += 1
+        situacao['Total']['valor'] += valor
+
+    total_qtde = situacao['Total']['qtde']
+    total_valor = situacao['Total']['valor']
+
+    if resumo["qtde_tipos"]:
+        resumo["preco_medio_tipo"] = resumo["valor_tipos"] / resumo["qtde_tipos"]
+    else:
+        resumo["preco_medio_tipo"] = 0    
+
+    if resumo["priv_loja"]:
+        resumo["m2_loja"] = resumo["valor_loja"] / resumo["priv_loja"] 
+    else:
+        resumo["m2_loja"] = 0   
+
+    if resumo["priv_tipos"]:
+        resumo["m2_tipos"] = resumo["valor_tipos"] / resumo["priv_tipos"] 
+    else:
+        resumo["m2_tipos"] = 0 
+
+    resumo["qtde_total"] = resumo["qtde_lojas"] + resumo["qtde_tipos"]  
+    resumo["valor_total"] = resumo["valor_loja"] + resumo["valor_tipos"] 
+    resumo["priv_total"] = resumo["priv_loja"] + resumo["priv_tipos"] 
+
+    if resumo["priv_total"]:
+        resumo["m2_total"] = resumo["valor_total"] / resumo["priv_total"] 
+    else:
+        resumo["m2_total"] = 0 
+
+    for dados in situacao.values():
+        dados['qtde_perc'] = (Decimal(dados['qtde']) / Decimal(total_qtde) * Decimal('100')) if total_qtde else Decimal('0')
+        dados['valor_perc'] = (dados['valor'] / total_valor * Decimal('100')) if total_valor else Decimal('0')
+    return render(request, 'bliss/bliss_resumo.html', {'situacao': situacao, 'registros': registros, 'resumo': resumo})
+
+
+
 
 
 
