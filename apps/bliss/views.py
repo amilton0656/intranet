@@ -1,6 +1,7 @@
 ﻿import os
 import datetime
 import json
+import time
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Bliss
@@ -586,6 +587,18 @@ def send_bliss_resumo_pdf_email(recipient_email, *, subject=None, body=None):
 
 def bliss_resumo(request):
     context = _build_bliss_resumo_context()
+    sent_info = request.session.get('bliss_resumo_email_sent')
+    email_flag = False
+    if isinstance(sent_info, dict):
+        ts = sent_info.get('ts')
+        if ts and (time.time() - ts) <= 5:
+            email_flag = sent_info.get('email') or True
+        else:
+            request.session.pop('bliss_resumo_email_sent', None)
+    elif sent_info:
+        email_flag = True
+        request.session.pop('bliss_resumo_email_sent', None)
+    context['email_enviado'] = email_flag
     return render(request, 'bliss/bliss_resumo.html', context)
 
 def bliss_resumo_pdf(request):
@@ -633,6 +646,29 @@ def bliss_resumo_email_webhook(request):
         return JsonResponse({'detail': 'Erro inesperado ao enviar o e-mail'}, status=500)
 
     return JsonResponse({'status': 'ok'})
+
+
+@login_required
+def bliss_resumo_send_email(request):
+    if request.method != 'POST':
+        return redirect('bliss_resumo')
+
+    email = (request.user.email or '').strip()
+    if not email:
+        messages.error(request, 'Seu usuario nao possui e-mail cadastrado.')
+        return redirect('bliss_resumo')
+
+    try:
+        send_bliss_resumo_pdf_email(email)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+    except Exception:
+        messages.error(request, 'Nao foi possivel enviar o resumo por e-mail.')
+    else:
+        messages.success(request, f'Resumo enviado para {email}.')
+        request.session['bliss_resumo_email_sent'] = {'email': email, 'ts': time.time()}
+
+    return redirect('bliss_resumo')
 
 
 @csrf_exempt
