@@ -1,4 +1,4 @@
-{% extends 'intranet/intranet_base.html' %}
+﻿{% extends 'intranet/intranet_base.html' %}
 {% block title %}{{ form.instance.pk|yesno:'Editar Registro,Novo Registro' }}{% endblock %}
 {% block content %}
 {% include 'bliss/bliss_navbar.html' %}
@@ -86,7 +86,7 @@
         </div>
         <div class="col-12 d-flex gap-2">
             <button type="submit" class="btn btn-primary">Salvar</button>
-            <a href="{% url 'tab_bliss' %}" class="btn btn-secondary">Cancelar</a>
+            <a href="{% url 'bliss_unidades' %}" class="btn btn-secondary">Cancelar</a>
         </div>
     </form>
 </div>

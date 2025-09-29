@@ -1,69 +1,139 @@
-{% extends 'intranet/intranet_base.html' %}
+﻿{% extends 'intranet/intranet_base.html' %}
 {% load custom_filters %}
 {% block content %}
 {% include 'bliss/bliss_navbar.html' %}
-<h3>Relatório Geral</h3>
-<a href="{% url 'bliss_pdf_report' %}" class="btn btn-sm btn-danger mb-3">Exportar PDF</a>
+<h3>Relat&oacute;rio Geral</h3>
+<a href="{% url 'bliss_unidades_full_pdf' %}" class="btn btn-sm btn-danger mb-3">Exportar PDF</a>
 <table class="table table-bordered">
     <thead class="thead-dark">
-    <tr>
-        <th style="min-width: 80px;"><a href="?sort=bloco&dir={% if sort == 'bloco' and dir == 'asc' %}desc{% else %}asc{% endif %}">
-            Bloco {% if sort == 'bloco' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-        </a></th>
+        <tr>
+            <th style="min-width: 80px;">
+                <a href="?sort=bloco&dir={% if sort == 'bloco' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                    Bloco
+                    {% if sort == 'bloco' %}
+                        {% if dir == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+                    {% endif %}
+                </a>
+            </th>
 
-        <th style="min-width: 100px;"><a href="?sort=unidade&dir={% if sort == 'unidade' and dir == 'asc' %}desc{% else %}asc{% endif %}">
-            Unidade {% if sort == 'unidade' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-        </a></th>
+            <th style="min-width: 100px;">
+                <a href="?sort=unidade&dir={% if sort == 'unidade' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                    Unidade
+                    {% if sort == 'unidade' %}
+                        {% if dir == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+                    {% endif %}
+                </a>
+            </th>
 
-        <th style="min-width: 80px;"><a href="?sort=area_privativa&dir={% if sort == 'area_privativa' and dir == 'asc' %}desc{% else %}asc{% endif %}">
-            Área Privativa {% if sort == 'area_privativa' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-        </a></th>
+            <th style="min-width: 80px;">
+                <a href="?sort=area_privativa&dir={% if sort == 'area_privativa' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                    &Aacute;rea Privativa
+                    {% if sort == 'area_privativa' %}
+                        {% if dir == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+                    {% endif %}
+                </a>
+            </th>
 
-        <th style="min-width: 200px;"><a href="?sort=garagem&dir={% if sort == 'garagem' and dir == 'asc' %}desc{% else %}asc{% endif %}">
-            Garagem {% if sort == 'garagem' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-        </a></th>
+            <th style="min-width: 200px;">
+                <a href="?sort=garagem&dir={% if sort == 'garagem' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                    Garagem
+                    {% if sort == 'garagem' %}
+                        {% if dir == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+                    {% endif %}
+                </a>
+            </th>
 
-        <th><a href="?sort=deposito&dir={% if sort == 'deposito' and dir == 'asc' %}desc{% else %}asc{% endif %}">
-            Depósito {% if sort == 'deposito' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-        </a></th>
+            <th>
+                <a href="?sort=deposito&dir={% if sort == 'deposito' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                    Dep&oacute;sito
+                    {% if sort == 'deposito' %}
+                        {% if dir == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+                    {% endif %}
+                </a>
+            </th>
 
-        <th style="min-width: 80px;"><a href="?sort=area_total&dir={% if sort == 'area_total' and dir == 'asc' %}desc{% else %}asc{% endif %}">
-            Área Total {% if sort == 'area_total' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-        </a></th>
+            <th style="min-width: 80px;">
+                <a href="?sort=area_total&dir={% if sort == 'area_total' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                    &Aacute;rea Total
+                    {% if sort == 'area_total' %}
+                        {% if dir == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+                    {% endif %}
+                </a>
+            </th>
 
-        <th><a href="?sort=tipologia&dir={% if sort == 'tipologia' and dir == 'asc' %}desc{% else %}asc{% endif %}">
-            Tipologia {% if sort == 'tipologia' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-        </a></th>
+            <th>
+                <a href="?sort=tipologia&dir={% if sort == 'tipologia' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                    Tipologia
+                    {% if sort == 'tipologia' %}
+                        {% if dir == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+                    {% endif %}
+                </a>
+            </th>
 
-        <th><a href="?sort=situacao&dir={% if sort == 'situacao' and dir == 'asc' %}desc{% else %}asc{% endif %}">
-            Situação {% if sort == 'situacao' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-        </a></th>
+            <th>
+                <a href="?sort=situacao&dir={% if sort == 'situacao' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                    Situa&ccedil;&atilde;o
+                    {% if sort == 'situacao' %}
+                        {% if dir == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+                    {% endif %}
+                </a>
+            </th>
 
-        <th style="min-width: 200px;" class="text-end"><a href="?sort=valor_tabela&dir={% if sort == 'valor_tabela' and dir == 'asc' %}desc{% else %}asc{% endif %}">
-            Valor Tabela {% if sort == 'valor_tabela' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-        </a></th>
+            <th style="min-width: 200px;" class="text-end">
+                <a href="?sort=valor_tabela&dir={% if sort == 'valor_tabela' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                    Valor Tabela
+                    {% if sort == 'valor_tabela' %}
+                        {% if dir == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+                    {% endif %}
+                </a>
+            </th>
 
-        <th><a href="?sort=data_venda&dir={% if sort == 'data_venda' and dir == 'asc' %}desc{% else %}asc{% endif %}">
-            Data Venda {% if sort == 'data_venda' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-        </a></th>
+            <th>
+                <a href="?sort=data_venda&dir={% if sort == 'data_venda' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                    Data Venda
+                    {% if sort == 'data_venda' %}
+                        {% if dir == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+                    {% endif %}
+                </a>
+            </th>
 
-        <th style="min-width: 200px;" class="text-end"><a href="?sort=valor_venda&dir={% if sort == 'valor_venda' and dir == 'asc' %}desc{% else %}asc{% endif %}">
-            Valor Venda {% if sort == 'valor_venda' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-        </a></th>
+            <th style="min-width: 200px;" class="text-end">
+                <a href="?sort=valor_venda&dir={% if sort == 'valor_venda' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                    Valor Venda
+                    {% if sort == 'valor_venda' %}
+                        {% if dir == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+                    {% endif %}
+                </a>
+            </th>
 
-        <th style="min-width: 400px;"><a href="?sort=cliente&dir={% if sort == 'cliente' and dir == 'asc' %}desc{% else %}asc{% endif %}">
-            Cliente {% if sort == 'cliente' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-        </a></th>
+            <th style="min-width: 400px;">
+                <a href="?sort=cliente&dir={% if sort == 'cliente' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                    Cliente
+                    {% if sort == 'cliente' %}
+                        {% if dir == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+                    {% endif %}
+                </a>
+            </th>
 
-        <th style="min-width: 400px;"><a href="?sort=email&dir={% if sort == 'email' and dir == 'asc' %}desc{% else %}asc{% endif %}">
-            E-mail {% if sort == 'email' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-        </a></th>
+            <th style="min-width: 400px;">
+                <a href="?sort=email&dir={% if sort == 'email' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                    E-mail
+                    {% if sort == 'email' %}
+                        {% if dir == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+                    {% endif %}
+                </a>
+            </th>
 
-        <th><a href="?sort=perc_permuta&dir={% if sort == 'perc_permuta' and dir == 'asc' %}desc{% else %}asc{% endif %}">
-            % Permuta {% if sort == 'perc_permuta' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
-        </a></th>
-    </tr>
-</thead>
+            <th>
+                <a href="?sort=perc_permuta&dir={% if sort == 'perc_permuta' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                    % Permuta
+                    {% if sort == 'perc_permuta' %}
+                        {% if dir == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+                    {% endif %}
+                </a>
+            </th>
+        </tr>
+    </thead>
 
     <tbody>
         {% for item in registros %}
@@ -87,4 +157,3 @@
     </tbody>
 </table>
 {% endblock %}
-

@@ -2,23 +2,23 @@
 {% with current=request.resolver_match.url_name %}
 <div class="bliss-menu d-flex flex-wrap gap-3 py-1 ps-3">
     {% if request.user|has_group:'admin' %}
-    <a class="bliss-menu__item{% if current == 'tab_bliss' or current == 'bliss_update' or current == 'bliss_delete' %} is-active{% endif %}"
-        href="{% url 'tab_bliss' %}">Bliss</a>
+    <a class="bliss-menu__item{% if current == 'bliss_unidades' or current == 'bliss_update' or current == 'bliss_delete' %} is-active{% endif %}"
+        href="{% url 'bliss_unidades' %}">Bliss</a>
     <a class="bliss-menu__item{% if current == 'bliss_create' %} is-active{% endif %}"
         href="{% url 'bliss_create' %}">Novo Registro</a>
     <a class="bliss-menu__item{% if current == 'bliss_import' %} is-active{% endif %}"
         href="{% url 'bliss_import' %}">Importar Excel</a>
-    <a class="bliss-menu__item{% if current == 'bliss_report' or current == 'bliss_pdf_report' %} is-active{% endif %}"
-        href="{% url 'bliss_report' %}">Relatório</a>
+    <a class="bliss-menu__item{% if current == 'bliss_unidades_full' or current == 'bliss_unidades_full' %} is-active{% endif %}"
+        href="{% url 'bliss_unidades_full' %}">Relatório</a>
     <a class="bliss-menu__item{% if current == 'bliss_resumo' %} is-active{% endif %}"
-        href="{% url 'bliss_summary' %}">Resumo</a>
+        href="{% url 'bliss_resumo' %}">Resumo</a>
     <a class="bliss-menu__item{% if current == 'atualizar_situacoes' %} is-active{% endif %}"
         href="{% url 'atualizar_situacoes' %}">Atualizar Situações</a>
     <a class="bliss-menu__item{% if current == 'atualizacao_mensal' %} is-active{% endif %}"
         href="{% url 'atualizacao_mensal' %}">Atualização Mensal</a>
     {% else %}
-    <a class="bliss-menu__item{% if current == 'bliss_report' or current == 'bliss_pdf_report' %} is-active{% endif %}"
-        href="{% url 'bliss_report' %}">Relatório</a>
+    <a class="bliss-menu__item{% if current == 'bliss_unidades_full' or current == 'bliss_unidades_full' %} is-active{% endif %}"
+        href="{% url 'bliss_unidades_full' %}">Relatório</a>
     <a class="bliss-menu__item{% if current == 'bliss_resumo' %} is-active{% endif %}"
         href="{% url 'bliss_summary' %}">Resumo</a>
     {% endif %}

@@ -1,4 +1,4 @@
-{% extends 'intranet/intranet_base.html' %}
+﻿{% extends 'intranet/intranet_base.html' %}
 {% block title %}Excluir Registro{% endblock %}
 {% block content %}
 {% include 'bliss/bliss_navbar.html' %}
@@ -6,6 +6,6 @@
 <form method="post">
     {% csrf_token %}
     <button type="submit" class="btn btn-danger">Confirmar</button>
-    <a href="{% url 'tab_bliss' %}" class="btn btn-secondary">Cancelar</a>
+    <a href="{% url 'bliss_unidades' %}" class="btn btn-secondary">Cancelar</a>
 </form>
 {% endblock %}

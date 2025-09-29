@@ -111,7 +111,7 @@ USEFUL_LINKS = [
 ]
 
 GERENCIAL_LINKS = [
-    {"name": "Bliss - Unidades", "url": reverse('bliss_report')},
+    {"name": "Bliss - Unidades", "url": reverse('bliss_unidades_full')},
     {"name": "Bliss - Resumo", "url": reverse('bliss_resumo')},
 ]
 

@@ -35,7 +35,7 @@ def bliss_create(request):
         form = BlissForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('tab_bliss')
+            return redirect('bliss_unidades')
     else:
         form = BlissForm()
     return render(request, 'bliss/bliss_form.html', {'form': form})
@@ -46,7 +46,7 @@ def bliss_update(request, pk):
     form = BlissForm(request.POST or None, instance=registro)
     if form.is_valid():
         form.save()
-        return redirect('tab_bliss')
+        return redirect('bliss_unidades')
     return render(request, 'bliss/bliss_form.html', {'form': form})
 
 # Excluir
@@ -54,7 +54,7 @@ def bliss_delete(request, pk):
     registro = get_object_or_404(Bliss, pk=pk)
     if request.method == 'POST':
         registro.delete()
-        return redirect('tab_bliss')
+        return redirect('bliss_unidades')
     return render(request, 'bliss/bliss_delete_confirm.html', {'registro': registro})
 
 # RelatÃ³rio HTML
@@ -293,7 +293,7 @@ def atualizar_situacoes(request):
                 total_atualizados += 1
 
     messages.success(request, f'{total_atualizados} registros atualizados com sucesso.')
-    return redirect('tab_bliss')
+    return redirect('bliss_unidades')
 
 # Importar planilha Excel
 def bliss_import(request):
@@ -324,7 +324,7 @@ def bliss_import(request):
                 cliente=row[10] or '',
                 email=row[11] or ''
             )
-        return redirect('tab_bliss')
+        return redirect('bliss_unidades')
     return render(request, 'bliss/bliss_import.html')
 
 
@@ -386,13 +386,13 @@ def atualizacao_mensal(request):
         reader = csv.DictReader(wrapper, delimiter=delimiter)
         if not reader.fieldnames:
             messages.error(request, 'NÃ£o foi possÃ­vel ler os cabeÃ§alhos do CSV.')
-            return redirect('tab_bliss')
+            return redirect('bliss_unidades')
 
         obrigatorios = {'bloco', 'unidade', 'valor_tabela', 'situacao'}
         faltando = obrigatorios - {h.lower().strip() for h in reader.fieldnames if h}
         if faltando:
             messages.error(request, f'CabeÃ§alhos ausentes no CSV: {", ".join(sorted(faltando))}.')
-            return redirect('tab_bliss')
+            return redirect('bliss_unidades')
 
         total = puladas_excecao = nao_encontradas = sem_mudanca = 0
         objetos_para_update = []
@@ -447,7 +447,7 @@ def atualizacao_mensal(request):
                 f'(Delimitador detectado: "{delimiter}")'
             )
         )
-        return redirect('tab_bliss')
+        return redirect('bliss_unidades')
 
     return render(request, 'bliss/bliss_atualizacao_mensal.html')
 
@@ -455,8 +455,8 @@ def bliss_resumo(request):
     registros = Bliss.objects.all()
 
     situacao = {
-        'Bloqueada': {'qtde': 0, 'valor': Decimal('0')},
-        'DisponÃ­vel': {'qtde': 0, 'valor': Decimal('0')},
+        'Bloqueada': {'qtde': 0, 'valor': Decimal('0')}, 
+        'Disponível': {'qtde': 0, 'valor': Decimal('0')},
         'Permuta': {'qtde': 0, 'valor': Decimal('0')},
         'QA': {'qtde': 0, 'valor': Decimal('0')},
         'Vendida': {'qtde': 0, 'valor': Decimal('0')},
@@ -489,9 +489,9 @@ def bliss_resumo(request):
         if registro.unidade == 'Loja':
             situacao["Permuta"]['qtde'] += 1
             situacao["Permuta"]['valor'] += (valor * Decimal('0.12826'))
-            if registro.situacao == "DisponÃ­vel":
-                situacao["DisponÃ­vel"]['qtde'] += 1
-                situacao["DisponÃ­vel"]['valor'] += (valor * Decimal('0.87174'))
+            if registro.situacao == "Disponível":
+                situacao["Disponível"]['qtde'] += 1
+                situacao["Disponível"]['valor'] += (valor * Decimal('0.87174'))
                 resumo["qtde_lojas"] = 1
                 resumo["valor_loja"] = (valor * Decimal('0.87174'))
                 resumo["priv_loja"] = registro.area_privativa * Decimal('0.87174')
@@ -503,7 +503,7 @@ def bliss_resumo(request):
             if chave in situacao:
                 situacao[chave]['qtde'] += 1
                 situacao[chave]['valor'] += valor
-                if registro.situacao == "DisponÃ­vel":
+                if registro.situacao == "Disponível":
                     resumo["qtde_tipos"] += 1
                     resumo["priv_tipos"] += registro.area_privativa
                     resumo["valor_tipos"] += registro.valor_tabela
