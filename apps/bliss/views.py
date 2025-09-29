@@ -601,7 +601,7 @@ def bliss_resumo_pdf(request):
 @csrf_exempt
 def bliss_resumo_email_webhook(request):
     if request.method != 'POST':
-        return JsonResponse({'detail': 'Método não permitido'}, status=405)
+        return JsonResponse({'detail': 'Metodo nao permitido'}, status=405)
 
     try:
         raw_body = request.body.decode('utf-8') if request.body else ''
@@ -613,15 +613,15 @@ def bliss_resumo_email_webhook(request):
     password = (payload.get('senha') or payload.get('password') or '').strip()
 
     if password != WEBHOOK_PASSWORD:
-        return JsonResponse({'detail': 'Credenciais inválidas'}, status=403)
+        return JsonResponse({'detail': 'Credenciais invalidas'}, status=403)
 
     if not email:
-        return JsonResponse({'detail': 'E-mail não informado'}, status=400)
+        return JsonResponse({'detail': 'E-mail nao informado'}, status=400)
 
     try:
         validate_email(email)
     except ValidationError:
-        return JsonResponse({'detail': 'E-mail inválido'}, status=400)
+        return JsonResponse({'detail': 'E-mail invalido'}, status=400)
 
     try:
         send_bliss_resumo_pdf_email(email)
@@ -631,5 +631,52 @@ def bliss_resumo_email_webhook(request):
         return JsonResponse({'detail': 'Erro inesperado ao enviar o e-mail'}, status=500)
 
     return JsonResponse({'status': 'ok'})
+
+
+@csrf_exempt
+def bliss_resumo_test_email(request):
+    if request.method not in ('POST', 'GET'):
+        return JsonResponse({'detail': 'Metodo nao permitido'}, status=405)
+
+    if request.method == 'GET':
+        payload = request.GET
+    else:
+        try:
+            raw_body = request.body.decode('utf-8') if request.body else ''
+            payload = json.loads(raw_body) if raw_body else {}
+        except json.JSONDecodeError:
+            payload = request.POST
+
+    email = (payload.get('email') or '').strip()
+    password = (payload.get('senha') or payload.get('password') or '').strip()
+
+    if password != WEBHOOK_PASSWORD:
+        return JsonResponse({'detail': 'Credenciais invalidas'}, status=403)
+
+    if not email:
+        return JsonResponse({'detail': 'E-mail nao informado'}, status=400)
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse({'detail': 'E-mail invalido'}, status=400)
+
+    email_message = EmailMessage(
+        'Teste de envio Bliss',
+        'Este e um e-mail de teste do sistema Bliss.',
+        to=[email],
+    )
+
+    try:
+        sent = email_message.send(fail_silently=False)
+    except Exception:
+        return JsonResponse({'detail': 'Erro ao enviar e-mail de teste'}, status=500)
+
+    if sent == 0:
+        return JsonResponse({'detail': 'Nenhum e-mail foi enviado'}, status=500)
+
+    return JsonResponse({'status': 'ok', 'message': 'E-mail de teste enviado'})
+
+
 
 
