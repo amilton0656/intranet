@@ -278,7 +278,7 @@ def atualizar_situacoes(request):
             ('2-SHINE', '703-SHINE'),
         ],
         'Permuta/Venda': [
-            ('1-SUN', 'Loja'),
+            ('1-SUNxxx', 'Loja'),
         ]
     }
 
@@ -455,11 +455,12 @@ def bliss_resumo(request):
     registros = Bliss.objects.all()
 
     situacao = {
-        'Bloqueada': {'qtde': 0, 'valor': Decimal('0')}, 
         'Disponível': {'qtde': 0, 'valor': Decimal('0')},
+        'Reservada': {'qtde': 0, 'valor': Decimal('0')},
+        'Bloqueada': {'qtde': 0, 'valor': Decimal('0')}, 
+        'Vendida': {'qtde': 0, 'valor': Decimal('0')},
         'Permuta': {'qtde': 0, 'valor': Decimal('0')},
         'QA': {'qtde': 0, 'valor': Decimal('0')},
-        'Vendida': {'qtde': 0, 'valor': Decimal('0')},
         'Total': {'qtde': 0, 'valor': Decimal('0')},
     }
 

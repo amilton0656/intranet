@@ -2,42 +2,52 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <title>Relat&oacute;rio Geral</title>
     <style>
-        table, th, td { border: 1px solid black; border-collapse: collapse; padding: 5px; }
-        th { background-color: #eee; }
+        @page { size: A4 landscape; margin: 10mm 20mm; }
+        body { font-family: Arial, sans-serif; font-size: 12px; margin: 10px 20px; }
+        h3 { text-align: center; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; border-spacing: 0; }
+        th, td { border: 1px solid #333; padding: 3px 1px  }
+        th { background-color: #f1f1f1; text-align: left; }
+        .text-end { text-align: right; }
+        .col1 { width: 100px; }
+        .col2 { width: 110px; }
+        .col3 { width: 200px; }
+        .col4 { width: 150px; }
+        .col5 { width: auto; }
+
     </style>
 </head>
 <body>
-    <h3>Relatório PDF</h3>
+    {% load custom_filters %}
+    <h3>Relat&oacute;rio Geral</h3>
     <table>
         <thead>
             <tr>
-                <th>Bloco</th>
-                <th>Unidade</th>
-                <th>Garagem</th>
-                <th>Situação</th>
-                <th>Valor Tabela</th>
-                <th>Valor Venda</th>
-                <th>Cliente</th>
-                <th>Corretor</th>
-                <th>Data Venda</th>
+                <th class="col1">Bloco<br>Unidade <br> Situa&ccedil;&atilde;o</th>
+                <th class="text-end col2">A. Privativa <br> A. Total</th>
+                <th class="col3">Garagem <br> Dep&oacute;sito <br> Tipologia</th>
+                <th class="text-end col4">Valor Tabela <br> Valor Venda <br> Data Venda</th>
+                <th class="col5">Cliente <br> E-mail</th>
             </tr>
         </thead>
         <tbody>
             {% for item in registros %}
             <tr>
-                <td>{{ item.bloco }}</td>
-                <td>{{ item.unidade }}</td>
-                <td>{{ item.garagem }}</td>
-                <td>{{ item.situacao }}</td>
-                <td>R$ {{ item.valor_tabela|floatformat:2 }}</td>
-                <td>R$ {{ item.valor_venda|floatformat:2 }}</td>
-                <td>{{ item.cliente }}</td>
-                <td>{{ item.corretor }}</td>
-                <td>{{ item.data_venda }}</td>
+                <td>{{ item.bloco }} <br> {{ item.unidade }} <br> {{ item.situacao }}</td>
+                <td class="text-end">{{ item.area_privativa|floatformat:2 }} <br> {{ item.area_total|floatformat:2 }}</td>
+                <td>{{ item.garagem }} <br> {{ item.deposito }} <br> {{ item.tipologia }}</td>
+                <td class="text-end">{{ item.valor_tabela|format_real }} <br> {{ item.valor_venda|format_real }} <br> {{ item.data_venda|date:"d/m/Y" }}</td>
+                <td>{{ item.cliente }} <br> {{ item.email }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="14">Nenhum registro encontrado.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </body>
 </html>
+

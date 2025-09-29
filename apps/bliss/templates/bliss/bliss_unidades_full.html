@@ -4,6 +4,8 @@
 {% include 'bliss/bliss_navbar.html' %}
 <h3>Relat&oacute;rio Geral</h3>
 <a href="{% url 'bliss_unidades_full_pdf' %}" class="btn btn-sm btn-danger mb-3">Exportar PDF</a>
+
+<div class="d-none d-md-block">
 <table class="table table-bordered">
     <thead class="thead-dark">
         <tr>
@@ -156,4 +158,30 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
+
+<div class="d-md-none">
+    {% for item in registros %}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+            <div class="mb-1"><strong>Bloco:</strong> {{ item.bloco }}</div>
+            <div class="mb-1"><strong>Unidade:</strong> {{ item.unidade }}</div>
+            <div class="mb-1"><strong>&Aacute;rea Privativa:</strong> {{ item.area_privativa|floatformat:2 }}</div>
+            <div class="mb-1"><strong>Garagem:</strong> {{ item.garagem }}</div>
+            <div class="mb-1"><strong>Dep&oacute;sito:</strong> {{ item.deposito }}</div>
+            <div class="mb-1"><strong>&Aacute;rea Total:</strong> {{ item.area_total|floatformat:2 }}</div>
+            <div class="mb-1"><strong>Tipologia:</strong> {{ item.tipologia }}</div>
+            <div class="mb-1"><strong>Situa&ccedil;&atilde;o:</strong> {{ item.situacao }}</div>
+            <div class="mb-1"><strong>Valor Tabela:</strong> {{ item.valor_tabela|format_real }}</div>
+            <div class="mb-1"><strong>Data Venda:</strong> {{ item.data_venda|date:"d/m/Y" }}</div>
+            <div class="mb-1"><strong>Valor Venda:</strong> {{ item.valor_venda|format_real }}</div>
+            <div class="mb-1"><strong>Cliente:</strong> {{ item.cliente }}</div>
+            <div class="mb-1"><strong>E-mail:</strong> {{ item.email }}</div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-info">Nenhum registro encontrado.</div>
+    {% endfor %}
+</div>
 {% endblock %}
+
