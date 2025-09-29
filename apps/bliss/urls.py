@@ -14,5 +14,7 @@ urlpatterns = [
     path('importar/', views.bliss_import, name='bliss_import'),
     path('atualizacao_mensal/', views.atualizacao_mensal, name='atualizacao_mensal'),
     path('bliss_resumo', views.bliss_resumo, name='bliss_resumo'),
+    path('bliss_resumo/pdf/', views.bliss_resumo_pdf, name='bliss_resumo_pdf'),
     path('resumo2/', views.bliss_summary, name='bliss_summary'),
 ]
+

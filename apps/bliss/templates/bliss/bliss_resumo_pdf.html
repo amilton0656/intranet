@@ -1,0 +1,119 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Resumo Bliss</title>
+    <style>
+        @page { size: A4 landscape; margin: 12mm 15mm; }
+        body { font-family: Arial, sans-serif; font-size: 11px; color: #111; }
+        h2 { text-align: center; margin: 18px 0 8px; font-size: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
+        th, td { border: 1px solid #444; padding: 4px 6px; font-size: 16px;}
+        th { background-color: #f0f0f0; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .col1 { width: 100px; }
+        .col2 { width: 110px; }
+        .col3 { width: 200px; }
+        .col4 { width: 150px; }
+        .col5 { width: 150px; }
+        .col6 { width: auto; }
+
+        .tabela-rel {
+            width: 100%;
+            table-layout: fixed;   /* evita “dança” de largura */
+            border-collapse: collapse;
+            }
+            .tabela-rel td, .tabela-rel th {
+            padding: 6px 8px;
+            }
+            .tabela-rel td, .tabela-rel th {
+            word-break: break-word;   /* se tiver textos longos nas outras colunas */
+            }
+    </style>
+</head>
+<body>
+    {% load humanize %}
+    {% load custom_filters %}
+
+    <h2>Resumo por Situa&ccedil;&atilde;o</h2>
+    <table class="tabela-rel">
+        <thead>
+            <tr>
+                <th>Situa&ccedil;&atilde;o</th>
+                <th class="text-right">Total Valor Tabela</th>
+                <th class="text-right">% Valor Tabela</th>
+                <th class="text-right">Total Unidades</th>
+                <th class="text-right">% Unidades</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for nome, dados in situacao.items %}
+            {% if not forloop.last %}
+            <tr>
+                <td>{{ nome }}</td>
+                <td class="text-right">{{ dados.valor|format_real }}</td>
+                <td class="text-right">{{ dados.valor_perc|floatformat:2 }}%</td>
+                <td class="text-right">{{ dados.qtde }}</td>
+                <td class="text-right">{{ dados.qtde_perc|floatformat:2 }}%</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+            <tr>
+                <th>Total Geral</th>
+                <th class="text-right">{{ situacao.Total.valor|format_real }}</th>
+                <th class="text-right">{{ situacao.Total.valor_perc|floatformat:2 }}%</th>
+                <th class="text-right">{{ situacao.Total.qtde }}</th>
+                <th class="text-right">{{ situacao.Total.qtde_perc|floatformat:2 }}%</th>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Resumo por Tipo</h2>
+    <table>
+        <colgroup>
+            <col style="width: 140px">   <!-- 1ª coluna -->
+            <col style="width: 80px">    <!-- 2ª coluna (Qtde) -->
+            <col style="width: 80px">    <!-- 2ª coluna (Qtde) -->
+            <col style="width: 80px">    <!-- 2ª coluna (Qtde) -->
+            <col style="width: 80px">    <!-- 2ª coluna (Qtde) -->
+            <col style="width: auto">    <!-- 3ª coluna -->
+        </colgroup>
+        <thead>
+            <tr>
+                <th class="text-right">Qtde</th>
+                <th>Tipo</th>
+                <th class="text-right">M&sup2; Priv</th>
+                <th class="text-right">Valor de Tabela</th>
+                <th class="text-right">R$ do M&sup2;</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="text-right">{{ resumo.qtde_lojas }}</td>
+                <td>Loja</td>
+                <td class="text-right">{{ resumo.priv_loja|floatformat:2|intcomma }}</td>
+                <td class="text-right">{{ resumo.valor_loja|format_real }}</td>
+                <td class="text-right">{{ resumo.m2_loja|floatformat:2|intcomma }}</td>
+            </tr>
+            <tr>
+                <td class="text-right">{{ resumo.qtde_tipos }}</td>
+                <td>Tipo</td>
+                <td class="text-right">{{ resumo.priv_tipos|floatformat:2|intcomma }}</td>
+                <td class="text-right">{{ resumo.valor_tipos|format_real }}</td>
+                <td class="text-right">{{ resumo.m2_tipos|floatformat:2|intcomma }}</td>
+            </tr>
+            <tr>
+                <td class="text-right">{{ resumo.qtde_total }}</td>
+                <td>Total</td>
+                <td class="text-right">{{ resumo.priv_total|floatformat:2|intcomma }}</td>
+                <td class="text-right">{{ resumo.valor_total|format_real }}</td>
+                <td class="text-right">{{ resumo.m2_total|floatformat:2|intcomma }}</td>
+            </tr>
+        </tbody>
+    </table>
+    <h2>Preço médio do tipo : {{ resumo.preco_medio_tipo|format_real }}</h2>
+
+</body>
+</html>
+

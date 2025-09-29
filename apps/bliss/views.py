@@ -451,7 +451,7 @@ def atualizacao_mensal(request):
 
     return render(request, 'bliss/bliss_atualizacao_mensal.html')
 
-def bliss_resumo(request):
+def _build_bliss_resumo_context():
     registros = Bliss.objects.all()
 
     situacao = {
@@ -542,11 +542,23 @@ def bliss_resumo(request):
     for dados in situacao.values():
         dados['qtde_perc'] = (Decimal(dados['qtde']) / Decimal(total_qtde) * Decimal('100')) if total_qtde else Decimal('0')
         dados['valor_perc'] = (dados['valor'] / total_valor * Decimal('100')) if total_valor else Decimal('0')
-    return render(request, 'bliss/bliss_resumo.html', {'situacao': situacao, 'registros': registros, 'resumo': resumo})
+    return {
+        'situacao': situacao,
+        'registros': registros,
+        'resumo': resumo,
+    }
 
+def bliss_resumo(request):
+    context = _build_bliss_resumo_context()
+    return render(request, 'bliss/bliss_resumo.html', context)
 
-
-
-
-
-
+def bliss_resumo_pdf(request):
+    context = _build_bliss_resumo_context()
+    template = get_template('bliss/bliss_resumo_pdf.html')
+    html = template.render(context)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="bliss_resumo.pdf"'
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('Erro ao gerar PDF', status=500)
+    return response
