@@ -27,8 +27,10 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.views.decorators.csrf import csrf_exempt
 
-WEBHOOK_PASSWORD = getattr(settings, 'BLISS_RESUMO_WEBHOOK_PASSWORD', '12345')
+# WEBHOOK_PASSWORD = getattr(settings, 'BLISS_RESUMO_WEBHOOK_PASSWORD', '12345')
 
+
+WEBHOOK_PASSWORD = os.getenv("BLISS_RESUMO_WEBHOOK_PASSWORD", "12345")
 # @login_required
 # def tab_bliss(request):
 #     return render(request, "bliss/tab_bliss.html")
