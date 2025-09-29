@@ -1,10 +1,11 @@
 ﻿import os
 import datetime
+import json
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Bliss
 from .forms import BlissForm
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from openpyxl import load_workbook
 from django.db.models import Count, Sum
 from django.template.loader import get_template
@@ -19,6 +20,14 @@ from django.db import models
 import csv
 import io
 from django.db import transaction
+from io import BytesIO
+from django.core.mail import EmailMessage
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from django.views.decorators.csrf import csrf_exempt
+
+WEBHOOK_PASSWORD = getattr(settings, 'BLISS_RESUMO_WEBHOOK_PASSWORD', '12345')
 
 # @login_required
 # def tab_bliss(request):
@@ -548,17 +557,79 @@ def _build_bliss_resumo_context():
         'resumo': resumo,
     }
 
+def _render_bliss_resumo_pdf(context):
+    template = get_template('bliss/bliss_resumo_pdf.html')
+    html = template.render(context)
+    buffer = BytesIO()
+    pisa_status = pisa.CreatePDF(html, dest=buffer)
+    if pisa_status.err:
+        raise ValueError('Erro ao gerar PDF do resumo Bliss')
+    buffer.seek(0)
+    return buffer
+
+
+def send_bliss_resumo_pdf_email(recipient_email, *, subject=None, body=None):
+    context = _build_bliss_resumo_context()
+    pdf_buffer = _render_bliss_resumo_pdf(context)
+    email = EmailMessage(
+        subject or 'Resumo Bliss',
+        body or 'Segue em anexo o resumo Bliss.',
+        to=[recipient_email],
+    )
+    email.attach('bliss_resumo.pdf', pdf_buffer.getvalue(), 'application/pdf')
+    sent_count = email.send(fail_silently=False)
+    if sent_count == 0:
+        raise ValueError('Nenhum e-mail foi enviado.')
+
+
 def bliss_resumo(request):
     context = _build_bliss_resumo_context()
     return render(request, 'bliss/bliss_resumo.html', context)
 
 def bliss_resumo_pdf(request):
     context = _build_bliss_resumo_context()
-    template = get_template('bliss/bliss_resumo_pdf.html')
-    html = template.render(context)
+    try:
+        pdf_buffer = _render_bliss_resumo_pdf(context)
+    except ValueError as exc:
+        return HttpResponse(str(exc), status=500)
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="bliss_resumo.pdf"'
-    pisa_status = pisa.CreatePDF(html, dest=response)
-    if pisa_status.err:
-        return HttpResponse('Erro ao gerar PDF', status=500)
+    response.write(pdf_buffer.getvalue())
     return response
+
+
+@csrf_exempt
+def bliss_resumo_email_webhook(request):
+    if request.method != 'POST':
+        return JsonResponse({'detail': 'Método não permitido'}, status=405)
+
+    try:
+        raw_body = request.body.decode('utf-8') if request.body else ''
+        payload = json.loads(raw_body) if raw_body else {}
+    except json.JSONDecodeError:
+        payload = request.POST
+
+    email = (payload.get('email') or payload.get('to') or '').strip()
+    password = (payload.get('senha') or payload.get('password') or '').strip()
+
+    if password != WEBHOOK_PASSWORD:
+        return JsonResponse({'detail': 'Credenciais inválidas'}, status=403)
+
+    if not email:
+        return JsonResponse({'detail': 'E-mail não informado'}, status=400)
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse({'detail': 'E-mail inválido'}, status=400)
+
+    try:
+        send_bliss_resumo_pdf_email(email)
+    except ValueError as exc:
+        return JsonResponse({'detail': str(exc)}, status=500)
+    except Exception:
+        return JsonResponse({'detail': 'Erro inesperado ao enviar o e-mail'}, status=500)
+
+    return JsonResponse({'status': 'ok'})
+
+

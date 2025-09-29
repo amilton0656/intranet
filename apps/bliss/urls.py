@@ -1,4 +1,4 @@
-# from django.contrib import admin
+﻿# from django.contrib import admin
 from django.urls import path
 # from django.contrib.auth import views as auth_views
 from . import views
@@ -15,6 +15,8 @@ urlpatterns = [
     path('atualizacao_mensal/', views.atualizacao_mensal, name='atualizacao_mensal'),
     path('bliss_resumo', views.bliss_resumo, name='bliss_resumo'),
     path('bliss_resumo/pdf/', views.bliss_resumo_pdf, name='bliss_resumo_pdf'),
+    path('bliss_resumo/email/', views.bliss_resumo_email_webhook, name='bliss_resumo_email_webhook'),
     path('resumo2/', views.bliss_summary, name='bliss_summary'),
 ]
+
 
