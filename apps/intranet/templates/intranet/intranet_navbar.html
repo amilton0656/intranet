@@ -23,20 +23,7 @@
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle me-4 me-4" href="#" id="navbarDropdown" role="button"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                        Empreendimentos
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        {% for link in empreendimento_links %}
-                        <li>
-                            <a class="dropdown-item" href="{{ link.url }}" target="_blank"
-                                rel="noopener noreferrer">{{link.name }}</a>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </li>
+                
 
 
 
@@ -103,8 +90,26 @@
                     </ul>
                 </li>
 
+                
+
 
                 {% if show_gerencial_menu %}
+
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle me-4 me-4" href="#" id="navbarDropdown" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        Tabelas de Vendas
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        {% for link in empreendimento_links %}
+                        <li>
+                            <a class="dropdown-item" href="{{ link.url }}" target="_blank"
+                                rel="noopener noreferrer">{{link.name }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
                         data-bs-toggle="dropdown" aria-expanded="false">

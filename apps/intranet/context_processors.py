@@ -1,23 +1,16 @@
 from django.urls import reverse
+from django.templatetags.static import static
 
 EMPREENDEDIMENTO_LINKS = [
-    {"name": "America Officenter", "url": "#"},
-    {"name": "Bliss Living", "url": "#"},
-    {"name": "City Office Square", "url": "#"},
-    {"name": "Green Village Residence", "url": "#"},
-    {"name": "Horizonte Novo Estreito", "url": "#"},
-    {"name": "Max & Flora Center", "url": "#"},
-    {"name": "Paço Imperial", "url": "#"},
-    {"name": "Porto Atlântico", "url": "#"},
-    {"name": "Porto Mare Residence", "url": "#"},
-    {"name": "Punta Blu Mall Boutique", "url": "#"},
-    {"name": "Punta Blu Residence", "url": "#"},
-    {"name": "Solar de Gaia", "url": "#"},
-    {"name": "Sun Village Residence", "url": "#"},
-    {"name": "The Office Avenida", "url": "#"},
-    {"name": "The Office Business Center", "url": "#"},
-    {"name": "Urban Classic", "url": "#"},
-    {"name": "Vivaz Condomínio Jardim", "url": "#"},
+    {"name": "Bliss Living - bancária", "url": static("downloads/BLISS LIVING - bancaria.pdf")},
+    {"name": "Green Village Residence - bancária", "url": static("downloads/GREEN VILLAGE RESIDENCE - bancária.pdf")},
+    {"name": "Imóveis de Terceiros - Bombinhas", "url": static("downloads/IMOVEIS DE TERCEIROS - BOMBINHAS - bancária.pdf")},
+    {"name": "Imóveis de Terceiros - Grande Florianópolis", "url": static("downloads/IMÓVEIS DE TERCEIROS - GRANDE FLORIANÓPOLIS - bancária.pdf")},
+    {"name": "Max & Flora - Locação", "url": static("downloads/MAX & FLORA - locação.pdf")},
+    {"name": "Punta Blu Mall Boutique - bancária", "url": static("downloads/PUNTA BLU MALL BOUTIQUE - bancária.pdf")},
+    {"name": "Punta Blu Mall Boutique - direta", "url": static("downloads/PUNTA BLU MALL BOUTIQUE - direta.pdf")},
+    {"name": "Punta Blu Mall Boutique - locação", "url": static("downloads/PUNTA BLU MALL BOUTIQUE - locação.pdf")},
+    {"name": "Punta Blu Residence - bancária", "url": static("downloads/PUNTA BLU RESIDENCE - bancária.pdf")},
 ]
 
 ADMINISTRATIVO_LINKS = [
