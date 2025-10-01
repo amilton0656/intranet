@@ -112,8 +112,8 @@ class Uteis:
 
         indices1 = self.fetch_indices_data(1, data)
         indices2 = self.fetch_indices_data(2, data)
-        indices3 = self.fetch_indices_data(1, data)
-        indices4 = self.fetch_indices_data(2, data)
+        indices3 = self.fetch_indices_data(3, data)
+        indices4 = self.fetch_indices_data(4, data)
 
         return {
             "cubres": f"Residencial: {self.format_currency_brl(indices1[0]['valor'])} - {self.format_percentage(indices2[0]['valor'])}",
