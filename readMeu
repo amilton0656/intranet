@@ -4,6 +4,7 @@ py manage.py runserver 8001
 
 pip install django python-dotenv psycopg2-binary
 pip install openpyxl xhtml2pdf
+pip install djangorestframework
 
 python manage.py collectstatic --noinput
 sudo systemctl restart gunicorn-intranet
