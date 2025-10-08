@@ -6,7 +6,6 @@
 {% block content %}
 {% include 'bliss/bliss_navbar.html' %}
 <div class="mx-3">
-  <h3 class="mb-4">Resumo por Situação</h3>
   <div class="d-flex gap-2 mb-3">
     <a href="{% url 'bliss_resumo_pdf' %}" class="btn btn-sm btn-danger" target="_blank" rel="noopener">Exportar PDF</a>
     <form method="post" action="{% url 'bliss_resumo_send_email' %}" class="d-inline">
@@ -15,9 +14,10 @@
     </form>
     {% if email_enviado %}<span class="badge bg-success">Enviado</span>{% endif %}
   </div>
-
+  
   {# ====== DESKTOP/TABLET: Tabela ====== #}
   <div class="d-none d-md-block">
+    <h3 class="mb-4">Resumo por Situação</h3>
     <table class="table table-bordered table-sm">
       <thead class="table-light">
         <tr>
@@ -109,12 +109,12 @@
   {% endfor %}
 </div>
 
-<hr class="my-5">
+<hr class="my-lg-5 ">
 <div class="mx-3">
-  <h3 class="mt-5">Resumo por Tipo</h3>
-
+  
   {# ====== DESKTOP/TABLET: Tabela ====== #}
   <div class="d-none d-md-block">
+    <h3 class="mt-5">Resumo por Tipo</h3>
     <table class="table table-bordered w-100">
       <thead class="table-light text-center">
         <tr>
@@ -175,6 +175,7 @@
 
 {# ====== CELULAR: Cartoes/Lista ====== #}
 <div class="d-block d-md-none">
+  <h3 class="mb-1 ms-3">Resumo por Situação</h3>
   <div class="list-group mb-2">
     {% for grupo in unidades %}
     {% with dados=grupo.totais %}
@@ -239,10 +240,10 @@
 </div>
 
 {# ====== CELULAR: Cartões ====== #}
-<div class="d-block d-md-none mx-3">
+<div class="d-block d-md-none mx-0">
+  <h3 class="mt-2 ms-3">Resumo por Tipo</h3>
   <div class="card mb-3">
     <div class="card-body py-3">
-      <div class="fw-semibold text-muted text-uppercase small mb-2">Resumo Geral</div>
       <div class="row align-items-center">
         <div class="col-6">Loja</div>
         <div class="col-6 text-end fw-semibold">{{ resumo.qtde_lojas }}</div>
@@ -326,7 +327,7 @@
     </div>
     {% endfor %}
   {% else %}
-    <div class="alert alert-info"><strong>Preço Médio Tipo:</strong> {{ resumo.preco_medio_tipo|format_real }}</div>
+    <div class="alert alert-light"><strong>Preço Médio Tipo:</strong> {{ resumo.preco_medio_tipo|format_real }}</div>
   {% endif %}
 </div>
 
