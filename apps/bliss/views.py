@@ -570,6 +570,17 @@ def _build_bliss_resumo_context():
     ]
     unidades_por_status = {item['situacao']: item['unidades'] for item in unidades}
 
+    def to_float(value):
+        if value is None:
+            return 0.0
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            try:
+                return float(str(value).replace(',', '.'))
+            except (TypeError, ValueError):
+                return 0.0
+
     resumo = {
         'preco_medio_tipo': 0,
         'qtde_lojas': 0,
@@ -673,10 +684,24 @@ def _build_bliss_resumo_context():
     for dados in situacao.values():
         dados['qtde_perc'] = (Decimal(dados['qtde']) / Decimal(total_qtde) * Decimal('100')) if total_qtde else Decimal('0')
         dados['valor_perc'] = (dados['valor'] / total_valor * Decimal('100')) if total_valor else Decimal('0')
+        dados['area_perc'] = (dados['area'] / situacao['Total']['area'] * Decimal('100')) if situacao['Total']['area'] else Decimal('0')
+
+    chart_data = {
+        'situacao_labels': [item['situacao'] for item in unidades],
+        'situacao_valores': [to_float((situacao.get(item['situacao']) or {}).get('valor')) for item in unidades],
+        'situacao_areas': [to_float((situacao.get(item['situacao']) or {}).get('area')) for item in unidades],
+        'situacao_qtdes': [int((situacao.get(item['situacao']) or {}).get('qtde') or 0) for item in unidades],
+        'tipo_labels': ['Tipos', 'Lojas'],
+        'tipo_valores': [to_float(resumo.get('valor_tipos')), to_float(resumo.get('valor_loja'))],
+        'tipo_areas': [to_float(resumo.get('priv_tipos')), to_float(resumo.get('priv_loja'))],
+    }
+
+
     return {
         'situacao': situacao,
         'registros': registros,
         'unidades': unidades,
+        'chart_data': chart_data,
         'unidades_por_status': unidades_por_status,
         'resumo': resumo,
     }
@@ -730,6 +755,10 @@ def bliss_resumo(request):
 def bliss_resumo_novo(request):
     context = _attach_email_flag(request, _build_bliss_resumo_context())
     return render(request, 'bliss/bliss_resumo_novo.html', context)
+
+def bliss_dashboard(request):
+    context = _attach_email_flag(request, _build_bliss_resumo_context())
+    return render(request, 'bliss/bliss_dashboard.html', context)
 
 def bliss_resumo_pdf(request):
     context = _build_bliss_resumo_context()

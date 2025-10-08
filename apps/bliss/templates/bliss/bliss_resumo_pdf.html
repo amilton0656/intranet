@@ -36,13 +36,24 @@
     {% load humanize %}
     {% load custom_filters %}
 
-    <h2>Resumo por Situa&ccedil;&atilde;o</h2>
+    <h2 style="margin-bottom: 0">Resumo por Situa&ccedil;&atilde;o</h2>
     <table class="tabela-rel">
+        <colgroup>
+            <col style="width: 12%">
+            <col style="width: 30%">
+            <col style="width: 12%">
+            <col style="width: 16%">
+            <col style="width: 11%">
+            <col style="width: 9%">
+            <col style="width: 10%">
+        </colgroup>
         <thead>
             <tr>
                 <th>Situa&ccedil;&atilde;o</th>
                 <th class="text-right">Total Valor Tabela</th>
                 <th class="text-right">% Valor Tabela</th>
+                <th class="text-right">Área Privativa</th>
+                <th class="text-right">% Área</th>
                 <th class="text-right">Total Unidades</th>
                 <th class="text-right">% Unidades</th>
             </tr>
@@ -52,8 +63,10 @@
             {% if not forloop.last %}
             <tr>
                 <td>{{ nome }}</td>
-                <td class="text-right">{{ dados.valor|format_real }}</td>
+                <td class="text-right" style="font-size: 1.25em;">{{ dados.valor|format_real }}</td>
                 <td class="text-right">{{ dados.valor_perc|floatformat:2 }}%</td>
+                <td class="text-right">{{ dados.area|format_number_ptbr }}</td>
+                <td class="text-right">{{ dados.area_perc|floatformat:2 }}%</td>
                 <td class="text-right">{{ dados.qtde }}</td>
                 <td class="text-right">{{ dados.qtde_perc|floatformat:2 }}%</td>
             </tr>
@@ -61,15 +74,17 @@
             {% endfor %}
             <tr>
                 <th>Total Geral</th>
-                <th class="text-right">{{ situacao.Total.valor|format_real }}</th>
+                <th class="text-right" style="font-size: 1.25em;">{{ situacao.Total.valor|format_real }}</th>
                 <th class="text-right">{{ situacao.Total.valor_perc|floatformat:2 }}%</th>
+                <th class="text-right">{{ situacao.Total.area|format_number_ptbr }}</th>
+                <th class="text-right">{{ situacao.Total.area_perc|floatformat:2 }}%</th>
                 <th class="text-right">{{ situacao.Total.qtde }}</th>
                 <th class="text-right">{{ situacao.Total.qtde_perc|floatformat:2 }}%</th>
             </tr>
         </tbody>
     </table>
 
-    <h2>Resumo por Tipo</h2>
+    <h2 style="margin-bottom: 0">Resumo por Tipo</h2>
     <table>
         <colgroup>
             <col style="width: 140px">   <!-- 1ª coluna -->
@@ -112,7 +127,7 @@
             </tr>
         </tbody>
     </table>
-    <h2>Preço médio do tipo : {{ resumo.preco_medio_tipo|format_real }}</h2>
+    <h2 style="margin-top: 0">Preço médio do tipo : {{ resumo.preco_medio_tipo|format_real }}</h2>
 
 </body>
 </html>

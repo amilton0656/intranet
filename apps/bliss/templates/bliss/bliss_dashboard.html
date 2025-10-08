@@ -1,0 +1,495 @@
+{% extends 'intranet/intranet_base.html' %}
+{% load humanize %}
+{% load custom_filters %}
+{% block title %}Dashboard Bliss{% endblock %}
+
+{% block content %}
+{% include 'bliss/bliss_navbar.html' %}
+
+<div class="container-fluid py-4">
+  <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center mb-4 gap-3">
+    <div>
+      <h2 class="mb-1">Visão Geral</h2>
+      <p class="text-muted mb-0">Situações, valores e áreas consolidadas do projeto Bliss.</p>
+    </div>
+    <div class="ms-lg-auto d-flex gap-2">
+      <a href="{% url 'bliss_resumo' %}" class="btn btn-outline-primary btn-sm">Ver Resumo Clássico</a>
+      <a href="{% url 'bliss_resumo_pdf' %}" class="btn btn-danger btn-sm" target="_blank" rel="noopener">Exportar PDF</a>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body">
+          <div class="text-muted text-uppercase small">Valor Total</div>
+          <h3 class="mt-2">{{ situacao.Total.valor|format_real }}</h3>
+          <div class="text-muted small">Considerando todas as situações.</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body">
+          <div class="text-muted text-uppercase small">Área Total</div>
+          <h3 class="mt-2">{{ situacao.Total.area|format_number_ptbr }}</h3>
+          <div class="text-muted small">Somatório ponderado da área privativa.</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body">
+          <div class="text-muted text-uppercase small">Unidades</div>
+          <h3 class="mt-2">{{ situacao.Total.qtde }}</h3>
+          <div class="text-muted small">Quantidade total cadastrada.</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body">
+          <div class="text-muted text-uppercase small">Preço Médio Tipo</div>
+          <h3 class="mt-2">{{ resumo.preco_medio_tipo|format_real }}</h3>
+          <div class="text-muted small">Baseado em unidades disponíveis.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mt-1">
+    <div class="col-12 col-lg-6">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-white border-0 d-flex align-items-center justify-content-between">
+          <h5 class="card-title mb-0">Distribuição por Situação</h5>
+          <span class="badge bg-primary-subtle text-primary">Valor × Área</span>
+        </div>
+        <div class="card-body" style="height: 320px;">
+          <canvas id="chartSituacaoValor" data-dashboard-chart aria-label="Gráfico de barras comparando valor e área por situação"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-6">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-white border-0 d-flex align-items-center justify-content-between">
+          <h5 class="card-title mb-0">Participação das Unidades</h5>
+          <span class="badge bg-secondary-subtle text-secondary">Distribuição</span>
+        </div>
+        <div class="card-body" style="height: 320px;">
+          <canvas id="chartSituacaoQtde" data-dashboard-chart aria-label="Gráfico de pizza com a participação de unidades por situação"></canvas>
+          <div id="chartSituacaoQtdeLegend" class="chart-legend mt-3"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mt-1">
+    <div class="col-12 col-xl-7">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-white border-0">
+          <h5 class="card-title mb-0">Detalhes por Situação</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Situação</th>
+                  <th class="text-end">Valor</th>
+                  <th class="text-end">Área Privativa</th>
+                  <th class="text-end">Unidades</th>
+                  <th class="text-end">% Valor</th>
+                  <th class="text-end">% Unidades</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for grupo in unidades %}
+                {% with dados=grupo.totais %}
+                <tr>
+                  <td>{{ grupo.situacao }}</td>
+                  <td class="text-end">{{ dados.valor|format_real }}</td>
+                  <td class="text-end">{{ dados.area|format_number_ptbr }}</td>
+                  <td class="text-end">{{ dados.qtde }}</td>
+                  <td class="text-end">{{ dados.valor_perc|floatformat:2 }}%</td>
+                  <td class="text-end">{{ dados.qtde_perc|floatformat:2 }}%</td>
+                </tr>
+                {% endwith %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-5">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-white border-0">
+          <h5 class="card-title mb-0">Resumo por Tipo</h5>
+        </div>
+        <div class="card-body" style="height: 320px;">
+          <canvas id="chartTipo" data-dashboard-chart aria-label="Gráfico de barras com valores e áreas por tipo"></canvas>
+          <div id="chartTipoLegend" class="chart-legend mt-3"></div>
+          <div class="mt-3 small text-muted">
+            <div class="d-flex justify-content-between"><span>Valor Tabela (Tipos)</span><span>{{ resumo.valor_tipos|format_real }}</span></div>
+            <div class="d-flex justify-content-between"><span>Valor Tabela (Lojas)</span><span>{{ resumo.valor_loja|format_real }}</span></div>
+            <div class="d-flex justify-content-between"><span>Área Disponível</span><span>{{ resumo.priv_tipos|format_number_ptbr }}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ unidades|json_script:'dados-unidades' }}
+{{ situacao|json_script:'dados-situacao' }}
+{{ resumo|json_script:'dados-resumo' }}
+{{ chart_data|json_script:'dados-chart' }}
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const parseNumber = (value) => {
+    if (value === null || value === undefined || value === '') {
+      return 0;
+    }
+    if (typeof value === 'number') {
+      return value;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseNumber(value));
+  const formatNumber = (value) => parseNumber(value).toLocaleString('pt-BR');
+
+  const unidadesData = JSON.parse(document.getElementById('dados-unidades').textContent || '[]');
+  const situacaoData = JSON.parse(document.getElementById('dados-situacao').textContent || '{}');
+  const resumoData = JSON.parse(document.getElementById('dados-resumo').textContent || '{}');
+const chartDataScript = document.getElementById('dados-chart');
+  const chartData = chartDataScript ? JSON.parse(chartDataScript.textContent || '{}') : null;
+
+  const baseColors = ['#2563eb', '#7c3aed', '#f97316', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#6b7280'];
+  const getColor = (index) => baseColors[index % baseColors.length];
+  const createStyles = () => {
+    if (document.getElementById('dashboard-chart-styles')) {
+      return;
+    }
+    const style = document.createElement('style');
+    style.id = 'dashboard-chart-styles';
+    style.textContent = `
+      .chart-legend { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; color: #374151; }
+      .chart-legend-item { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+      .chart-legend-left { display: inline-flex; align-items: center; gap: 0.5rem; }
+      .chart-legend-color { width: 0.75rem; height: 0.75rem; border-radius: 999px; display: inline-block; flex-shrink: 0; }
+      canvas[data-dashboard-chart] { width: 100%; height: 100%; display: block; }
+    `;
+    document.head.appendChild(style);
+  };
+  createStyles();
+
+  const setupCanvas = (canvas) => {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    return { ctx, width: rect.width, height: rect.height };
+  };
+
+  const drawBarLineChart = (canvas, labels, barData, lineData) => {
+    if (!canvas || !labels.length) {
+      return;
+    }
+    const dataHasContent = labels.some((_, idx) => (barData[idx] || 0) > 0 || (lineData[idx] || 0) > 0);
+    if (!dataHasContent) {
+      const { ctx, width, height } = setupCanvas(canvas);
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '14px "Inter", system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Sem dados disponíveis', width / 2, height / 2);
+      return;
+    }
+    const { ctx, width, height } = setupCanvas(canvas);
+    const padding = { top: 20, right: 48, bottom: 48, left: 72 };
+    const chartWidth = width - padding.left - padding.right;
+    const chartHeight = height - padding.top - padding.bottom;
+
+    if (chartWidth <= 0 || chartHeight <= 0) {
+      return;
+    }
+
+    const maxBar = Math.max(...barData, 1);
+    const maxLine = Math.max(...lineData, 1);
+    const barGroupWidth = chartWidth / labels.length;
+    const barWidth = Math.min(40, barGroupWidth * 0.45);
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#d1d5db';
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top);
+    ctx.lineTo(padding.left, height - padding.bottom);
+    ctx.lineTo(width - padding.right, height - padding.bottom);
+    ctx.stroke();
+
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '11px "Inter", system-ui, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(formatCurrency(maxBar), padding.left - 10, padding.top + 4);
+    ctx.fillText(formatCurrency(maxBar / 2), padding.left - 10, padding.top + chartHeight / 2);
+
+    labels.forEach((label, index) => {
+      const x = padding.left + index * barGroupWidth + (barGroupWidth - barWidth) / 2;
+      const barHeight = (barData[index] / maxBar) * chartHeight;
+      ctx.fillStyle = '#2563eb';
+      ctx.fillRect(x, height - padding.bottom - barHeight, barWidth, barHeight);
+    });
+
+    ctx.strokeStyle = '#f97316';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    labels.forEach((label, index) => {
+      const xCenter = padding.left + index * barGroupWidth + barGroupWidth / 2;
+      const lineHeight = (lineData[index] / maxLine) * chartHeight;
+      const y = height - padding.bottom - lineHeight;
+      if (index === 0) {
+        ctx.moveTo(xCenter, y);
+      } else {
+        ctx.lineTo(xCenter, y);
+      }
+    });
+    ctx.stroke();
+    ctx.fillStyle = '#f97316';
+    labels.forEach((label, index) => {
+      const xCenter = padding.left + index * barGroupWidth + barGroupWidth / 2;
+      const lineHeight = (lineData[index] / maxLine) * chartHeight;
+      const y = height - padding.bottom - lineHeight;
+      ctx.beginPath();
+      ctx.arc(xCenter, y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.fillStyle = '#111827';
+    ctx.textAlign = 'center';
+    labels.forEach((label, index) => {
+      const xCenter = padding.left + index * barGroupWidth + barGroupWidth / 2;
+      ctx.fillText(label, xCenter, height - padding.bottom + 16);
+    });
+  };
+
+  const drawGroupedBarChart = (canvas, labels, datasets, legendContainer) => {
+    if (!canvas || !labels.length || !datasets.length) {
+      return;
+    }
+    const dataHasContent = datasets.some((ds) => ds.data.some((value) => value > 0));
+    if (!dataHasContent) {
+      const { ctx, width, height } = setupCanvas(canvas);
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '14px "Inter", system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Sem dados disponíveis', width / 2, height / 2);
+      if (legendContainer) { legendContainer.innerHTML = ''; }
+      return;
+    }
+    const { ctx, width, height } = setupCanvas(canvas);
+    const padding = { top: 20, right: 32, bottom: 48, left: 72 };
+    const chartWidth = width - padding.left - padding.right;
+    const chartHeight = height - padding.top - padding.bottom;
+    const maxValue = Math.max(...datasets.flatMap(ds => ds.data), 1);
+    const groupWidth = chartWidth / labels.length;
+    const barWidth = Math.min(30, (groupWidth / datasets.length) * 0.75);
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.strokeStyle = '#d1d5db';
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top);
+    ctx.lineTo(padding.left, height - padding.bottom);
+    ctx.lineTo(width - padding.right, height - padding.bottom);
+    ctx.stroke();
+
+    datasets.forEach((dataset, datasetIndex) => {
+      ctx.fillStyle = dataset.color || getColor(datasetIndex);
+      dataset.data.forEach((value, labelIndex) => {
+        const barHeight = (value / maxValue) * chartHeight;
+        const x =
+          padding.left +
+          labelIndex * groupWidth +
+          (groupWidth - datasets.length * barWidth) / 2 +
+          datasetIndex * barWidth;
+        ctx.fillRect(x, height - padding.bottom - barHeight, barWidth, barHeight);
+      });
+    });
+
+    ctx.fillStyle = '#111827';
+    ctx.textAlign = 'center';
+    ctx.font = '11px "Inter", system-ui, sans-serif';
+    labels.forEach((label, index) => {
+      const x = padding.left + index * groupWidth + groupWidth / 2;
+      ctx.fillText(label, x, height - padding.bottom + 16);
+    });
+
+    if (legendContainer) {
+      legendContainer.innerHTML = '';
+      datasets.forEach((dataset, index) => {
+        const item = document.createElement('div');
+        item.className = 'chart-legend-item';
+        const left = document.createElement('div');
+        left.className = 'chart-legend-left';
+        const swatch = document.createElement('span');
+        swatch.className = 'chart-legend-color';
+        swatch.style.backgroundColor = dataset.color || getColor(index);
+        left.appendChild(swatch);
+        const label = document.createElement('span');
+        label.textContent = dataset.label;
+        left.appendChild(label);
+        const total = document.createElement('span');
+        total.textContent = dataset.label.includes('Valor')
+          ? formatCurrency(dataset.data.reduce((acc, val) => acc + val, 0))
+          : `${formatNumber(dataset.data.reduce((acc, val) => acc + val, 0))} m²`;
+        item.appendChild(left);
+        item.appendChild(total);
+        legendContainer.appendChild(item);
+      });
+    }
+  };
+
+  const drawDonutChart = (canvas, labels, data, legendContainer) => {
+    if (!canvas || !labels.length || !data.length) {
+      return;
+    }
+    const total = data.reduce((acc, val) => acc + val, 0);
+    if (total <= 0) {
+      const { ctx, width, height } = setupCanvas(canvas);
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '14px "Inter", system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Sem dados disponíveis', width / 2, height / 2);
+      if (legendContainer) { legendContainer.innerHTML = ''; }
+      return;
+    }
+    const { ctx, width, height } = setupCanvas(canvas);
+    ctx.clearRect(0, 0, width, height);
+
+    const radius = Math.min(width, height) / 2 - 20;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    let startAngle = -Math.PI / 2;
+
+    labels.forEach((label, index) => {
+      const value = data[index];
+      const angle = (value / total) * (Math.PI * 2);
+      const endAngle = startAngle + angle;
+
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.fillStyle = getColor(index);
+      ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+      ctx.closePath();
+      ctx.fill();
+
+      startAngle = endAngle;
+    });
+
+    ctx.beginPath();
+    ctx.fillStyle = '#ffffff';
+    ctx.arc(centerX, centerY, radius * 0.55, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#111827';
+    ctx.font = '13px \"Inter\", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Unidades', centerX, centerY - 4);
+    ctx.fillStyle = '#2563eb';
+    ctx.font = 'bold 16px \"Inter\", system-ui, sans-serif';
+    ctx.fillText(formatNumber(total), centerX, centerY + 14);
+
+    if (legendContainer) {
+      legendContainer.innerHTML = '';
+      labels.forEach((label, index) => {
+        const item = document.createElement('div');
+        item.className = 'chart-legend-item';
+        const left = document.createElement('div');
+        left.className = 'chart-legend-left';
+        const swatch = document.createElement('span');
+        swatch.className = 'chart-legend-color';
+        swatch.style.backgroundColor = getColor(index);
+        left.appendChild(swatch);
+        const labelSpan = document.createElement('span');
+        labelSpan.textContent = label;
+        left.appendChild(labelSpan);
+        const valueSpan = document.createElement('span');
+        valueSpan.textContent = `${formatNumber(data[index])} (${Math.round((data[index] / total) * 100)}%)`;
+        item.appendChild(left);
+        item.appendChild(valueSpan);
+        legendContainer.appendChild(item);
+      });
+    }
+  };
+
+  let statusLabels = [];
+  let valorDataset = [];
+  let areaDataset = [];
+  let qtdeDataset = [];
+
+  if (chartData && Array.isArray(chartData.situacao_labels) && chartData.situacao_labels.length) {
+    statusLabels = chartData.situacao_labels;
+    valorDataset = chartData.situacao_valores.map(parseNumber);
+    areaDataset = chartData.situacao_areas.map(parseNumber);
+    qtdeDataset = chartData.situacao_qtdes.map(parseNumber);
+  } else {
+    const situacaoEntries = Object.entries(situacaoData || {}).filter(([label]) => label !== 'Total');
+    statusLabels = situacaoEntries.map(([label]) => label);
+    valorDataset = situacaoEntries.map(([, data]) => parseNumber((data || {}).valor));
+    areaDataset = situacaoEntries.map(([, data]) => parseNumber((data || {}).area));
+    qtdeDataset = situacaoEntries.map(([, data]) => parseNumber((data || {}).qtde));
+  }
+  console.debug('Dashboard datasets', { statusLabels, valorDataset, areaDataset, qtdeDataset });
+
+  drawBarLineChart(
+    document.getElementById('chartSituacaoValor'),
+    statusLabels,
+    valorDataset,
+    areaDataset
+  );
+
+  drawDonutChart(
+    document.getElementById('chartSituacaoQtde'),
+    statusLabels,
+    qtdeDataset,
+    document.getElementById('chartSituacaoQtdeLegend')
+  );
+
+  const tipoLabels = (chartData && Array.isArray(chartData.tipo_labels) && chartData.tipo_labels.length)
+    ? chartData.tipo_labels
+    : ['Tipos', 'Lojas'];
+  const tipoValorDataset = (chartData && Array.isArray(chartData.tipo_valores) && chartData.tipo_valores.length)
+    ? chartData.tipo_valores.map(parseNumber)
+    : [
+        parseNumber(resumoData.valor_tipos),
+        parseNumber(resumoData.valor_loja)
+      ];
+  const tipoAreaDataset = (chartData && Array.isArray(chartData.tipo_areas) && chartData.tipo_areas.length)
+    ? chartData.tipo_areas.map(parseNumber)
+    : [
+        parseNumber(resumoData.priv_tipos),
+        parseNumber(resumoData.priv_loja)
+      ];
+
+  console.debug('Tipo datasets', { tipoLabels, tipoValorDataset, tipoAreaDataset });
+  drawGroupedBarChart(
+    document.getElementById('chartTipo'),
+    tipoLabels,
+    [
+      { label: 'Valor Tabela (R$)', data: tipoValorDataset, color: '#0ea5e9' },
+      { label: 'Área Privativa (m²)', data: tipoAreaDataset, color: '#10b981' },
+    ],
+    document.getElementById('chartTipoLegend')
+  );
+});
+</script>
+
+{% endblock %}
