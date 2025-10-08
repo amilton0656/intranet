@@ -1,4 +1,5 @@
-﻿import os
+﻿import unicodedata
+import os
 import datetime
 import json
 import time
@@ -464,17 +465,110 @@ def atualizacao_mensal(request):
     return render(request, 'bliss/bliss_atualizacao_mensal.html')
 
 def _build_bliss_resumo_context():
-    registros = Bliss.objects.all()
+    registros = list(Bliss.objects.all())
 
     situacao = {
-        'Disponível': {'qtde': 0, 'valor': Decimal('0')},
-        'Reservada': {'qtde': 0, 'valor': Decimal('0')},
-        'Bloqueada': {'qtde': 0, 'valor': Decimal('0')}, 
-        'Vendida': {'qtde': 0, 'valor': Decimal('0')},
-        'Permuta': {'qtde': 0, 'valor': Decimal('0')},
-        'QA': {'qtde': 0, 'valor': Decimal('0')},
-        'Total': {'qtde': 0, 'valor': Decimal('0')},
+        'Disponível': {'qtde': 0, 'valor': Decimal('0'), 'area': Decimal('0')},
+        'Reservada': {'qtde': 0, 'valor': Decimal('0'), 'area': Decimal('0')},
+        'Bloqueada': {'qtde': 0, 'valor': Decimal('0'), 'area': Decimal('0')}, 
+        'Vendida': {'qtde': 0, 'valor': Decimal('0'), 'area': Decimal('0')},
+        'Permuta': {'qtde': 0, 'valor': Decimal('0'), 'area': Decimal('0')},
+        'QA': {'qtde': 0, 'valor': Decimal('0'), 'area': Decimal('0')},
+        'Total': {'qtde': 0, 'valor': Decimal('0'), 'area': Decimal('0')},
     }
+
+    status_labels = [label for label in situacao.keys() if label != 'Total']
+
+    def normalizar_status(valor: str) -> str:
+        if not valor:
+            return ''
+        base = unicodedata.normalize('NFKD', valor.strip())
+        sem_acentos = ''.join(ch for ch in base if not unicodedata.combining(ch))
+        return sem_acentos.casefold()
+
+    status_lookup: dict[str, str] = {}
+
+    def registrar_lookup(label: str) -> None:
+        chave_norm = normalizar_status(label)
+        if not chave_norm:
+            return
+        if chave_norm not in status_lookup:
+            status_lookup[chave_norm] = label
+        chave_lower = label.strip().casefold()
+        if chave_lower not in status_lookup:
+            status_lookup[chave_lower] = label
+
+    for label in status_labels:
+        registrar_lookup(label)
+
+    status_disponivel_norm = normalizar_status('Disponivel')
+
+    agrupadas = {label: [] for label in status_labels}
+    fator_permuta = Decimal('0.12826')
+    fator_restante = Decimal('0.87174')
+
+    def adicionar_unidade(label, valor_calculado, area_calculada, registro):
+        label = (label or '').strip()
+        if not label:
+            return
+        chave_norm = normalizar_status(label)
+        chave_mapeada = status_lookup.get(chave_norm) or status_lookup.get(label.casefold()) or label
+        registrar_lookup(chave_mapeada)
+        agrupadas.setdefault(chave_mapeada, []).append({
+            'id': registro.id,
+            'bloco': registro.bloco,
+            'unidade': registro.unidade,
+            'situacao': chave_mapeada,
+            'valor_tabela': valor_calculado,
+            'area_privativa': area_calculada,
+            'garagem': registro.garagem,
+            'deposito': registro.deposito,
+            'tipologia': registro.tipologia,
+        })
+
+    for registro in registros:
+        valor = registro.valor_tabela or Decimal('0')
+        area = registro.area_privativa or Decimal('0')
+        unidade_nome = (registro.unidade or '').strip().lower()
+        situacao_registro = (registro.situacao or '').strip()
+
+        if unidade_nome == 'loja':
+            adicionar_unidade('Permuta', valor * fator_permuta, area * fator_permuta, registro)
+            adicionar_unidade(situacao_registro, valor * fator_restante, area * fator_restante, registro)
+        else:
+            adicionar_unidade(situacao_registro, valor, area, registro)
+
+    def ordenar_unidades(itens):
+        return sorted(
+            itens,
+            key=lambda item: (
+                (item.get('bloco') or ''),
+                (item.get('unidade') or ''),
+            ),
+        )
+
+    unidades = [
+        {'situacao': label, 'unidades': ordenar_unidades(agrupadas.get(label, []))}
+        for label in status_labels
+    ]
+
+    extras = [label for label in agrupadas.keys() if label not in status_labels]
+    for label in extras:
+        registrar_lookup(label)
+        unidades.append({'situacao': label, 'unidades': ordenar_unidades(agrupadas[label])})
+
+    default_totais = {
+        'qtde': 0,
+        'valor': Decimal('0'),
+        'area': Decimal('0'),
+        'qtde_perc': Decimal('0'),
+        'valor_perc': Decimal('0'),
+    }
+    unidades = [
+        {**item, 'totais': situacao.get(item['situacao'], default_totais)}
+        for item in unidades
+    ]
+    unidades_por_status = {item['situacao']: item['unidades'] for item in unidades}
 
     resumo = {
         'preco_medio_tipo': 0,
@@ -498,31 +592,56 @@ def _build_bliss_resumo_context():
     for registro in registros:
         chave = (registro.situacao or '').strip()
         valor = registro.valor_tabela or Decimal('0')
+        area = registro.area_privativa or Decimal('0')
 
         if registro.unidade == 'Loja':
-            situacao["Permuta"]['qtde'] += 1
-            situacao["Permuta"]['valor'] += (valor * Decimal('0.12826'))
-            if registro.situacao == "Disponível":
-                situacao["Disponível"]['qtde'] += 1
-                situacao["Disponível"]['valor'] += (valor * Decimal('0.87174'))
-                resumo["qtde_lojas"] = 1
-                resumo["valor_loja"] = (valor * Decimal('0.87174'))
-                resumo["priv_loja"] = registro.area_privativa * Decimal('0.87174')
-            else:
-                situacao["Vendida"]['qtde'] += 1
-                situacao["Vendida"]['valor'] += (valor * Decimal('0.87174'))    
+            valor_permuta = valor * fator_permuta
+            valor_restante = valor * fator_restante
+            area_permuta = area * fator_permuta
+            area_restante = area * fator_restante
 
-        else:    
+            situacao["Permuta"]['qtde'] += 1
+            situacao["Permuta"]['valor'] += valor_permuta
+            situacao["Permuta"]['area'] += area_permuta
+
+            destino = (registro.situacao or '').strip()
+            destino_normalizado = status_lookup.get(destino.casefold(), destino) if destino else ''
+            if destino_normalizado:
+                if destino_normalizado not in situacao:
+                    situacao[destino_normalizado] = {
+                        'qtde': 0,
+                        'valor': Decimal('0'),
+                        'area': Decimal('0'),
+                    }
+                    registrar_lookup(destino_normalizado)
+                situacao[destino_normalizado]['qtde'] += 1
+                situacao[destino_normalizado]['valor'] += valor_restante
+                situacao[destino_normalizado]['area'] += area_restante
+
+            if normalizar_status(destino_normalizado) == status_disponivel_norm:
+                resumo["qtde_lojas"] = 1
+                resumo["valor_loja"] = valor_restante
+                resumo["priv_loja"] = area_restante
+
+        else:
+            if chave and chave not in situacao:
+                situacao[chave] = {
+                    'qtde': 0,
+                    'valor': Decimal('0'),
+                    'area': Decimal('0'),
+                }
+                registrar_lookup(chave)
             if chave in situacao:
                 situacao[chave]['qtde'] += 1
                 situacao[chave]['valor'] += valor
-                if registro.situacao == "Disponível":
+                situacao[chave]['area'] += area
+                if normalizar_status(registro.situacao) == status_disponivel_norm:
                     resumo["qtde_tipos"] += 1
-                    resumo["priv_tipos"] += registro.area_privativa
+                    resumo["priv_tipos"] += area
                     resumo["valor_tipos"] += registro.valor_tabela
-
         situacao['Total']['qtde'] += 1
         situacao['Total']['valor'] += valor
+        situacao['Total']['area'] += area
 
     total_qtde = situacao['Total']['qtde']
     total_valor = situacao['Total']['valor']
@@ -557,6 +676,8 @@ def _build_bliss_resumo_context():
     return {
         'situacao': situacao,
         'registros': registros,
+        'unidades': unidades,
+        'unidades_por_status': unidades_por_status,
         'resumo': resumo,
     }
 
@@ -585,8 +706,7 @@ def send_bliss_resumo_pdf_email(recipient_email, *, subject=None, body=None):
         raise ValueError('Nenhum e-mail foi enviado.')
 
 
-def bliss_resumo(request):
-    context = _build_bliss_resumo_context()
+def _attach_email_flag(request, context):
     sent_info = request.session.get('bliss_resumo_email_sent')
     email_flag = False
     if isinstance(sent_info, dict):
@@ -599,7 +719,17 @@ def bliss_resumo(request):
         email_flag = True
         request.session.pop('bliss_resumo_email_sent', None)
     context['email_enviado'] = email_flag
+    return context
+
+
+def bliss_resumo(request):
+    context = _attach_email_flag(request, _build_bliss_resumo_context())
     return render(request, 'bliss/bliss_resumo.html', context)
+
+
+def bliss_resumo_novo(request):
+    context = _attach_email_flag(request, _build_bliss_resumo_context())
+    return render(request, 'bliss/bliss_resumo_novo.html', context)
 
 def bliss_resumo_pdf(request):
     context = _build_bliss_resumo_context()
@@ -714,6 +844,8 @@ def bliss_resumo_test_email(request):
         return JsonResponse({'detail': 'Nenhum e-mail foi enviado'}, status=500)
 
     return JsonResponse({'status': 'ok', 'message': 'E-mail de teste enviado'})
+
+
 
 
 

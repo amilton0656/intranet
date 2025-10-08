@@ -1,4 +1,4 @@
-{% extends 'intranet/intranet_base.html' %}
+﻿{% extends 'intranet/intranet_base.html' %}
 {% load humanize %}
 {% load custom_filters %}
 {% block title %}Resumo de Situações{% endblock %}
@@ -29,16 +29,23 @@
         </tr>
       </thead>
       <tbody>
-        {% for nome, dados in situacao.items %}
-        {% if not forloop.last %}
-        <tr>
-          <td class="ps-2">{{ nome }}</td>
+        {% for grupo in unidades %}
+        {% with dados=grupo.totais %}
+        <tr class="align-middle">
+          <td class="ps-2">
+            <div class="d-flex justify-content-between align-items-center gap-2">
+              <span>{{ grupo.situacao }}</span>
+              <button type="button" class="btn btn-link btn-sm text-decoration-none open-situacao-detail" data-detail-target="situacao-detail-{{ forloop.counter }}" data-title="{{ grupo.situacao }}">
+                Detalhes
+              </button>
+            </div>
+          </td>
           <td class="text-end">{{ dados.valor|format_real }}</td>
           <td class="text-end">{{ dados.valor_perc|floatformat:2 }}%</td>
           <td class="text-end">{{ dados.qtde }}</td>
           <td class="text-end pe-2">{{ dados.qtde_perc|floatformat:2 }}%</td>
         </tr>
-        {% endif %}
+        {% endwith %}
         {% endfor %}
         <tr class="fw-bold table-light">
           <td class="ps-2">Total Geral</td>
@@ -50,58 +57,49 @@
       </tbody>
     </table>
   </div>
-</div>
 
-{# ====== CELULAR: Cartões/Lista ====== #}
-<div class="d-block d-md-none">
-  <div class="list-group mb-2">
-    {% for nome, dados in situacao.items %}
-    {% if not forloop.last %}
-    <div class="list-group-item">
-      <div class="d-flex justify-content-between">
-        <strong>{{ nome }}</strong>
-      </div>
-
-      <div class="mt-2 small">
-        <div class="d-flex justify-content-between">
-          <span class="text-muted">Total Valor Tabela</span>
-          <span class="fw-semibold">{{ dados.valor|format_real }}</span>
-        </div>
-        <div class="d-flex justify-content-between">
-          <span class="text-muted">% Valor Tabela</span>
-          <span>{{ dados.valor_perc|floatformat:2 }}%</span>
-        </div>
-        <div class="d-flex justify-content-between">
-          <span class="text-muted">Total Unidades</span>
-          <span>{{ dados.qtde }}</span>
-        </div>
-        <div class="d-flex justify-content-between">
-          <span class="text-muted">% Unidades</span>
-          <span>{{ dados.qtde_perc|floatformat:2 }}%</span>
-        </div>
-      </div>
+  {% for grupo in unidades %}
+  {% with dados=grupo.totais %}
+  <template id="situacao-detail-{{ forloop.counter }}">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-3">
+        <thead>
+          <tr class="text-muted small">
+            <th class="ps-2">Bloco</th>
+            <th>Unidade</th>
+            <th class="text-end pe-4">&Aacute;rea Privativa</th>
+            <th class="text-end">Garagem</th>
+            <th>Dep&oacute;sito</th>
+            <th>Tipologia</th>
+            <th class="text-end">Valor Tabela</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for unidade in grupo.unidades %}
+          <tr>
+            <td class="ps-2">{{ unidade.bloco }}</td>
+            <td>{{ unidade.unidade }}</td>
+            <td class="text-end pe-4">{{ unidade.area_privativa|default_if_none:0|format_number_ptbr }}</td>
+            <td class="text-end">{{ unidade.garagem|default:"-" }}</td>
+            <td>{{ unidade.deposito|default:"-" }}</td>
+            <td>{{ unidade.tipologia|default:"-" }}</td>
+            <td class="text-end">{{ unidade.valor_tabela|format_real }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-muted small ps-2">Nenhuma unidade nesta situa&ccedil;&atilde;o.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-    {% endif %}
-    {% empty %}
-    <div class="alert alert-info">Nenhum registro.</div>
-    {% endfor %}
-  </div>
-
-  <div class="list-group">
-    <div class="list-group-item bg-light fw-bold">
-      <div class="d-flex justify-content-between">
-        <span>Total Geral</span>
-      </div>
-      <div class="d-flex justify-content-between small mt-1">
-        <span>Valor Tabela</span>
-        <span>{{ situacao.Total.valor|format_real }}</span>
-      </div>
-      <div class="d-flex justify-content-between small">
-        <span>Unidades</span>
-        <span>{{ situacao.Total.qtde }}</span>
-      </div>
+    <div class="d-flex flex-column flex-md-row justify-content-md-end gap-3 text-end small">
+      <div><strong>Total &Aacute;rea Privativa:</strong> {{ dados.area|format_number_ptbr }}</div>
+      <div><strong>Total Valor Tabela:</strong> {{ dados.valor|format_real }}</div>
     </div>
-  </div>
+  </template>
+  {% endwith %}
+  {% endfor %}
 </div>
 
 <hr class="my-5">
@@ -113,12 +111,12 @@
     <table class="table table-bordered w-100">
       <thead class="table-light text-center">
         <tr>
-          <th>Preço Médio Tipo</th>
+          <th>Pre&ccedil;o M&eacute;dio Tipo</th>
           <th class="text-end">Qtde</th>
           <th class="text-start">Tipo</th>
-          <th class="text-end">M² Priv</th>
+          <th class="text-end">M&sup2; Priv</th>
           <th class="text-end">Valor de Tabela</th>
-          <th class="text-end">R$ do M²</th>
+          <th class="text-end">R$ do M&sup2;</th>
         </tr>
       </thead>
       <tbody class="text-end">
@@ -168,73 +166,262 @@
   </div>
 </div>
 
-{# ====== CELULAR: Cartões ====== #}
+{# ====== CELULAR: Cartoes/Lista ====== #}
 <div class="d-block d-md-none">
-  {% for item in resumo_lojas %}
-  <div class="card mb-2">
-    <div class="card-body py-2">
-      <div class="d-flex justify-content-between align-items-baseline">
-        <strong class="text-truncate">{{ item.tipo }}</strong>
+  <div class="list-group mb-2">
+    {% for grupo in unidades %}
+    {% with dados=grupo.totais %}
+    <div class="list-group-item">
+      <div class="d-flex justify-content-between align-items-center">
+        <strong>{{ grupo.situacao }}</strong>
+        <button type="button" class="btn btn-sm btn-outline-primary open-situacao-detail" data-detail-target="situacao-detail-{{ forloop.counter }}" data-title="{{ grupo.situacao }}">Detalhes</button>
       </div>
-      <div class="row">
-        <div class="col-6">Preço médio:</div>
-        <div class="col-6">{{ resumo.preco_medio_tipo|format_real }}</div>
+
+      <div class="mt-2 small">
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Total Valor Tabela</span>
+          <span class="fw-semibold">{{ dados.valor|format_real }}</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">% Valor Tabela</span>
+          <span>{{ dados.valor_perc|floatformat:2 }}%</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Total &Aacute;rea Privativa</span>
+          <span>{{ dados.area|format_number_ptbr }}</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Total Unidades</span>
+          <span>{{ dados.qtde }}</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">% Unidades</span>
+          <span>{{ dados.qtde_perc|floatformat:2 }}%</span>
+        </div>
       </div>
-      <hr>
-      <div class="row fw-bold">
-        <div class="col-6">{{ resumo.qtde_lojas }}</div>
-        <div class="col-6">Loja</div>
+    </div>
+    {% endwith %}
+    {% empty %}
+    <div class="alert alert-info">Nenhum registro.</div>
+    {% endfor %}
+  </div>
+
+  <div class="list-group">
+    <div class="list-group-item bg-light fw-bold">
+      <div class="d-flex justify-content-between">
+        <span>Total Geral</span>
       </div>
-      <div class="row">
-        <div class="col-6">M² Priv</div>
-        <div class="col-6">{{ resumo.priv_loja|format_number_ptbr }}</div>
+      <div class="d-flex justify-content-between small mt-1">
+        <span>Valor Tabela</span>
+        <span>{{ situacao.Total.valor|format_real }}</span>
       </div>
-      <div class="row">
-        <div class="col-6">Valor de Tabela</div>
-        <div class="col-6">{{ resumo.valor_loja|format_real }}</div>
+      <div class="d-flex justify-content-between small">
+        <span>&Aacute;rea Privativa</span>
+        <span>{{ situacao.Total.area|format_number_ptbr }}</span>
       </div>
-      <div class="row">
-        <div class="col-6">Valor do M²</div>
-        <div class="col-6">{{ resumo.m2_loja|format_real }}</div>
+      <div class="d-flex justify-content-between small">
+        <span>Unidades</span>
+        <span>{{ situacao.Total.qtde }}</span>
       </div>
-      <hr>
-      <div class="row fw-bold">
-        <div class="col-6">{{ resumo.qtde_tipos }}</div>
-        <div class="col-6">Tipos</div>
-      </div>
-      <div class="row">
-        <div class="col-6">M² Priv</div>
-        <div class="col-6">{{ resumo.priv_tipos|format_number_ptbr }}</div>
-      </div>
-      <div class="row">
-        <div class="col-6">Valor de Tabela</div>
-        <div class="col-6">{{ resumo.valor_tipos|format_real }}</div>
-      </div>
-      <div class="row">
-        <div class="col-6">Valor do M²</div>
-        <div class="col-6">{{ resumo.m2_tipos|format_real }}</div>
-      </div>
-      <hr>
-      <div class="row fw-bold">
-        <div class="col-6"></div>
-        <div class="col-6">Total</div>
-      </div>
-      <div class="row">
-        <div class="col-6">M² Priv</div>
-        <div class="col-6">{{ resumo.priv_total|format_number_ptbr }}</div>
-      </div>
-      <div class="row">
-        <div class="col-6">Valor de Tabela</div>
-        <div class="col-6">{{ resumo.valor_total|format_real }}</div>
-      </div>
-      <div class="row">
-        <div class="col-6">Valor do M²</div>
-        <div class="col-6">{{ resumo.m2_total|format_real }}</div>
-      </div>
-      <hr>
     </div>
   </div>
-  {% endfor %}
 </div>
 
+{# ====== CELULAR: Cartões ====== #}
+<div class="d-block d-md-none mx-3">
+  <div class="card mb-3">
+    <div class="card-body py-3">
+      <div class="fw-semibold text-muted text-uppercase small mb-2">Resumo Geral</div>
+      <div class="row align-items-center">
+        <div class="col-6">Loja</div>
+        <div class="col-6 text-end fw-semibold">{{ resumo.qtde_lojas }}</div>
+      </div>
+      <div class="row small text-muted">
+        <div class="col-6">M² Priv</div>
+        <div class="col-6 text-end">{{ resumo.priv_loja|format_number_ptbr }}</div>
+      </div>
+      <div class="row small text-muted">
+        <div class="col-6">Valor Tabela</div>
+        <div class="col-6 text-end">{{ resumo.valor_loja|format_real }}</div>
+      </div>
+      <div class="row small text-muted mb-2">
+        <div class="col-6">R$ M²</div>
+        <div class="col-6 text-end">{{ resumo.m2_loja|format_real }}</div>
+      </div>
+
+      <div class="row align-items-center mt-2">
+        <div class="col-6">Tipo</div>
+        <div class="col-6 text-end fw-semibold">{{ resumo.qtde_tipos }}</div>
+      </div>
+      <div class="row small text-muted">
+        <div class="col-6">M² Priv</div>
+        <div class="col-6 text-end">{{ resumo.priv_tipos|format_number_ptbr }}</div>
+      </div>
+      <div class="row small text-muted">
+        <div class="col-6">Valor Tabela</div>
+        <div class="col-6 text-end">{{ resumo.valor_tipos|format_real }}</div>
+      </div>
+      <div class="row small text-muted mb-2">
+        <div class="col-6">R$ M²</div>
+        <div class="col-6 text-end">{{ resumo.m2_tipos|format_real }}</div>
+      </div>
+
+      <div class="row align-items-center mt-2">
+        <div class="col-6">Total</div>
+        <div class="col-6 text-end fw-semibold">{{ resumo.qtde_total }}</div>
+      </div>
+      <div class="row small text-muted">
+        <div class="col-6">M² Priv</div>
+        <div class="col-6 text-end">{{ resumo.priv_total|format_number_ptbr }}</div>
+      </div>
+      <div class="row small text-muted">
+        <div class="col-6">Valor Tabela</div>
+        <div class="col-6 text-end">{{ resumo.valor_total|format_real }}</div>
+      </div>
+      <div class="row small text-muted">
+        <div class="col-6">R$ M²</div>
+        <div class="col-6 text-end">{{ resumo.m2_total|format_real }}</div>
+      </div>
+    </div>
+  </div>
+
+  {% if resumo_lojas %}
+    {% for item in resumo_lojas %}
+    <div class="card mb-2">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <strong class="text-truncate">{{ item.tipo }}</strong>
+          {% if item.preco_medio_tipo %}
+          <span class="badge bg-light text-dark">{{ item.preco_medio_tipo|format_real }}</span>
+          {% endif %}
+        </div>
+        <div class="row small">
+          <div class="col-6 text-muted">Quantidade</div>
+          <div class="col-6 text-end fw-semibold">{{ item.quantidade }}</div>
+        </div>
+        <div class="row small">
+          <div class="col-6 text-muted">M² Priv</div>
+          <div class="col-6 text-end">{{ item.m2|format_number_ptbr }}</div>
+        </div>
+        <div class="row small">
+          <div class="col-6 text-muted">Valor Tabela</div>
+          <div class="col-6 text-end">{{ item.valor_venda|format_real }}</div>
+        </div>
+        <div class="row small">
+          <div class="col-6 text-muted">R$ M²</div>
+          <div class="col-6 text-end">{{ item.valor_m2|format_real }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-info"><strong>Preço Médio Tipo:</strong> {{ resumo.preco_medio_tipo|format_real }}</div>
+  {% endif %}
+</div>
+
+<div class="modal fade" id="situacaoModal" tabindex="-1" aria-labelledby="situacaoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="situacaoModalLabel">Detalhes</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const modalEl = document.getElementById('situacaoModal');
+  if (!modalEl) {
+    return;
+  }
+
+  const modalBody = modalEl.querySelector('.modal-body');
+  const modalTitle = modalEl.querySelector('.modal-title');
+  let modalInstance = null;
+
+  const ensureModalInstance = () => {
+    if (modalInstance) {
+      return modalInstance;
+    }
+    if (typeof bootstrap !== 'undefined' && bootstrap?.Modal) {
+      modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+    }
+    return modalInstance;
+  };
+
+  const populateModal = (templateId) => {
+    const template = document.getElementById(templateId);
+    if (!template || !modalBody) {
+      return false;
+    }
+    modalBody.innerHTML = '';
+    if ('content' in template) {
+      modalBody.appendChild(template.content.cloneNode(true));
+    } else {
+      modalBody.innerHTML = template.innerHTML;
+    }
+    return true;
+  };
+
+  const fallbackClose = () => {
+    modalEl.classList.remove('show');
+    modalEl.style.display = 'none';
+    modalEl.setAttribute('aria-hidden', 'true');
+    modalEl.removeAttribute('aria-modal');
+    document.removeEventListener('keydown', handleEsc);
+  };
+
+  const handleEsc = (event) => {
+    if (event.key === 'Escape') {
+      fallbackClose();
+    }
+  };
+
+  const openModal = () => {
+    const instance = ensureModalInstance();
+    if (instance) {
+      instance.show();
+      return;
+    }
+    modalEl.classList.add('show');
+    modalEl.style.display = 'block';
+    modalEl.removeAttribute('aria-hidden');
+    modalEl.setAttribute('aria-modal', 'true');
+    document.addEventListener('keydown', handleEsc);
+    modalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach((btn) => {
+      btn.addEventListener('click', fallbackClose, { once: true });
+    });
+  };
+
+  document.querySelectorAll('.open-situacao-detail').forEach((button) => {
+    button.addEventListener('click', () => {
+      const detailId = button.getAttribute('data-detail-target');
+      const title = button.getAttribute('data-title') || '';
+      if (!detailId) {
+        return;
+      }
+      if (!populateModal(detailId)) {
+        return;
+      }
+      if (modalTitle) {
+        modalTitle.textContent = title;
+      }
+      openModal();
+    });
+  });
+
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    if (modalBody) {
+      modalBody.innerHTML = '';
+    }
+  });
+});
+</script>
+
 {% endblock %}
+
+
+
