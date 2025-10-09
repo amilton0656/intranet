@@ -29,71 +29,85 @@ class DocumentQAService:
         self.chroma_dir = self.base_dir / 'chroma' / self.session_key
 
     def save_and_ingest(self, uploaded_file: UploadedFile) -> Path:
-        self._reset_workspace()
-        destination = self.documents_dir / uploaded_file.name
-        self.documents_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self._reset_workspace()
+            destination = self.documents_dir / uploaded_file.name
+            self.documents_dir.mkdir(parents=True, exist_ok=True)
 
-        with destination.open('wb') as target:
-            for chunk in uploaded_file.chunks():
-                target.write(chunk)
+            with destination.open('wb') as target:
+                for chunk in uploaded_file.chunks():
+                    target.write(chunk)
 
-        documents = self._load_documents(destination)
-        if not documents:
-            raise DocumentQAError('O documento enviado esta vazio.')
+            documents = self._load_documents(destination)
+            if not documents:
+                raise DocumentQAError('O documento enviado esta vazio.')
 
-        self._build_vector_store(documents)
-        return destination
+            self._build_vector_store(documents)
+            return destination
+        except DocumentQAError:
+            raise
+        except Exception as exc:
+            raise DocumentQAError(
+                f'Falha ao processar o documento: {exc}'
+            ) from exc
 
     def ask(self, question: str, history: Sequence[dict[str, str]] | None = None) -> str:
-        if not question:
-            raise DocumentQAError('Informe uma pergunta.')
-
-        if not self.chroma_dir.exists():
-            raise DocumentQAError('Envie um documento antes de fazer perguntas.')
-
-        vector_store = self._load_vector_store()
-        history = history or []
-
-        history_block = ''
-        if history:
-            formatted = [
-                f'Pergunta: {item.get("question", "")}\nResposta: {item.get("answer", "")}'
-                for item in history
-            ]
-            history_block = '\n\n'.join(formatted)
-
         try:
-            from langchain.chains import RetrievalQA
-            from langchain_openai import ChatOpenAI
-        except ImportError as exc:
+            if not question:
+                raise DocumentQAError('Informe uma pergunta.')
+
+            if not self.chroma_dir.exists():
+                raise DocumentQAError('Envie um documento antes de fazer perguntas.')
+
+            vector_store = self._load_vector_store()
+            history = history or []
+
+            history_block = ''
+            if history:
+                formatted = [
+                    f'Pergunta: {item.get("question", "")}\nResposta: {item.get("answer", "")}'
+                    for item in history
+                ]
+                history_block = '\n\n'.join(formatted)
+
+            try:
+                from langchain.chains import RetrievalQA
+                from langchain_openai import ChatOpenAI
+            except ImportError as exc:
+                raise DocumentQAError(
+                    'LangChain ou OpenAI nao estao instalados corretamente. '
+                    'Verifique as dependencias.'
+                ) from exc
+
+            prompt = question
+            if history_block:
+                prompt = (
+                    'Contexto de conversa anterior:\n'
+                    f'{history_block}\n\nNova pergunta: {question}'
+                )
+
+            try:
+                llm = ChatOpenAI(model='gpt-4o-mini', temperature=0)
+                chain = RetrievalQA.from_chain_type(
+                    llm=llm,
+                    retriever=vector_store.as_retriever(search_kwargs={'k': 4}),
+                    chain_type='stuff',
+                    return_source_documents=False,
+                )
+                result = chain.invoke({'query': prompt})
+            except Exception as exc:  # noqa: BLE001 - queremos converter em erro de dominio
+                raise DocumentQAError(
+                    'Nao foi possivel gerar a resposta. '
+                    'Confirme se a chave OPENAI_API_KEY esta configurada e valida.'
+                ) from exc
+
+            return result.get('result', '').strip()
+        except DocumentQAError:
+            raise
+        except Exception as exc:
             raise DocumentQAError(
-                'LangChain ou OpenAI nao estao instalados corretamente. '
-                'Verifique as dependencias.'
+                f'Falha ao gerar a resposta: {exc}'
             ) from exc
-
-        prompt = question
-        if history_block:
-            prompt = (
-                'Contexto de conversa anterior:\n'
-                f'{history_block}\n\nNova pergunta: {question}'
-            )
-
-        try:
-            llm = ChatOpenAI(model='gpt-4o-mini', temperature=0)
-            chain = RetrievalQA.from_chain_type(
-                llm=llm,
-                retriever=vector_store.as_retriever(search_kwargs={'k': 4}),
-                chain_type='stuff',
-                return_source_documents=False,
-            )
-            result = chain.invoke({'query': prompt})
-        except Exception as exc:  # noqa: BLE001 - queremos converter em erro de dominio
-            raise DocumentQAError(
-                'Nao foi possivel gerar a resposta. '
-                'Confirme se a chave OPENAI_API_KEY esta configurada e valida.'
-            ) from exc
-
-        return result.get('result', '').strip()
 
     def _build_vector_store(self, documents: Iterable) -> None:
         self.chroma_dir.mkdir(parents=True, exist_ok=True)
