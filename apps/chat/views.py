@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import logging
+
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
 from .forms import BlissMemorialForm, ChatForm
 from .services import DocumentQAError, DocumentQAService
+
+logger = logging.getLogger(__name__)
 
 
 @require_http_methods(['GET', 'POST'])
@@ -40,6 +44,13 @@ def chat_view(request):
 
             except DocumentQAError as exc:
                 form.add_error(None, str(exc))
+            except Exception:
+                logger.exception('Erro inesperado ao processar o chat.')
+                form.add_error(
+                    None,
+                    'Ocorreu um erro inesperado ao processar sua solicitação. '
+                    'Tente novamente mais tarde ou contate o suporte.',
+                )
 
         # When the form is invalid, errors will be displayed by the template.
     else:
@@ -76,6 +87,13 @@ def bliss_memorial_view(request):
 
                 except DocumentQAError as exc:
                     form.add_error(None, str(exc))
+                except Exception:
+                    logger.exception('Erro inesperado ao processar o memorial Bliss.')
+                    form.add_error(
+                        None,
+                        'Ocorreu um erro inesperado ao processar sua solicitação. '
+                        'Tente novamente mais tarde ou contate o suporte.',
+                    )
             else:
                 form.add_error('question', 'Informe uma pergunta.')
     else:
