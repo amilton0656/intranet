@@ -106,11 +106,13 @@ USEFUL_LINKS = [
 GERENCIAL_LINKS = [
     {"name": "Bliss - Unidades", "url": reverse('bliss_unidades_full')},
     {"name": "Bliss - Resumo", "url": reverse('bliss_resumo')},
+    {"name": "Bliss - Memorial (IA)", "url": reverse('chat:bliss_memorial')},
 ]
 
 ADMIN_LINKS = [
     {"name": "Índices", "url": reverse('indices:indice_list')},
     {"name": "Tabela Bliss", "url": "/bliss/"},
+    {"name": "Chat - IA", "url": reverse('chat:chat')},
 ]
 
 # reverse("indice_list")

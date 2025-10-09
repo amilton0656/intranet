@@ -1,0 +1,54 @@
+﻿{% extends 'intranet/intranet_base.html' %}
+
+{% block title %}Memorial Bliss Living{% endblock %}
+
+{% block content %}
+<div class="row mt-5">
+    <div class="col-lg-6 mx-auto">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Memorial Bliss Living</h5>
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" class="row g-3">
+                    {% csrf_token %}
+
+                    <div class="col-12">
+                        <label class="form-label" for="{{ form.question.id_for_label }}">Pergunta</label>
+                        {{ form.question }}
+                        {% for error in form.question.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-12 d-grid d-sm-flex justify-content-sm-end">
+                        <button type="submit" class="btn btn-primary px-4">
+                            Enviar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Saida</h5>
+                {% if answer %}
+                    <div class="alert alert-success mb-0" role="alert">
+                        {{ answer }}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">A resposta aparecera aqui.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

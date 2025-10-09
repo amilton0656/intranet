@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.humanize',
     'rest_framework',
+    'apps.chat',
     'apps.intranet',
     'apps.indices',
     'apps.bliss',

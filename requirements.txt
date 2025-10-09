@@ -26,6 +26,10 @@ python-bidi==0.6.6
 python-decouple==3.8
 python-dotenv==1.1.1
 PyYAML==6.0.2
+langchain==0.3.0
+langchain-community==0.3.0
+langchain-openai==0.2.0
+chromadb==0.5.0
 reportlab==4.4.4
 requests==2.32.5
 rlPyCairo==0.4.0
