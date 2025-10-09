@@ -15,9 +15,15 @@ class DocumentQAError(Exception):
 
 @dataclass
 class DocumentQAService:
-    session_key: str
+    session_key: str | None = None
 
     def __post_init__(self) -> None:
+        if not self.session_key:
+            # Guarantee a filesystem-safe directory even when the session wasn't created yet.
+            from uuid import uuid4
+
+            self.session_key = uuid4().hex
+
         self.base_dir = Path(settings.MEDIA_ROOT)
         self.documents_dir = self.base_dir / 'uploads' / self.session_key
         self.chroma_dir = self.base_dir / 'chroma' / self.session_key
