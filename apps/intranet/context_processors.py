@@ -104,15 +104,15 @@ USEFUL_LINKS = [
 ]
 
 GERENCIAL_LINKS = [
-    {"name": "Bliss - Unidades", "url": reverse('bliss_unidades_full')},
-    {"name": "Bliss - Resumo", "url": reverse('bliss_resumo')},
-    {"name": "Bliss - Memorial (IA)", "url": reverse('chat:bliss_memorial')},
+    {"name": "Bliss - Resumo", "url": reverse('bliss_resumo_pdf')},
+    {"name": "Cota365 - Resumo", "url": reverse('cota365:export_dashboard')},
 ]
 
 ADMIN_LINKS = [
     {"name": "Índices", "url": reverse('indices:indice_list')},
     {"name": "Tabela Bliss", "url": "/bliss/"},
     {"name": "Chat - IA", "url": reverse('chat:chat')},
+    {"name": "Cota365", "url": reverse('cota365:index')},
 ]
 
 # reverse("indice_list")

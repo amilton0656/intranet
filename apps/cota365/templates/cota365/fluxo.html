@@ -1,0 +1,89 @@
+{% extends 'cota365/base.html' %}
+
+{% block title %}Fluxo Mensal — Cota 365{% endblock %}
+{% block nav_fluxo %}active{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1>Cota 365</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'cota365:index' %}" class="text-decoration-none">Início</a></li>
+        <li class="breadcrumb-item active">Fluxo Mensal de Receitas</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="page-header-right">
+    <div>Total Geral:</div>
+    <div class="big-number">{{ total_geral }}</div>
+  </div>
+</div>
+
+<div class="main-content">
+
+  <!-- Summary cards -->
+  <div class="d-flex flex-wrap gap-3 mb-4">
+    <div class="summary-card">
+      <div class="label">Total Geral</div>
+      <div class="value" style="font-size:1.1rem; color:#0d6efd;">{{ total_geral }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Contratos</div>
+      <div class="value">{{ n_contratos }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Meses</div>
+      <div class="value">{{ rows|length }}</div>
+    </div>
+  </div>
+
+  <!-- Export buttons + table -->
+  <div class="data-table">
+    <div class="d-flex justify-content-end align-items-center p-3 border-bottom">
+      <div class="export-btn-group d-flex gap-2">
+        <a href="{% url 'cota365:export_fluxo' %}?format=xlsx" class="btn btn-outline-success btn-sm">
+          <i class="bi bi-file-earmark-excel me-1"></i>Excel
+        </a>
+        <a href="{% url 'cota365:export_fluxo' %}?format=pdf" class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+        </a>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>MÊS / SÉRIE</th>
+            <th class="text-end">TOTAL MÊS</th>
+            <th class="text-end">ACUMULADO</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% with acumulado=0 %}
+          {% for r in rows %}
+          <tr>
+            <td><strong>{{ r.mes }}</strong></td>
+            <td class="amount">{{ r.total_fmt }}</td>
+            <td class="amount text-muted">{{ r.acumulado_fmt }}</td>
+          </tr>
+          {% endfor %}
+          {% endwith %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td><strong>Total por Série</strong></td>
+            <td class="text-end"><strong>{{ total_geral }}</strong></td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

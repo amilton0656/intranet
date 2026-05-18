@@ -1,0 +1,151 @@
+{% extends 'cota365/base.html' %}
+
+{% block title %}Cadastro de Unidades — Cota 365{% endblock %}
+{% block nav_unidades %}active{% endblock %}
+
+{% block content %}
+<style>
+  .badge-disponivel {
+    background: #d1ecf1; color: #0c5460;
+    font-weight: 700; font-size: 0.75rem;
+    padding: 0.3em 0.75em; border-radius: 20px; letter-spacing: 0.04em;
+  }
+  .badge-reservado {
+    background: #fff3cd; color: #856404;
+    font-weight: 700; font-size: 0.75rem;
+    padding: 0.3em 0.75em; border-radius: 20px; letter-spacing: 0.04em;
+  }
+  .badge-permuta {
+    background: #f3e8ff; color: #5a1e96;
+    font-weight: 700; font-size: 0.75rem;
+    padding: 0.3em 0.75em; border-radius: 20px; letter-spacing: 0.04em;
+  }
+</style>
+
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1>Cota 365</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'cota365:index' %}" class="text-decoration-none">Início</a></li>
+        <li class="breadcrumb-item active">Cadastro de Unidades</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="page-header-right">
+    <div>Total de Unidades:</div>
+    <div class="big-number">{{ total }}</div>
+  </div>
+</div>
+
+<div class="main-content">
+
+  <!-- Summary cards — row 1: comercial -->
+  <div class="d-flex flex-wrap gap-3 mb-3">
+    <div class="summary-card">
+      <div class="label">Total de Unidades</div>
+      <div class="value">{{ total }}</div>
+    </div>
+    <div class="summary-card" style="border-left: 3px solid var(--green);">
+      <div class="label" style="color:var(--green);">Vendidas</div>
+      <div class="value" style="color:var(--green);">{{ vendidos }}</div>
+    </div>
+    <div class="summary-card" style="border-left: 3px solid var(--teal);">
+      <div class="label" style="color:var(--teal-dark);">Disponíveis</div>
+      <div class="value" style="color:var(--teal-dark);">{{ disponiveis }}</div>
+    </div>
+    {% if reservados %}
+    <div class="summary-card" style="border-left: 3px solid #ffc107;">
+      <div class="label" style="color:#856404;">Reservadas</div>
+      <div class="value" style="color:#856404;">{{ reservados }}</div>
+    </div>
+    {% endif %}
+    {% if permutas_n %}
+    <div class="summary-card" style="border-left: 3px solid var(--purple);">
+      <div class="label" style="color:var(--purple-dark);">Permutas</div>
+      <div class="value" style="color:var(--purple-dark);">{{ permutas_n }}</div>
+    </div>
+    {% endif %}
+    <div class="summary-card">
+      <div class="label">VGV Vendido</div>
+      <div class="value" style="font-size:1rem;">{{ vgv_vendido }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">VGV Disponível</div>
+      <div class="value" style="font-size:1rem;">{{ vgv_disponivel }}</div>
+    </div>
+  </div>
+
+  <!-- Summary cards — row 2: áreas -->
+  <div class="d-flex flex-wrap gap-3 mb-4">
+    <div class="summary-card" style="border-left: 3px solid var(--purple);">
+      <div class="label" style="color:var(--purple);">Área Privativa</div>
+      <div class="value" style="font-size:1rem; color:var(--purple);">{{ area_priv }}</div>
+    </div>
+    <div class="summary-card" style="border-left: 3px solid var(--purple);">
+      <div class="label" style="color:var(--purple);">Área Priv. Acessória</div>
+      <div class="value" style="font-size:1rem; color:var(--purple);">{{ area_priv_acess }}</div>
+    </div>
+    <div class="summary-card" style="border-left: 3px solid var(--purple);">
+      <div class="label" style="color:var(--purple);">Total Área Privativa</div>
+      <div class="value" style="font-size:1rem; color:var(--purple);">{{ total_priv }}</div>
+    </div>
+    <div class="summary-card" style="border-left: 3px solid var(--teal);">
+      <div class="label" style="color:var(--teal-dark);">Área Comum</div>
+      <div class="value" style="font-size:1rem; color:var(--teal-dark);">{{ area_comum }}</div>
+    </div>
+    <div class="summary-card" style="border-left: 3px solid #1a1a2e;">
+      <div class="label">Área Total</div>
+      <div class="value" style="font-size:1rem;">{{ area_total }}</div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="data-table">
+    <div class="d-flex justify-content-end align-items-center p-3 border-bottom">
+      <div class="export-btn-group d-flex gap-2">
+        <a href="{% url 'cota365:export_unidades' %}?format=xlsx" class="btn btn-outline-success btn-sm">
+          <i class="bi bi-file-earmark-excel me-1"></i>Excel
+        </a>
+        <a href="{% url 'cota365:export_unidades' %}?format=pdf" class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+        </a>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            {% for h in headers %}
+            <th>{{ h|upper }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            {% for cell in row %}
+            <td class="{{ cell.cls }}">
+              {% if cell.badge %}
+                <span class="{{ cell.badge }}">{{ cell.val }}</span>
+              {% else %}
+                {{ cell.val }}
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="{{ headers|length }}" class="text-center text-muted py-4">
+              Nenhuma unidade encontrada.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

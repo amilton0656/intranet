@@ -19,4 +19,5 @@ urlpatterns = [
     path('', include('apps.intranet.urls')),
     path('bliss/', include('apps.bliss.urls')),
     path('indices/', include('apps.indices.urls', namespace='indices')),
+    path('cota365/', include('apps.cota365.urls', namespace='cota365')),
 ]
