@@ -1,16 +1,18 @@
+from django.conf import settings
 from django.urls import reverse
-from django.templatetags.static import static
+
+_MEDIA = settings.MEDIA_URL
 
 EMPREENDEDIMENTO_LINKS = [
-    {"name": "Bliss Living - bancária", "url": static("downloads/BLISS LIVING - bancaria.pdf")},
-    {"name": "Green Village Residence - bancária", "url": static("downloads/GREEN VILLAGE RESIDENCE - bancária.pdf")},
-    {"name": "Imóveis de Terceiros - Bombinhas", "url": static("downloads/IMOVEIS DE TERCEIROS - BOMBINHAS - bancária.pdf")},
-    {"name": "Imóveis de Terceiros - Grande Florianópolis", "url": static("downloads/IMÓVEIS DE TERCEIROS - GRANDE FLORIANÓPOLIS - bancária.pdf")},
-    {"name": "Max & Flora - Locação", "url": static("downloads/MAX & FLORA - locação.pdf")},
-    {"name": "Punta Blu Mall Boutique - bancária", "url": static("downloads/PUNTA BLU MALL BOUTIQUE - bancária.pdf")},
-    {"name": "Punta Blu Mall Boutique - direta", "url": static("downloads/PUNTA BLU MALL BOUTIQUE - direta.pdf")},
-    {"name": "Punta Blu Mall Boutique - locação", "url": static("downloads/PUNTA BLU MALL BOUTIQUE - locação.pdf")},
-    {"name": "Punta Blu Residence - bancária", "url": static("downloads/PUNTA BLU RESIDENCE - bancária.pdf")},
+    {"name": "Bliss Living - bancária", "url": f"{_MEDIA}downloads/BLISS LIVING - bancaria.pdf"},
+    {"name": "Green Village Residence - bancária", "url": f"{_MEDIA}downloads/GREEN VILLAGE RESIDENCE - bancária.pdf"},
+    {"name": "Imóveis de Terceiros - Bombinhas", "url": f"{_MEDIA}downloads/IMOVEIS DE TERCEIROS - BOMBINHAS - bancária.pdf"},
+    {"name": "Imóveis de Terceiros - Grande Florianópolis", "url": f"{_MEDIA}downloads/IMÓVEIS DE TERCEIROS - GRANDE FLORIANÓPOLIS - bancária.pdf"},
+    {"name": "Max & Flora - Locação", "url": f"{_MEDIA}downloads/MAX & FLORA - locação.pdf"},
+    {"name": "Punta Blu Mall Boutique - bancária", "url": f"{_MEDIA}downloads/PUNTA BLU MALL BOUTIQUE - bancária.pdf"},
+    {"name": "Punta Blu Mall Boutique - direta", "url": f"{_MEDIA}downloads/PUNTA BLU MALL BOUTIQUE - direta.pdf"},
+    {"name": "Punta Blu Mall Boutique - locação", "url": f"{_MEDIA}downloads/PUNTA BLU MALL BOUTIQUE - locação.pdf"},
+    {"name": "Punta Blu Residence - bancária", "url": f"{_MEDIA}downloads/PUNTA BLU RESIDENCE - bancária.pdf"},
 ]
 
 ADMINISTRATIVO_LINKS = [
@@ -113,6 +115,7 @@ ADMIN_LINKS = [
     {"name": "Tabela Bliss", "url": "/bliss/"},
     {"name": "Chat - IA", "url": reverse('chat:chat')},
     {"name": "Cota365", "url": reverse('cota365:index')},
+    {"name": "Tabelas PDF", "url": reverse('intranet_uploads')},
 ]
 
 # reverse("indice_list")
