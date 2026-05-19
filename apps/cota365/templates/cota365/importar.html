@@ -1,0 +1,169 @@
+{% extends "cota365/base.html" %}
+{% block title %}Importar Arquivos — Cota 365{% endblock %}
+{% block nav_importar %}active{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-upload me-2"></i>Importar Arquivos CSV</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'cota365:index' %}">Início</a></li>
+        <li class="breadcrumb-item active">Importar</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<div class="main-content">
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+        <i class="bi bi-{% if msg.tags == 'error' %}exclamation-triangle-fill{% else %}check-circle-fill{% endif %}"></i>
+        <span>{{ msg }}</span>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="alert alert-info d-flex gap-2 align-items-start mb-3" style="font-size:0.85rem;">
+    <i class="bi bi-info-circle-fill mt-1"></i>
+    <div>
+      Cada importação <strong>substitui completamente</strong> os dados anteriores daquele tipo.
+      O formato esperado é <strong>CSV com separador ponto-e-vírgula (;)</strong>.
+      Se o arquivo tiver erro, os dados anteriores são preservados automaticamente.
+    </div>
+  </div>
+
+  {% if resumo.n_contratos %}
+  <div class="row g-2 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">VGV (Tabela)</div>
+        <div class="value" style="font-size:1.1rem;">{{ resumo.vgv_tabela }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">Contratos no Fluxo</div>
+        <div class="value">{{ resumo.n_contratos }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">Unidades Cadastradas</div>
+        <div class="value">{{ resumo.n_unidades }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">Vendas Registradas</div>
+        <div class="value">{{ resumo.n_vendas }}</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row g-3">
+    {% for arq in arquivos %}
+    <div class="col-12 col-lg-6">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <span class="import-icon">
+                {% if arq.tipo == 'tabela' %}<i class="bi bi-table text-primary fs-4"></i>
+                {% elif arq.tipo == 'unidades' %}<i class="bi bi-building text-navy fs-4"></i>
+                {% elif arq.tipo == 'vendas' %}<i class="bi bi-list-check text-success fs-4"></i>
+                {% elif arq.tipo == 'fluxo' %}<i class="bi bi-bar-chart-line text-warning fs-4"></i>
+                {% elif arq.tipo == 'vinculo' %}<i class="bi bi-link-45deg text-info fs-4"></i>
+                {% elif arq.tipo == 'permutas' %}<i class="bi bi-arrow-left-right text-purple fs-4"></i>
+                {% endif %}
+              </span>
+              <div>
+                <div class="fw-bold">{{ arq.label }}</div>
+                <div class="text-muted" style="font-size:0.75rem;">{{ arq.tipo }}.csv</div>
+              </div>
+            </div>
+            {% if arq.ultimo %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="bi bi-check-circle me-1"></i>Importado
+              </span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                <i class="bi bi-dash-circle me-1"></i>Sem dados
+              </span>
+            {% endif %}
+          </div>
+
+          {% if arq.ultimo %}
+          <div class="d-flex gap-3 mb-3 text-muted" style="font-size:0.78rem;">
+            <span><i class="bi bi-clock me-1"></i>{{ arq.ultimo }}</span>
+            <span><i class="bi bi-database me-1"></i>{{ arq.registros }} registros</span>
+            <span class="text-truncate" title="{{ arq.arquivo }}">
+              <i class="bi bi-file-earmark-text me-1"></i>{{ arq.arquivo }}
+            </span>
+          </div>
+          {% else %}
+          <div class="mb-3 text-muted" style="font-size:0.78rem;">
+            <i class="bi bi-exclamation-circle me-1"></i>Nenhuma importação realizada ainda.
+          </div>
+          {% endif %}
+
+          <form method="post" enctype="multipart/form-data" class="import-form">
+            {% csrf_token %}
+            <input type="hidden" name="tipo" value="{{ arq.tipo }}">
+            <div class="input-group">
+              <input type="file" class="form-control form-control-sm" name="arquivo"
+                     accept=".csv" required id="file-{{ arq.tipo }}">
+              <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-upload me-1"></i>Importar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="mt-4 p-3 rounded" style="background:#fff; border:1px solid #e2e6ea;">
+    <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-2"></i>Colunas esperadas por arquivo</h6>
+    <div class="row g-2" style="font-size:0.78rem;">
+      <div class="col-md-4">
+        <div class="fw-semibold text-primary mb-1">tabela.csv</div>
+        <code>UNIDADE; TIPOLOGIA; SITUAÇÃO; ÁREA PRIVATIVA; VALOR TOTAL</code>
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold text-primary mb-1">unidades.csv</div>
+        <code>Unidade; Tipo; Complemento do Tipo; Area Privativa; Area Priv. Acessoria; Area Comum; Fracao Ideal</code>
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold text-primary mb-1">vendas.csv</div>
+        <code>Reserva; Situação; Unidade; Cliente; Imobiliária; M² da unidade; Espaços complementares</code>
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold text-primary mb-1">fluxo.csv</div>
+        <code>Id.; Cliente; Unidade; VGV; PV; Primeira parcela; Última parcela; Mês 0 … Mês 44; Empreendimento; Imobiliária; Corretor</code>
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold text-primary mb-1">vinculo.csv</div>
+        <code>Unidade; Garagens; HB</code>
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold text-primary mb-1">permutas.csv</div>
+        <code>Uma unidade por linha (sem cabeçalho)</code>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+  .text-navy   { color: var(--navy); }
+  .text-purple { color: var(--purple); }
+  .card { border: 1px solid #e2e6ea; border-radius: 10px; }
+  .card-body { padding: 1.25rem; }
+</style>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends 'cota365/base.html' %}
+
+{% block title %}Unidades Vendidas — Cota 365{% endblock %}
+{% block nav_vendas %}active{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1>Cota 365</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'cota365:index' %}" class="text-decoration-none">Início</a></li>
+        <li class="breadcrumb-item active">Reservas</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="page-header-right">
+    <div>Nº de Contratos:</div>
+    <div class="big-number">{{ n_contratos }}</div>
+    <div class="mt-1">Total Geral:</div>
+    <div class="big-number" style="font-size:1.2rem;">{{ total_geral }}</div>
+  </div>
+</div>
+
+<div class="main-content">
+
+  <!-- Summary cards -->
+  <div class="d-flex flex-wrap gap-3 mb-4">
+    <div class="summary-card">
+      <div class="label">Nº de Contratos</div>
+      <div class="value">{{ n_contratos }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Total Geral</div>
+      <div class="value" style="font-size:1.15rem;">{{ total_geral }}</div>
+    </div>
+  </div>
+
+  <!-- Export buttons + table -->
+  <div class="data-table">
+    <div class="d-flex justify-content-end align-items-center p-3 border-bottom">
+      <div class="export-btn-group d-flex gap-2">
+        <a href="{% url 'cota365:export_vendas' %}?format=xlsx" class="btn btn-outline-success btn-sm">
+          <i class="bi bi-file-earmark-excel me-1"></i>Excel
+        </a>
+        <a href="{% url 'cota365:export_vendas' %}?format=pdf" class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+        </a>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Nº</th>
+            <th>CLIENTE</th>
+            <th>EMPREENDIMENTO</th>
+            <th>UNIDADE</th>
+            <th>GARAGENS</th>
+            <th>HB</th>
+            <th class="text-center">STATUS</th>
+            <th class="text-end">TOTAL CONTRATO</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in contracts %}
+          <tr>
+            <td class="contract-num">{{ c.numero }}</td>
+            <td><strong>{{ c.cliente }}</strong></td>
+            <td>{{ c.empreendimento }}</td>
+            <td>{{ c.unidade }}</td>
+            <td>{{ c.garagens }}</td>
+            <td>{{ c.hb }}</td>
+            <td class="text-center">
+              <span class="badge-vendido">{{ c.status }}</span>
+            </td>
+            <td class="amount">{{ c.valor_fmt }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-4">Nenhum contrato encontrado.</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="7" class="text-end">TOTAL GERAL</td>
+            <td class="text-end">{{ total_geral }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

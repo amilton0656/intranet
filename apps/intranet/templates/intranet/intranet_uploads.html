@@ -1,0 +1,106 @@
+{% extends 'intranet/intranet_base.html' %}
+{% load static %}
+
+{% block title %}Tabelas de Vendas — PDF{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4" style="max-width: 900px;">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0 fw-bold">Tabelas de Vendas — PDFs</h4>
+    <a href="{% url 'intranet_home' %}" class="btn btn-outline-secondary btn-sm">Voltar</a>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Upload -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-upload me-2"></i>Enviar novo PDF
+    </div>
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-end flex-wrap">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="upload">
+        <div class="flex-grow-1">
+          <label class="form-label small text-muted mb-1">
+            Selecione o arquivo PDF. Se o nome for igual a um existente, ele será substituído.
+          </label>
+          <input type="file" class="form-control" name="arquivo" accept=".pdf" required>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-cloud-upload me-1"></i>Enviar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lista de PDFs -->
+  <div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span class="fw-semibold"><i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDFs disponíveis</span>
+      <span class="badge bg-secondary">{{ pdfs|length }} arquivo(s)</span>
+    </div>
+
+    {% if pdfs %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle" style="font-size: 0.9rem;">
+        <thead class="table-light">
+          <tr>
+            <th>Nome do arquivo</th>
+            <th class="text-end">Tamanho</th>
+            <th class="text-center" style="width: 130px;">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pdf in pdfs %}
+          <tr>
+            <td>
+              <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+              <a href="{{ pdf.url }}" target="_blank" rel="noopener" class="text-decoration-none">
+                {{ pdf.nome }}
+              </a>
+            </td>
+            <td class="text-end text-muted">{{ pdf.tamanho }}</td>
+            <td class="text-center">
+              <a href="{{ pdf.url }}" target="_blank" class="btn btn-outline-danger btn-sm" title="Abrir PDF">
+                <i class="bi bi-eye"></i>
+              </a>
+              <form method="post" class="d-inline"
+                    onsubmit="return confirm('Excluir &quot;{{ pdf.nome }}&quot;?')">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="nome" value="{{ pdf.nome }}">
+                <button type="submit" class="btn btn-outline-secondary btn-sm" title="Excluir">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="card-body text-center text-muted py-5">
+      <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+      Nenhum PDF enviado ainda. Use o formulário acima para enviar o primeiro arquivo.
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="mt-3 text-muted" style="font-size: 0.8rem;">
+    <i class="bi bi-info-circle me-1"></i>
+    Os PDFs ficam disponíveis imediatamente no menu <strong>Tabelas de Vendas</strong> após o envio,
+    sem necessidade de reiniciar o servidor.
+  </div>
+
+</div>
+{% endblock %}
