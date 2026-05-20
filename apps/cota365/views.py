@@ -15,7 +15,7 @@ from openpyxl.utils import get_column_letter
 
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 
@@ -876,7 +876,7 @@ def export_dashboard(request):
     ))
     story.append(Spacer(1, 4))
 
-    story.append(Paragraph('Resumo por Situação', sec_s))
+    story.append(Paragraph('Resumo por Situação (Com permutas)', sec_s))
     sit_header = [[
         th('SITUAÇÃO'), th('VALOR TABELA'), th('% VALOR'),
         th('ÁREA PRIV.'), th('% ÁREA'), th('UNIDADES'), th('% UNID.'),
@@ -890,7 +890,7 @@ def export_dashboard(request):
                      [3*cm, 3.5*cm, 1.8*cm, 3*cm, 1.8*cm, 1.8*cm, 1.8*cm], total_last=True))
     story.append(Spacer(1, 6))
 
-    story.append(Paragraph('Resumo por Situação Líquido', sec_s))
+    story.append(Paragraph('Resumo por Situação (Sem permutas)', sec_s))
     liq_header = [[
         th('SITUAÇÃO'), th('VALOR TABELA'), th('% VALOR'),
         th('ÁREA PRIV.'), th('% ÁREA'), th('UNIDADES'), th('% UNID.'),
@@ -916,6 +916,7 @@ def export_dashboard(request):
         ps('PM', fontSize=8, textColor=NAVY, fontName='Helvetica-Bold', spaceBefore=4, spaceAfter=6),
     ))
 
+    story.append(PageBreak())
     story.append(Paragraph('Resumo por Tipo (Estoque)', sec_s))
     est_header = [[th('QTDE'), th('TIPO'), th('M² PRIV.'), th('VALOR TABELA'), th('R$/M²')]]
     est_rows = [
