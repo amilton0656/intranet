@@ -3,16 +3,35 @@ from django.urls import reverse
 
 _MEDIA = settings.MEDIA_URL
 
+COTA365_TABELAS = [
+    {"name": "Cota 365 - Tabela Curta (Todas Tipologias) - bancária",
+        "url": f"{_MEDIA}downloads/COTA 365 - Curta Todas - bancária.pdf"},
+    {"name": "Cota 365 - Tabela Longa (2 Dorm) - bancária",
+        "url": f"{_MEDIA}downloads/COTA 365 - Longa StudioLojas - bancária.pdf"},
+    {"name": "Cota 365 - Tabela Longa (Studio e Lojas) - bancária",
+        "url": f"{_MEDIA}downloads/COTA 365 - Longa 2Dorm - bancária.pdf"},
+]
+
 EMPREENDEDIMENTO_LINKS = [
-    {"name": "Bliss Living - bancária", "url": f"{_MEDIA}downloads/BLISS LIVING - bancaria.pdf"},
-    {"name": "Green Village Residence - bancária", "url": f"{_MEDIA}downloads/GREEN VILLAGE RESIDENCE - bancária.pdf"},
-    {"name": "Imóveis de Terceiros - Bombinhas", "url": f"{_MEDIA}downloads/IMOVEIS DE TERCEIROS - BOMBINHAS - bancária.pdf"},
-    {"name": "Imóveis de Terceiros - Grande Florianópolis", "url": f"{_MEDIA}downloads/IMÓVEIS DE TERCEIROS - GRANDE FLORIANÓPOLIS - bancária.pdf"},
-    {"name": "Max & Flora - Locação", "url": f"{_MEDIA}downloads/MAX & FLORA - locação.pdf"},
-    {"name": "Punta Blu Mall Boutique - bancária", "url": f"{_MEDIA}downloads/PUNTA BLU MALL BOUTIQUE - bancária.pdf"},
-    {"name": "Punta Blu Mall Boutique - direta", "url": f"{_MEDIA}downloads/PUNTA BLU MALL BOUTIQUE - direta.pdf"},
-    {"name": "Punta Blu Mall Boutique - locação", "url": f"{_MEDIA}downloads/PUNTA BLU MALL BOUTIQUE - locação.pdf"},
-    {"name": "Punta Blu Residence - bancária", "url": f"{_MEDIA}downloads/PUNTA BLU RESIDENCE - bancária.pdf"},
+    {"name": "Bliss Living - bancária",
+        "url": f"{_MEDIA}downloads/BLISS LIVING - bancaria.pdf"},
+    *COTA365_TABELAS,
+    {"name": "Green Village Residence - bancária",
+        "url": f"{_MEDIA}downloads/GREEN VILLAGE RESIDENCE - bancária.pdf"},
+    {"name": "Imóveis de Terceiros - Bombinhas",
+        "url": f"{_MEDIA}downloads/IMOVEIS DE TERCEIROS - BOMBINHAS - bancária.pdf"},
+    {"name": "Imóveis de Terceiros - Grande Florianópolis",
+        "url": f"{_MEDIA}downloads/IMÓVEIS DE TERCEIROS - GRANDE FLORIANÓPOLIS - bancária.pdf"},
+    {"name": "Max & Flora - Locação",
+        "url": f"{_MEDIA}downloads/MAX & FLORA - locação.pdf"},
+    {"name": "Punta Blu Mall Boutique - bancária",
+        "url": f"{_MEDIA}downloads/PUNTA BLU MALL BOUTIQUE - bancária.pdf"},
+    {"name": "Punta Blu Mall Boutique - direta",
+        "url": f"{_MEDIA}downloads/PUNTA BLU MALL BOUTIQUE - direta.pdf"},
+    {"name": "Punta Blu Mall Boutique - locação",
+        "url": f"{_MEDIA}downloads/PUNTA BLU MALL BOUTIQUE - locação.pdf"},
+    {"name": "Punta Blu Residence - bancária",
+        "url": f"{_MEDIA}downloads/PUNTA BLU RESIDENCE - bancária.pdf"},
 ]
 
 ADMINISTRATIVO_LINKS = [
@@ -86,7 +105,8 @@ PUBLIC_AGENCY_LINKS = [
 ]
 
 USEFUL_LINKS = [
-    {"name": "Simulador de Financiamento", "url": "http://www.financiamento.com.br/simulador/"},
+    {"name": "Simulador de Financiamento",
+        "url": "http://www.financiamento.com.br/simulador/"},
     {"name": "CEP", "url": "http://www.buscacep.correios.com.br"},
     {"name": "COTA", "url": "https://www.cota.com.br"},
     {"name": "CREA", "url": "http://www.crea-sc.org.br"},
@@ -120,6 +140,7 @@ ADMIN_LINKS = [
 
 # reverse("indice_list")
 
+
 def navbar_links(request):
     user = getattr(request, 'user', None)
     show_gerencial_menu = False
@@ -143,4 +164,3 @@ def navbar_links(request):
         "show_gerencial_menu": show_gerencial_menu,
         "show_admin_menu": show_admin_menu,
     }
-

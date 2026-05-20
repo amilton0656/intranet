@@ -662,7 +662,12 @@ def importar(request):
         'n_vendas':    Ve.objects.count(),
     }
 
-    return render(request, 'cota365/importar.html', {'arquivos': arquivos, 'resumo': resumo})
+    from apps.intranet.context_processors import COTA365_TABELAS
+    return render(request, 'cota365/importar.html', {
+        'arquivos':        arquivos,
+        'resumo':          resumo,
+        'cota365_tabelas': COTA365_TABELAS,
+    })
 
 
 # ---------------------------------------------------------------------------

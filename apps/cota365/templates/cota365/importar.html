@@ -128,6 +128,18 @@
     {% endfor %}
   </div>
 
+  <!-- ── Tabelas de Vendas PDF ─────────────────────────────────────────── -->
+  <div class="mt-4 p-3 rounded" style="background:#fff; border:1px solid #e2e6ea;">
+    <h6 class="fw-bold mb-3"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>Tabelas de Vendas — Cota 365</h6>
+    <div class="d-flex flex-wrap gap-2">
+      {% for tab in cota365_tabelas %}
+      <a href="{{ tab.url }}" target="_blank" class="btn btn-outline-danger btn-sm">
+        <i class="bi bi-file-pdf me-1"></i>{{ tab.name }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
   <div class="mt-4 p-3 rounded" style="background:#fff; border:1px solid #e2e6ea;">
     <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-2"></i>Colunas esperadas por arquivo</h6>
     <div class="row g-2" style="font-size:0.78rem;">
