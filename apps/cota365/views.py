@@ -168,9 +168,12 @@ def _compute_resumos_tabela():
     sit_vt = defaultdict(float)
     sit_ap = defaultdict(float)
     sit_n  = defaultdict(int)
-    tip_vt = defaultdict(float)
-    tip_ap = defaultdict(float)
-    tip_n  = defaultdict(int)
+    tip_vt     = defaultdict(float)
+    tip_ap     = defaultdict(float)
+    tip_n      = defaultdict(int)
+    tip_est_vt = defaultdict(float)
+    tip_est_ap = defaultdict(float)
+    tip_est_n  = defaultdict(int)
 
     permutas = _load_permutas()
 
@@ -184,6 +187,10 @@ def _compute_resumos_tabela():
             tip_vt[tip] += t.valor_total
             tip_ap[tip] += t.area_privativa
             tip_n[tip]  += 1
+            if sit in ('Disponível', 'Reservada'):
+                tip_est_vt[tip] += t.valor_total
+                tip_est_ap[tip] += t.area_privativa
+                tip_est_n[tip]  += 1
 
     total_vt = sum(sit_vt.values()) or 1
     total_ap = sum(sit_ap.values()) or 1
@@ -210,6 +217,34 @@ def _compute_resumos_tabela():
         'ap_fmt':   _fmt_m2(sum(sit_ap.values())),
         'pct_ap':   '100,00%',
         'n':        total_n,
+        'pct_n':    '100,00%',
+        'is_total': True,
+    })
+
+    LIQUIDO_SITS = ['Disponível', 'Reservada', 'Vendida']
+    liq_vt = sum(sit_vt.get(s, 0.0) for s in LIQUIDO_SITS)
+    liq_ap = sum(sit_ap.get(s, 0.0) for s in LIQUIDO_SITS)
+    liq_n  = sum(sit_n.get(s, 0)    for s in LIQUIDO_SITS)
+    resumo_sit_liquido = []
+    for s in LIQUIDO_SITS:
+        if s not in sit_n:
+            continue
+        resumo_sit_liquido.append({
+            'situacao': s,
+            'vt_fmt':   _fmt_brl(sit_vt[s]),
+            'pct_vt':   f"{sit_vt[s]/liq_vt*100:.2f}%" if liq_vt else '0,00%',
+            'ap_fmt':   _fmt_m2(sit_ap[s]),
+            'pct_ap':   f"{sit_ap[s]/liq_ap*100:.2f}%" if liq_ap else '0,00%',
+            'n':        sit_n[s],
+            'pct_n':    f"{sit_n[s]/liq_n*100:.2f}%" if liq_n else '0,00%',
+        })
+    resumo_sit_liquido.append({
+        'situacao': 'Total Geral Líquido',
+        'vt_fmt':   _fmt_brl(liq_vt),
+        'pct_vt':   '100,00%',
+        'ap_fmt':   _fmt_m2(liq_ap),
+        'pct_ap':   '100,00%',
+        'n':        liq_n,
         'pct_n':    '100,00%',
         'is_total': True,
     })
@@ -257,10 +292,49 @@ def _compute_resumos_tabela():
         'is_total': True,
     })
 
+    est_grp_vt = defaultdict(float)
+    est_grp_ap = defaultdict(float)
+    est_grp_n  = defaultdict(int)
+    for t in tip_est_n:
+        g = _grupo(t)
+        est_grp_vt[g] += tip_est_vt[t]
+        est_grp_ap[g] += tip_est_ap[t]
+        est_grp_n[g]  += tip_est_n[t]
+
+    total_est_vt = sum(est_grp_vt.values()) or 1
+    total_est_ap = sum(est_grp_ap.values()) or 1
+    total_est_n  = sum(est_grp_n.values())
+    preco_medio_estoque = total_est_vt / total_est_n if total_est_n else 0
+
+    all_est_grps = sorted(est_grp_n.keys(), key=lambda g: GRP_ORDER.index(g) if g in GRP_ORDER else 99)
+
+    resumo_tip_estoque = []
+    for g in all_est_grps:
+        rsm2 = est_grp_vt[g] / est_grp_ap[g] if est_grp_ap[g] else 0
+        resumo_tip_estoque.append({
+            'n':      est_grp_n[g],
+            'tipo':   g,
+            'ap_fmt': f"{est_grp_ap[g]:,.2f}".replace(',','X').replace('.',',').replace('X','.'),
+            'vt_fmt': _fmt_brl(est_grp_vt[g]),
+            'rsm2':   f"{rsm2:,.2f}".replace(',','X').replace('.',',').replace('X','.'),
+        })
+    resumo_tip_estoque.append({
+        'n':      total_est_n,
+        'tipo':   'Total',
+        'ap_fmt': f"{total_est_ap:,.2f}".replace(',','X').replace('.',',').replace('X','.'),
+        'vt_fmt': _fmt_brl(total_est_vt),
+        'rsm2':   f"{total_est_vt/total_est_ap:,.2f}".replace(',','X').replace('.',',').replace('X','.')
+                  if total_est_ap else '0,00',
+        'is_total': True,
+    })
+
     return (
         resumo_sit,
+        resumo_sit_liquido,
         resumo_tip,
+        resumo_tip_estoque,
         _fmt_brl(preco_medio),
+        _fmt_brl(preco_medio_estoque),
         sum(sit_vt.values()),
         sit_vt.get('Permuta',    0.0),
         sit_vt.get('Disponível', 0.0),
@@ -629,7 +703,7 @@ def dashboard(request):
     ]
     proximos_total = sum(r['total'] for r in proximos)
 
-    resumo_sit, resumo_tip, preco_medio_tipo, vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada = _compute_resumos_tabela()
+    resumo_sit, resumo_sit_liquido, resumo_tip, resumo_tip_estoque, preco_medio_tipo, preco_medio_estoque, vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada = _compute_resumos_tabela()
     area_priv, area_priv_acess, total_priv, area_comum, area_total = _compute_areas()
 
     total_vendido = sum(r['vgv'] for r in fluxo_rows)
@@ -691,7 +765,7 @@ def export_dashboard(request):
     ticket_medio = total_fluxo / n_contratos if n_contratos else 0
     total_vendido = sum(r['vgv'] for r in fluxo_rows)
 
-    resumo_sit, resumo_tip, preco_medio_tipo, vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada = _compute_resumos_tabela()
+    resumo_sit, resumo_sit_liquido, resumo_tip, resumo_tip_estoque, preco_medio_tipo, preco_medio_estoque, vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada = _compute_resumos_tabela()
     area_priv, area_priv_acess, total_priv, area_comum, area_total = _compute_areas()
 
     ano_totals = defaultdict(float)
@@ -816,6 +890,20 @@ def export_dashboard(request):
                      [3*cm, 3.5*cm, 1.8*cm, 3*cm, 1.8*cm, 1.8*cm, 1.8*cm], total_last=True))
     story.append(Spacer(1, 6))
 
+    story.append(Paragraph('Resumo por Situação Líquido', sec_s))
+    liq_header = [[
+        th('SITUAÇÃO'), th('VALOR TABELA'), th('% VALOR'),
+        th('ÁREA PRIV.'), th('% ÁREA'), th('UNIDADES'), th('% UNID.'),
+    ]]
+    liq_rows = [
+        [td(r['situacao']), tdr(r['vt_fmt']), tdr(r['pct_vt']),
+         tdr(r['ap_fmt']),  tdr(r['pct_ap']), tdr(str(r['n'])), tdr(r['pct_n'])]
+        for r in resumo_sit_liquido
+    ]
+    story.append(tbl(liq_header + liq_rows,
+                     [3*cm, 3.5*cm, 1.8*cm, 3*cm, 1.8*cm, 1.8*cm, 1.8*cm], total_last=True))
+    story.append(Spacer(1, 6))
+
     story.append(Paragraph('Resumo por Tipo', sec_s))
     tip_header = [[th('QTDE'), th('TIPO'), th('M² PRIV.'), th('VALOR TABELA'), th('R$/M²')]]
     tip_rows = [
@@ -825,6 +913,18 @@ def export_dashboard(request):
     story.append(tbl(tip_header + tip_rows, [1.5*cm, 3.5*cm, 3*cm, 4.5*cm, 4.2*cm], total_last=True))
     story.append(Paragraph(
         f'Preço médio por unidade: {preco_medio_tipo}',
+        ps('PM', fontSize=8, textColor=NAVY, fontName='Helvetica-Bold', spaceBefore=4, spaceAfter=6),
+    ))
+
+    story.append(Paragraph('Resumo por Tipo (Estoque)', sec_s))
+    est_header = [[th('QTDE'), th('TIPO'), th('M² PRIV.'), th('VALOR TABELA'), th('R$/M²')]]
+    est_rows = [
+        [tdr(str(r['n'])), td(r['tipo']), tdr(r['ap_fmt']), tdr(r['vt_fmt']), tdr(r['rsm2'])]
+        for r in resumo_tip_estoque
+    ]
+    story.append(tbl(est_header + est_rows, [1.5*cm, 3.5*cm, 3*cm, 4.5*cm, 4.2*cm], total_last=True))
+    story.append(Paragraph(
+        f'Preço médio por unidade (estoque): {preco_medio_estoque}',
         ps('PM', fontSize=8, textColor=NAVY, fontName='Helvetica-Bold', spaceBefore=4, spaceAfter=6),
     ))
 
@@ -1389,4 +1489,170 @@ def _export_fluxo_pdf(rows, total_geral):
     buf.seek(0)
     resp = HttpResponse(buf, content_type='application/pdf')
     resp['Content-Disposition'] = 'attachment; filename="fluxo_mensal.pdf"'
+    return resp
+
+
+# ---------------------------------------------------------------------------
+# Comparativo de Áreas — Tabela × Unidades
+# ---------------------------------------------------------------------------
+
+def export_areas_comparativo(request):
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    HDR_FILL  = PatternFill('solid', fgColor='1A1A2E')
+    HDR_FONT  = Font(bold=True, color='FFFFFF', size=10)
+    DIFF_FILL = PatternFill('solid', fgColor='FFE0E0')
+    OK_FILL   = PatternFill('solid', fgColor='E0F4E0')
+    ONLY_FILL = PatternFill('solid', fgColor='FFF3CD')
+    TOTAL_FONT = Font(bold=True, size=10)
+    BORDER = Border(
+        left=Side(style='thin', color='CCCCCC'),
+        right=Side(style='thin', color='CCCCCC'),
+        top=Side(style='thin', color='CCCCCC'),
+        bottom=Side(style='thin', color='CCCCCC'),
+    )
+
+    def _hdr(ws, row, cols):
+        for c, txt in enumerate(cols, 1):
+            cell = ws.cell(row=row, column=c, value=txt)
+            cell.font  = HDR_FONT
+            cell.fill  = HDR_FILL
+            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+            cell.border = BORDER
+
+    def _auto_width(ws):
+        for col in ws.columns:
+            max_len = max((len(str(c.value or '')) for c in col), default=8)
+            ws.column_dimensions[get_column_letter(col[0].column)].width = min(max_len + 4, 30)
+
+    wb = openpyxl.Workbook()
+
+    # ── Aba 1: Tabela ─────────────────────────────────────────────────────────
+    ws_tab = wb.active
+    ws_tab.title = 'Tabela'
+    _hdr(ws_tab, 1, ['UNIDADE', 'TIPOLOGIA', 'SITUAÇÃO', 'ÁREA PRIV. (m²)', 'VALOR TOTAL'])
+    ws_tab.row_dimensions[1].height = 28
+    for i, t in enumerate(Tabela.objects.order_by('unidade'), 2):
+        row = [t.unidade, t.tipologia, t.situacao, t.area_privativa, t.valor_total]
+        for c, val in enumerate(row, 1):
+            cell = ws_tab.cell(row=i, column=c, value=val)
+            cell.border = BORDER
+            if c in (4, 5):
+                cell.number_format = '#,##0.00'
+                cell.alignment = Alignment(horizontal='right')
+    # total
+    n = Tabela.objects.count()
+    total_row = n + 2
+    ws_tab.cell(row=total_row, column=1, value='TOTAL').font = TOTAL_FONT
+    ws_tab.cell(row=total_row, column=4,
+                value=sum(t.area_privativa for t in Tabela.objects.all())).number_format = '#,##0.00'
+    ws_tab.cell(row=total_row, column=4).font = TOTAL_FONT
+    ws_tab.cell(row=total_row, column=5,
+                value=sum(t.valor_total for t in Tabela.objects.all())).number_format = '#,##0.00'
+    ws_tab.cell(row=total_row, column=5).font = TOTAL_FONT
+    _auto_width(ws_tab)
+
+    # ── Aba 2: Unidades ───────────────────────────────────────────────────────
+    ws_uni = wb.create_sheet('Unidades')
+    _hdr(ws_uni, 1, ['UNIDADE', 'TIPO', 'COMPLEMENTO', 'ÁREA PRIV. (m²)',
+                     'ÁREA PRIV. ACESS. (m²)', 'ÁREA COMUM (m²)', 'TOTAL PRIV. (m²)', 'FRAÇÃO IDEAL'])
+    ws_uni.row_dimensions[1].height = 28
+    for i, u in enumerate(Unidade.objects.order_by('unidade'), 2):
+        total_priv = u.area_privativa + u.area_priv_acessoria
+        row = [u.unidade, u.tipo, u.complemento_tipo, u.area_privativa,
+               u.area_priv_acessoria, u.area_comum, total_priv, u.fracao_ideal]
+        for c, val in enumerate(row, 1):
+            cell = ws_uni.cell(row=i, column=c, value=val)
+            cell.border = BORDER
+            if c in (4, 5, 6, 7):
+                cell.number_format = '#,##0.00'
+                cell.alignment = Alignment(horizontal='right')
+    n2 = Unidade.objects.count()
+    total_row2 = n2 + 2
+    ws_uni.cell(row=total_row2, column=1, value='TOTAL').font = TOTAL_FONT
+    for col, attr in [(4, 'area_privativa'), (5, 'area_priv_acessoria'), (6, 'area_comum')]:
+        val = sum(getattr(u, attr) for u in Unidade.objects.all())
+        c = ws_uni.cell(row=total_row2, column=col, value=val)
+        c.number_format = '#,##0.00'
+        c.font = TOTAL_FONT
+    tp = sum(u.area_privativa + u.area_priv_acessoria for u in Unidade.objects.all())
+    c7 = ws_uni.cell(row=total_row2, column=7, value=tp)
+    c7.number_format = '#,##0.00'
+    c7.font = TOTAL_FONT
+    _auto_width(ws_uni)
+
+    # ── Aba 3: Comparativo ────────────────────────────────────────────────────
+    ws_cmp = wb.create_sheet('Comparativo')
+    _hdr(ws_cmp, 1, [
+        'UNIDADE',
+        'SITUAÇÃO (Tab.)', 'ÁREA PRIV. Tabela (m²)',
+        'ÁREA PRIV. Unidade (m²)', 'ÁREA PRIV. ACESS. (m²)', 'TOTAL PRIV. Unid. (m²)',
+        'DIFERENÇA (Tab − Unid)',
+        'STATUS',
+    ])
+    ws_cmp.row_dimensions[1].height = 28
+
+    tab_map  = {t.unidade: t for t in Tabela.objects.all()}
+    uni_map  = {u.unidade: u for u in Unidade.objects.all()}
+    all_keys = sorted(set(tab_map) | set(uni_map))
+
+    diff_count = 0
+    for i, key in enumerate(all_keys, 2):
+        t = tab_map.get(key)
+        u = uni_map.get(key)
+
+        ap_tab  = t.area_privativa if t else None
+        sit_tab = t.situacao       if t else None
+        ap_uni  = u.area_privativa      if u else None
+        apa_uni = u.area_priv_acessoria if u else None
+        tp_uni  = (ap_uni + apa_uni)    if u else None
+
+        if t and u:
+            diff  = round(ap_tab - ap_uni, 4)
+            status = 'OK' if diff == 0 else f'DIVERGE {diff:+.4f}'
+            fill   = OK_FILL if diff == 0 else DIFF_FILL
+            if diff != 0:
+                diff_count += 1
+        elif t:
+            diff   = None
+            status = 'Só na Tabela'
+            fill   = ONLY_FILL
+        else:
+            diff   = None
+            status = 'Só em Unidades'
+            fill   = ONLY_FILL
+
+        row_vals = [key, sit_tab, ap_tab, ap_uni, apa_uni, tp_uni, diff, status]
+        for c, val in enumerate(row_vals, 1):
+            cell = ws_cmp.cell(row=i, column=c, value=val)
+            cell.border = BORDER
+            cell.fill   = fill
+            if c in (3, 4, 5, 6, 7) and val is not None:
+                cell.number_format = '#,##0.0000'
+                cell.alignment = Alignment(horizontal='right')
+
+    # totais comparativo
+    tr = len(all_keys) + 2
+    ws_cmp.cell(row=tr, column=1, value='TOTAL').font = TOTAL_FONT
+    for col, vals in [
+        (3, [t.area_privativa for t in tab_map.values()]),
+        (4, [u.area_privativa for u in uni_map.values()]),
+        (5, [u.area_priv_acessoria for u in uni_map.values()]),
+        (6, [u.area_privativa + u.area_priv_acessoria for u in uni_map.values()]),
+    ]:
+        c = ws_cmp.cell(row=tr, column=col, value=sum(vals))
+        c.number_format = '#,##0.0000'
+        c.font = TOTAL_FONT
+
+    ws_cmp.cell(row=tr + 1, column=1,
+                value=f'Unidades com divergência: {diff_count}').font = Font(bold=True, color='CC0000')
+
+    _auto_width(ws_cmp)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    resp = HttpResponse(buf, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    resp['Content-Disposition'] = 'attachment; filename="comparativo_areas_cota365.xlsx"'
     return resp

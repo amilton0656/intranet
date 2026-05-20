@@ -101,9 +101,12 @@
       </ol>
     </nav>
   </div>
-  <div class="pt-1">
+  <div class="pt-1 d-flex gap-2">
     <a href="{% url 'cota365:export_dashboard' %}" class="btn btn-outline-danger btn-sm">
       <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+    </a>
+    <a href="{% url 'cota365:export_areas_comparativo' %}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-file-earmark-excel me-1"></i>Comparativo de Áreas
     </a>
   </div>
 </div>
