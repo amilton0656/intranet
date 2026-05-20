@@ -253,7 +253,7 @@ def _compute_resumos_tabela():
         tl = t.lower()
         if 'studio' in tl: return 'Studio'
         if 'loja'   in tl: return 'Loja'
-        return 'Apartamento'
+        return '2D'
 
     grp_vt = defaultdict(float)
     grp_ap = defaultdict(float)
@@ -269,7 +269,7 @@ def _compute_resumos_tabela():
     total_tip_n  = sum(grp_n.values())
     preco_medio  = total_tip_vt / total_tip_n if total_tip_n else 0
 
-    GRP_ORDER = ['Studio', 'Apartamento', 'Loja']
+    GRP_ORDER = ['Studio', '2D', 'Loja']
     all_grps = sorted(grp_n.keys(), key=lambda g: GRP_ORDER.index(g) if g in GRP_ORDER else 99)
 
     resumo_tip = []
