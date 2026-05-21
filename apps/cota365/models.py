@@ -117,6 +117,8 @@ class Comissao(models.Model):
     valor_premio         = models.FloatField(default=0)
     tipo_comissao        = models.CharField(max_length=100, blank=True)
     valor_comissao_pagar = models.FloatField(default=0)
+    data_prevista        = models.DateField(null=True, blank=True)
+    data_pagamento       = models.DateField(null=True, blank=True)
 
     class Meta:
         ordering = ['numero']

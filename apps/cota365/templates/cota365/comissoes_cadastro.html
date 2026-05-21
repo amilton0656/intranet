@@ -1,0 +1,115 @@
+{% extends 'cota365/base.html' %}
+{% block title %}Cadastro de Comissões — Cota 365{% endblock %}
+{% block nav_comissoes %}active{% endblock %}
+
+{% block content %}
+<style>
+  .cad-table td, .cad-table th {
+    padding: 0.45rem 0.65rem;
+    font-size: 0.82rem;
+    vertical-align: middle;
+    border-color: #f0f2f5;
+    white-space: nowrap;
+  }
+  .cad-table thead th {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6c757d;
+    background: #fff;
+    border-bottom: 2px solid #e2e6ea;
+  }
+  .cad-table tbody tr:hover { background: #f8f9fa; }
+  .date-input {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    width: 120px;
+  }
+  .date-input:focus { outline: none; border-color: #86b7fe; box-shadow: 0 0 0 2px rgba(13,110,253,.15); }
+  .row-pago { background: #d1e7dd !important; }
+  .row-prevista { background: #fff3cd !important; }
+</style>
+
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1><i class="bi bi-calendar-check me-2"></i>Cadastro de Comissões</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'cota365:index' %}" class="text-decoration-none">Início</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'cota365:comissoes' %}" class="text-decoration-none">Comissões</a></li>
+        <li class="breadcrumb-item active">Cadastro</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<div class="main-content">
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show d-flex align-items-center gap-2">
+      <i class="bi bi-{% if msg.tags == 'error' %}exclamation-triangle-fill{% else %}check-circle-fill{% endif %}"></i>
+      <span>{{ msg }}</span>
+      <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% if not lista %}
+  <div class="alert alert-warning">Nenhuma comissão importada ainda.</div>
+{% else %}
+
+  <div class="mb-3 d-flex gap-3 align-items-center" style="font-size:0.82rem; color:#6c757d;">
+    <span><span style="display:inline-block;width:14px;height:14px;background:#d1e7dd;border-radius:3px;vertical-align:middle;"></span> Paga</span>
+    <span><span style="display:inline-block;width:14px;height:14px;background:#fff3cd;border-radius:3px;vertical-align:middle;"></span> Com data prevista</span>
+    <span><span style="display:inline-block;width:14px;height:14px;background:#fff;border:1px solid #dee2e6;border-radius:3px;vertical-align:middle;"></span> Sem datas</span>
+  </div>
+
+  <div style="overflow-x: auto;">
+    <table class="table cad-table mb-0">
+      <thead>
+        <tr>
+          <th>Reserva</th>
+          <th>Cliente</th>
+          <th>Imobiliária</th>
+          <th class="text-end">Comissão</th>
+          <th class="text-center">Data Prevista</th>
+          <th class="text-center">Data Pagamento</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in lista %}
+        <tr class="{% if r.pago %}row-pago{% elif r.data_prevista %}row-prevista{% endif %}">
+          <td>{{ r.reserva }}</td>
+          <td>{{ r.cliente }}</td>
+          <td>{{ r.imobiliaria }}</td>
+          <td class="text-end fw-bold">{{ r.valor_comissao_fmt }}</td>
+          <td class="text-center">
+            <form method="post" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="numero" value="{{ r.numero }}">
+              <input type="date" name="data_prevista" class="date-input"
+                     value="{{ r.data_prevista_iso }}"
+                     title="Data Prevista">
+              <input type="date" name="data_pagamento" class="date-input ms-1"
+                     value="{{ r.data_pagamento_iso }}"
+                     title="Data Pagamento">
+              <button type="submit" class="btn btn-sm btn-primary ms-1" title="Salvar">
+                <i class="bi bi-check-lg"></i>
+              </button>
+            </form>
+          </td>
+          <td></td>
+          <td></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+</div>
+{% endblock %}

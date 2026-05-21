@@ -623,34 +623,43 @@ def _import_comissoes(f, nome):
 
     reader = csv.DictReader(raw.splitlines(), delimiter=';')
 
+    campos_csv = [
+        'situacao', 'reserva', 'corretor', 'data_venda', 'imobiliaria',
+        'unidade', 'cliente', 'tipo_unidade', 'valor_contrato', 'pct_comissao',
+        'valor_comissao', 'pct_premio', 'valor_premio', 'tipo_comissao', 'valor_comissao_pagar',
+    ]
+    total_comissao = 0.0
+    count = 0
     with transaction.atomic():
-        Comissao.objects.all().delete()
-        objs = []
+        numeros_csv = set()
         for row in reader:
             num = row.get('Número', row.get('NÃºmero', '')).strip()
             if not num or not num.isdigit():
                 continue
-            objs.append(Comissao(
-                numero               = num,
-                situacao             = row.get('Situação', row.get('SituaÃ§Ã£o', '')).strip(),
-                reserva              = row.get('Reserva', '').strip(),
-                corretor             = row.get('Corretor', '').strip(),
-                data_venda           = _date(row.get('Data da Venda', '')),
-                imobiliaria          = row.get('Imobiliária', row.get('ImobiliÃ¡ria', '')).strip(),
-                unidade              = row.get('Unidade', '').strip(),
-                cliente              = row.get('Cliente', '').strip(),
-                tipo_unidade         = row.get('Tipo Unidade', '').strip(),
-                valor_contrato       = _brl(row.get('Valor do contrato', 0)),
-                pct_comissao         = _brl(row.get('Porcentagem Comissao (%)', 0)),
-                valor_comissao       = _brl(row.get('Valor Comissão', row.get('Valor ComissÃ£o', 0))),
-                pct_premio           = _brl(row.get('Porcentagem Prêmio (%)', row.get('Porcentagem PrÃªmio (%)', 0))),
-                valor_premio         = _brl(row.get('Valor Prêmio', row.get('Valor PrÃªmio', 0))),
-                tipo_comissao        = row.get('Tipo da comissão', row.get('Tipo da comissÃ£o', '')).strip(),
-                valor_comissao_pagar = _brl(row.get('Valor Comissão a pagar', row.get('Valor ComissÃ£o a pagar', 0))),
-            ))
-        Comissao.objects.bulk_create(objs)
-    total_comissao = sum(o.valor_comissao for o in objs)
-    return len(objs), {'Valor total comissões': _fmt_brl(total_comissao)}
+            dados = {
+                'situacao':             row.get('Situação', row.get('SituaÃ§Ã£o', '')).strip(),
+                'reserva':              row.get('Reserva', '').strip(),
+                'corretor':             row.get('Corretor', '').strip(),
+                'data_venda':           _date(row.get('Data da Venda', '')),
+                'imobiliaria':          row.get('Imobiliária', row.get('ImobiliÃ¡ria', '')).strip(),
+                'unidade':              row.get('Unidade', '').strip(),
+                'cliente':              row.get('Cliente', '').strip(),
+                'tipo_unidade':         row.get('Tipo Unidade', '').strip(),
+                'valor_contrato':       _brl(row.get('Valor do contrato', 0)),
+                'pct_comissao':         _brl(row.get('Porcentagem Comissao (%)', 0)),
+                'valor_comissao':       _brl(row.get('Valor Comissão', row.get('Valor ComissÃ£o', 0))),
+                'pct_premio':           _brl(row.get('Porcentagem Prêmio (%)', row.get('Porcentagem PrÃªmio (%)', 0))),
+                'valor_premio':         _brl(row.get('Valor Prêmio', row.get('Valor PrÃªmio', 0))),
+                'tipo_comissao':        row.get('Tipo da comissão', row.get('Tipo da comissÃ£o', '')).strip(),
+                'valor_comissao_pagar': _brl(row.get('Valor Comissão a pagar', row.get('Valor ComissÃ£o a pagar', 0))),
+            }
+            Comissao.objects.update_or_create(numero=num, defaults=dados)
+            numeros_csv.add(num)
+            total_comissao += dados['valor_comissao']
+            count += 1
+        # remove comissões que não estão mais no CSV
+        Comissao.objects.exclude(numero__in=numeros_csv).delete()
+    return count, {'Valor total comissões': _fmt_brl(total_comissao)}
 
 
 _IMPORTERS = {
@@ -672,6 +681,49 @@ _LABELS = {
     'unidades':   'Unidades',
     'comissoes':  'Comissões',
 }
+
+
+def comissoes_cadastro(request):
+    if request.method == 'POST':
+        numero = request.POST.get('numero', '').strip()
+        try:
+            obj = Comissao.objects.get(numero=numero)
+        except Comissao.DoesNotExist:
+            messages.error(request, f'Comissão #{numero} não encontrada.')
+            return redirect('cota365:comissoes_cadastro')
+
+        def _parse_date(s):
+            s = (s or '').strip()
+            if not s:
+                return None
+            for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
+                try:
+                    return datetime.strptime(s, fmt).date()
+                except ValueError:
+                    continue
+            return None
+
+        obj.data_prevista  = _parse_date(request.POST.get('data_prevista'))
+        obj.data_pagamento = _parse_date(request.POST.get('data_pagamento'))
+        obj.save(update_fields=['data_prevista', 'data_pagamento'])
+        messages.success(request, f'Datas da comissão #{numero} atualizadas.')
+        return redirect('cota365:comissoes_cadastro')
+
+    qs = Comissao.objects.order_by('cliente')
+    lista = [{
+        'numero':               c.numero,
+        'reserva':              c.reserva,
+        'cliente':              c.cliente,
+        'imobiliaria':          c.imobiliaria,
+        'valor_comissao_fmt':   _fmt_brl(c.valor_comissao),
+        'data_prevista':        c.data_prevista.strftime('%d/%m/%Y') if c.data_prevista else '',
+        'data_pagamento':       c.data_pagamento.strftime('%d/%m/%Y') if c.data_pagamento else '',
+        'data_prevista_iso':    c.data_prevista.strftime('%Y-%m-%d') if c.data_prevista else '',
+        'data_pagamento_iso':   c.data_pagamento.strftime('%Y-%m-%d') if c.data_pagamento else '',
+        'pago':                 bool(c.data_pagamento),
+    } for c in qs]
+
+    return render(request, 'cota365/comissoes_cadastro.html', {'lista': lista})
 
 
 def comissoes(request):
