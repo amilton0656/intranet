@@ -709,9 +709,10 @@ def comissoes_cadastro(request):
         messages.success(request, f'Datas da comissão #{numero} atualizadas.')
         return redirect('cota365:comissoes_cadastro')
 
-    qs = Comissao.objects.order_by('cliente')
+    qs = Comissao.objects.order_by('unidade')
     lista = [{
         'numero':               c.numero,
+        'unidade':              c.unidade,
         'reserva':              c.reserva,
         'cliente':              c.cliente,
         'imobiliaria':          c.imobiliaria,
@@ -721,9 +722,91 @@ def comissoes_cadastro(request):
         'data_prevista_iso':    c.data_prevista.strftime('%Y-%m-%d') if c.data_prevista else '',
         'data_pagamento_iso':   c.data_pagamento.strftime('%Y-%m-%d') if c.data_pagamento else '',
         'pago':                 bool(c.data_pagamento),
+        'tem_data':             bool(c.data_prevista or c.data_pagamento),
     } for c in qs]
 
     return render(request, 'cota365/comissoes_cadastro.html', {'lista': lista})
+
+
+def export_cadastro_pdf(request):
+    qs = list(Comissao.objects.order_by('unidade'))
+    if not qs:
+        return HttpResponse('Sem dados.', status=404)
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=landscape(A4),
+                            leftMargin=1.5*cm, rightMargin=1.5*cm,
+                            topMargin=1.5*cm, bottomMargin=1.5*cm)
+    W = doc.width
+    styles = getSampleStyleSheet()
+
+    NAVY   = colors.HexColor('#1a1a2e')
+    BORDER = colors.HexColor('#dee2e6')
+    GREEN  = colors.HexColor('#d1e7dd')
+    YELLOW = colors.HexColor('#fff3cd')
+
+    def ps(name, **kw):
+        return ParagraphStyle(name, parent=styles['Normal'], **kw)
+
+    title_s = ps('CT', fontSize=14, fontName='Helvetica-Bold', textColor=NAVY, spaceAfter=2)
+    sub_s   = ps('CS', fontSize=8,  textColor=colors.HexColor('#6c757d'), spaceAfter=10)
+
+    def th(txt):
+        return Paragraph(f'<b><font color="white">{txt}</font></b>',
+                         ps(f'CTH{txt}', fontSize=7, alignment=1))
+    def td(txt):
+        return Paragraph(str(txt), ps(f'CTD{txt}', fontSize=7))
+    def tdr(txt):
+        return Paragraph(str(txt), ps(f'CTR{txt}', fontSize=7, alignment=2))
+    def tdb_blue(txt):
+        return Paragraph(f'<b><font color="#0d6efd">{txt}</font></b>',
+                         ps(f'CBL{txt}', fontSize=7, alignment=2))
+
+    story = []
+    story.append(Paragraph('Cota 365 — Cadastro de Comissões', title_s))
+    story.append(Paragraph(
+        f'Gerado em {datetime.now().strftime("%d/%m/%Y %H:%M")}  |  {len(qs)} comissões', sub_s))
+
+    rows = [[th('UNIDADE'), th('RESERVA'), th('CLIENTE'), th('IMOBILIÁRIA'),
+             th('COMISSÃO'), th('DATA PREVISTA'), th('DATA PAGAMENTO')]]
+
+    row_cmds = [
+        ('BACKGROUND',    (0, 0), (-1, 0), NAVY),
+        ('GRID',          (0, 0), (-1, -1), 0.3, BORDER),
+        ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+        ('TOPPADDING',    (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
+    ]
+
+    for i, c in enumerate(qs, 1):
+        tem_data = bool(c.data_prevista or c.data_pagamento)
+        rows.append([
+            td(c.unidade),
+            td(c.reserva),
+            td(c.cliente[:32] if c.cliente else ''),
+            td(c.imobiliaria[:30] if c.imobiliaria else ''),
+            tdb_blue(_fmt_brl(c.valor_comissao)) if tem_data else tdr(_fmt_brl(c.valor_comissao)),
+            td(c.data_prevista.strftime('%d/%m/%Y') if c.data_prevista else '—'),
+            td(c.data_pagamento.strftime('%d/%m/%Y') if c.data_pagamento else '—'),
+        ])
+        if c.data_pagamento:
+            row_cmds.append(('BACKGROUND', (0, i), (-1, i), GREEN))
+        elif c.data_prevista:
+            row_cmds.append(('BACKGROUND', (0, i), (-1, i), YELLOW))
+
+    t = Table(rows,
+              colWidths=[W*0.08, W*0.08, W*0.22, W*0.22, W*0.13, W*0.13, W*0.14],
+              repeatRows=1)
+    t.setStyle(TableStyle(row_cmds))
+    story.append(t)
+
+    doc.build(story)
+    buf.seek(0)
+    resp = HttpResponse(buf, content_type='application/pdf')
+    resp['Content-Disposition'] = 'attachment; filename="cadastro_comissoes.pdf"'
+    return resp
 
 
 def comissoes(request):
