@@ -761,6 +761,9 @@ def export_cadastro_pdf(request):
     def tdb_blue(txt):
         return Paragraph(f'<b><font color="#0d6efd">{txt}</font></b>',
                          ps(f'CBL{txt}', fontSize=7, alignment=2))
+    def tdb_green(txt):
+        return Paragraph(f'<b><font color="#198754">{txt}</font></b>',
+                         ps(f'CGR{txt}', fontSize=7, alignment=2))
 
     story = []
     story.append(Paragraph('Cota 365 — Cadastro de Comissões', title_s))
@@ -781,13 +784,20 @@ def export_cadastro_pdf(request):
     ]
 
     for i, c in enumerate(qs, 1):
+        pago     = bool(c.data_pagamento)
         tem_data = bool(c.data_prevista or c.data_pagamento)
+        if pago:
+            val_cell = tdb_green(_fmt_brl(c.valor_comissao))
+        elif tem_data:
+            val_cell = tdb_blue(_fmt_brl(c.valor_comissao))
+        else:
+            val_cell = tdr(_fmt_brl(c.valor_comissao))
         rows.append([
             td(c.unidade),
             td(c.reserva),
             td(c.cliente[:32] if c.cliente else ''),
             td(c.imobiliaria[:30] if c.imobiliaria else ''),
-            tdb_blue(_fmt_brl(c.valor_comissao)) if tem_data else tdr(_fmt_brl(c.valor_comissao)),
+            val_cell,
             td(c.data_prevista.strftime('%d/%m/%Y') if c.data_prevista else '—'),
             td(c.data_pagamento.strftime('%d/%m/%Y') if c.data_pagamento else '—'),
         ])
