@@ -98,3 +98,28 @@ class FluxoParcela(models.Model):
 
     class Meta:
         ordering = ['mes_idx']
+
+
+class Comissao(models.Model):
+    numero               = models.CharField(max_length=20, unique=True)
+    situacao             = models.CharField(max_length=100, blank=True)
+    reserva              = models.CharField(max_length=20, blank=True)
+    corretor             = models.CharField(max_length=255, blank=True)
+    data_venda           = models.DateField(null=True, blank=True)
+    imobiliaria          = models.CharField(max_length=255, blank=True)
+    unidade              = models.CharField(max_length=50, blank=True)
+    cliente              = models.CharField(max_length=255, blank=True)
+    tipo_unidade         = models.CharField(max_length=100, blank=True)
+    valor_contrato       = models.FloatField(default=0)
+    pct_comissao         = models.FloatField(default=0)
+    valor_comissao       = models.FloatField(default=0)
+    pct_premio           = models.FloatField(default=0)
+    valor_premio         = models.FloatField(default=0)
+    tipo_comissao        = models.CharField(max_length=100, blank=True)
+    valor_comissao_pagar = models.FloatField(default=0)
+
+    class Meta:
+        ordering = ['numero']
+
+    def __str__(self):
+        return f'#{self.numero} — {self.cliente}'

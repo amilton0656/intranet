@@ -21,7 +21,7 @@ from reportlab.lib.units import cm
 
 from .models import (
     ImportLog, Tabela, Permuta, Vinculo, Venda,
-    Unidade, FluxoContrato, FluxoParcela,
+    Unidade, FluxoContrato, FluxoParcela, Comissao,
 )
 
 # ---------------------------------------------------------------------------
@@ -596,23 +596,153 @@ def _import_unidades(file_obj, nome):
     return len(objs), {'Área privativa total': _fmt_m2(area)}
 
 
+def _import_comissoes(f, nome):
+    def _brl(s):
+        s = str(s).strip().replace('.', '').replace(',', '.')
+        try:
+            return float(s)
+        except ValueError:
+            return 0.0
+
+    def _date(s):
+        s = str(s).strip()
+        if not s or s == '--':
+            return None
+        try:
+            return datetime.strptime(s, '%d/%m/%Y').date()
+        except ValueError:
+            return None
+
+    for enc in ('utf-8-sig', 'latin-1'):
+        try:
+            raw = f.read().decode(enc)
+            f.seek(0)
+            break
+        except Exception:
+            f.seek(0)
+
+    reader = csv.DictReader(raw.splitlines(), delimiter=';')
+
+    with transaction.atomic():
+        Comissao.objects.all().delete()
+        objs = []
+        for row in reader:
+            num = row.get('Número', row.get('NÃºmero', '')).strip()
+            if not num or not num.isdigit():
+                continue
+            objs.append(Comissao(
+                numero               = num,
+                situacao             = row.get('Situação', row.get('SituaÃ§Ã£o', '')).strip(),
+                reserva              = row.get('Reserva', '').strip(),
+                corretor             = row.get('Corretor', '').strip(),
+                data_venda           = _date(row.get('Data da Venda', '')),
+                imobiliaria          = row.get('Imobiliária', row.get('ImobiliÃ¡ria', '')).strip(),
+                unidade              = row.get('Unidade', '').strip(),
+                cliente              = row.get('Cliente', '').strip(),
+                tipo_unidade         = row.get('Tipo Unidade', '').strip(),
+                valor_contrato       = _brl(row.get('Valor do contrato', 0)),
+                pct_comissao         = _brl(row.get('Porcentagem Comissao (%)', 0)),
+                valor_comissao       = _brl(row.get('Valor Comissão', row.get('Valor ComissÃ£o', 0))),
+                pct_premio           = _brl(row.get('Porcentagem Prêmio (%)', row.get('Porcentagem PrÃªmio (%)', 0))),
+                valor_premio         = _brl(row.get('Valor Prêmio', row.get('Valor PrÃªmio', 0))),
+                tipo_comissao        = row.get('Tipo da comissão', row.get('Tipo da comissÃ£o', '')).strip(),
+                valor_comissao_pagar = _brl(row.get('Valor Comissão a pagar', row.get('Valor ComissÃ£o a pagar', 0))),
+            ))
+        Comissao.objects.bulk_create(objs)
+    total_comissao = sum(o.valor_comissao for o in objs)
+    return len(objs), {'Valor total comissões': _fmt_brl(total_comissao)}
+
+
 _IMPORTERS = {
-    'tabela':   _import_tabela,
-    'permutas': _import_permutas,
-    'vinculo':  _import_vinculos,
-    'vendas':   _import_vendas,
-    'fluxo':    _import_fluxo,
-    'unidades': _import_unidades,
+    'tabela':     _import_tabela,
+    'permutas':   _import_permutas,
+    'vinculo':    _import_vinculos,
+    'vendas':     _import_vendas,
+    'fluxo':      _import_fluxo,
+    'unidades':   _import_unidades,
+    'comissoes':  _import_comissoes,
 }
 
 _LABELS = {
-    'tabela':   'Tabela de Preços',
-    'permutas': 'Permutas',
-    'vinculo':  'Vínculos',
-    'vendas':   'Vendas',
-    'fluxo':    'Fluxo de Caixa',
-    'unidades': 'Unidades',
+    'tabela':     'Tabela de Preços',
+    'permutas':   'Permutas',
+    'vinculo':    'Vínculos',
+    'vendas':     'Vendas',
+    'fluxo':      'Fluxo de Caixa',
+    'unidades':   'Unidades',
+    'comissoes':  'Comissões',
 }
+
+
+def comissoes(request):
+    qs = Comissao.objects.all()
+
+    # KPIs
+    total_n          = qs.count()
+    total_contrato   = sum(c.valor_contrato       for c in qs)
+    total_comissao   = sum(c.valor_comissao        for c in qs)
+    total_pagar      = sum(c.valor_comissao_pagar  for c in qs)
+    total_premio     = sum(c.valor_premio           for c in qs)
+
+    # Resumo por Imobiliária
+    imob_map = defaultdict(lambda: {'n': 0, 'contrato': 0.0, 'comissao': 0.0, 'pagar': 0.0})
+    for c in qs:
+        k = c.imobiliaria or '(sem imobiliária)'
+        imob_map[k]['n']        += 1
+        imob_map[k]['contrato'] += c.valor_contrato
+        imob_map[k]['comissao'] += c.valor_comissao
+        imob_map[k]['pagar']    += c.valor_comissao_pagar
+    resumo_imob = sorted(
+        [{'imobiliaria': k, **v,
+          'comissao_fmt': _fmt_brl(v['comissao']),
+          'pagar_fmt':    _fmt_brl(v['pagar']),
+          'contrato_fmt': _fmt_brl(v['contrato'])}
+         for k, v in imob_map.items()],
+        key=lambda x: x['imobiliaria'].lower(),
+    )
+
+    # Resumo por Corretor
+    cor_map = defaultdict(lambda: {'n': 0, 'comissao': 0.0, 'pagar': 0.0})
+    for c in qs:
+        k = c.corretor or '(sem corretor)'
+        cor_map[k]['n']        += 1
+        cor_map[k]['comissao'] += c.valor_comissao
+        cor_map[k]['pagar']    += c.valor_comissao_pagar
+    resumo_corretor = sorted(
+        [{'corretor': k, **v,
+          'comissao_fmt': _fmt_brl(v['comissao']),
+          'pagar_fmt':    _fmt_brl(v['pagar'])}
+         for k, v in cor_map.items()],
+        key=lambda x: x['corretor'].lower(),
+    )
+
+    # Lista completa formatada
+    lista = [{
+        'numero':               c.numero,
+        'situacao':             c.situacao,
+        'reserva':              c.reserva,
+        'corretor':             c.corretor,
+        'imobiliaria':          c.imobiliaria,
+        'unidade':              c.unidade,
+        'cliente':              c.cliente,
+        'data_venda':           c.data_venda.strftime('%d/%m/%Y') if c.data_venda else '—',
+        'valor_contrato_fmt':   _fmt_brl(c.valor_contrato),
+        'pct_comissao':         f"{c.pct_comissao:.2f}%".replace('.', ','),
+        'valor_comissao_fmt':   _fmt_brl(c.valor_comissao),
+        'valor_pagar_fmt':      _fmt_brl(c.valor_comissao_pagar),
+    } for c in sorted(qs, key=lambda x: x.cliente.lower())]
+
+    context = {
+        'total_n':            total_n,
+        'total_contrato_fmt': _fmt_brl(total_contrato),
+        'total_comissao_fmt': _fmt_brl(total_comissao),
+        'total_pagar_fmt':    _fmt_brl(total_pagar),
+        'total_premio_fmt':   _fmt_brl(total_premio),
+        'resumo_imob':        resumo_imob,
+        'resumo_corretor':    resumo_corretor,
+        'lista':              lista,
+    }
+    return render(request, 'cota365/comissoes.html', context)
 
 
 def importar(request):
@@ -1664,4 +1794,257 @@ def export_areas_comparativo(request):
     buf.seek(0)
     resp = HttpResponse(buf, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     resp['Content-Disposition'] = 'attachment; filename="comparativo_areas_cota365.xlsx"'
+    return resp
+
+
+# ---------------------------------------------------------------------------
+# Comissões — exportações
+# ---------------------------------------------------------------------------
+
+def export_comissoes_excel(request):
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    HDR_FILL  = PatternFill('solid', fgColor='1A1A2E')
+    HDR_FONT  = Font(bold=True, color='FFFFFF', size=10)
+    BORDER    = Border(
+        left=Side(style='thin', color='CCCCCC'), right=Side(style='thin', color='CCCCCC'),
+        top=Side(style='thin', color='CCCCCC'),  bottom=Side(style='thin', color='CCCCCC'),
+    )
+    TOTAL_FONT = Font(bold=True, size=10)
+
+    def _hdr(ws, cols):
+        for c, txt in enumerate(cols, 1):
+            cell = ws.cell(row=1, column=c, value=txt)
+            cell.font = HDR_FONT
+            cell.fill = HDR_FILL
+            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+            cell.border = BORDER
+        ws.row_dimensions[1].height = 28
+
+    def _auto_width(ws):
+        for col in ws.columns:
+            w = max((len(str(c.value or '')) for c in col), default=8)
+            ws.column_dimensions[get_column_letter(col[0].column)].width = min(w + 4, 40)
+
+    wb = openpyxl.Workbook()
+
+    # ── Aba Lista ─────────────────────────────────────────────────────────────
+    ws = wb.active
+    ws.title = 'Comissões'
+    headers = ['Nº', 'Situação', 'Reserva', 'Unidade', 'Tipo Unidade', 'Cliente', 'Corretor',
+               'Imobiliária', 'Data Venda', 'Valor Contrato', '% Comissão',
+               'Valor Comissão', '% Prêmio', 'Valor Prêmio', 'Tipo Comissão', 'A Pagar']
+    _hdr(ws, headers)
+
+    qs = Comissao.objects.all()
+    for i, c in enumerate(sorted(qs, key=lambda x: x.cliente.lower()), 2):
+        row = [
+            c.numero, c.situacao, c.reserva, c.unidade, c.tipo_unidade, c.cliente,
+            c.corretor, c.imobiliaria,
+            c.data_venda.strftime('%d/%m/%Y') if c.data_venda else '',
+            c.valor_contrato, c.pct_comissao, c.valor_comissao,
+            c.pct_premio, c.valor_premio, c.tipo_comissao, c.valor_comissao_pagar,
+        ]
+        for col, val in enumerate(row, 1):
+            cell = ws.cell(row=i, column=col, value=val)
+            cell.border = BORDER
+            if col in (10, 12, 14, 16):
+                cell.number_format = '#,##0.00'
+                cell.alignment = Alignment(horizontal='right')
+            elif col in (11, 13):
+                cell.number_format = '0.00"%"'
+                cell.alignment = Alignment(horizontal='right')
+
+    tr = qs.count() + 2
+    ws.cell(row=tr, column=1, value='TOTAL').font = TOTAL_FONT
+    for col, attr in [(10, 'valor_contrato'), (12, 'valor_comissao'), (14, 'valor_premio'), (16, 'valor_comissao_pagar')]:
+        c = ws.cell(row=tr, column=col, value=sum(getattr(x, attr) for x in qs))
+        c.number_format = '#,##0.00'
+        c.font = TOTAL_FONT
+    _auto_width(ws)
+
+    # ── Aba Por Imobiliária ───────────────────────────────────────────────────
+    ws2 = wb.create_sheet('Por Imobiliária')
+    _hdr(ws2, ['Imobiliária', 'Qtde', 'Valor Contratos', 'Comissão', 'A Pagar'])
+    imob_map = defaultdict(lambda: {'n': 0, 'contrato': 0.0, 'comissao': 0.0, 'pagar': 0.0})
+    for c in qs:
+        k = c.imobiliaria or '(sem imobiliária)'
+        imob_map[k]['n']        += 1
+        imob_map[k]['contrato'] += c.valor_contrato
+        imob_map[k]['comissao'] += c.valor_comissao
+        imob_map[k]['pagar']    += c.valor_comissao_pagar
+    for i, (k, v) in enumerate(sorted(imob_map.items(), key=lambda x: x[0].lower()), 2):
+        for col, val in enumerate([k, v['n'], v['contrato'], v['comissao'], v['pagar']], 1):
+            cell = ws2.cell(row=i, column=col, value=val)
+            cell.border = BORDER
+            if col in (3, 4, 5):
+                cell.number_format = '#,##0.00'
+                cell.alignment = Alignment(horizontal='right')
+    _auto_width(ws2)
+
+    # ── Aba Por Corretor ──────────────────────────────────────────────────────
+    ws3 = wb.create_sheet('Por Corretor')
+    _hdr(ws3, ['Corretor', 'Qtde', 'Comissão', 'A Pagar'])
+    cor_map = defaultdict(lambda: {'n': 0, 'comissao': 0.0, 'pagar': 0.0})
+    for c in qs:
+        k = c.corretor or '(sem corretor)'
+        cor_map[k]['n']        += 1
+        cor_map[k]['comissao'] += c.valor_comissao
+        cor_map[k]['pagar']    += c.valor_comissao_pagar
+    for i, (k, v) in enumerate(sorted(cor_map.items(), key=lambda x: x[0].lower()), 2):
+        for col, val in enumerate([k, v['n'], v['comissao'], v['pagar']], 1):
+            cell = ws3.cell(row=i, column=col, value=val)
+            cell.border = BORDER
+            if col in (3, 4):
+                cell.number_format = '#,##0.00'
+                cell.alignment = Alignment(horizontal='right')
+    _auto_width(ws3)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    resp = HttpResponse(buf, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    resp['Content-Disposition'] = 'attachment; filename="comissoes_cota365.xlsx"'
+    return resp
+
+
+def export_comissoes_pdf(request):
+    from reportlab.platypus import HRFlowable
+
+    qs = list(Comissao.objects.all())
+    if not qs:
+        return HttpResponse('Sem dados.', status=404)
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=landscape(A4),
+                            leftMargin=1.5*cm, rightMargin=1.5*cm,
+                            topMargin=1.5*cm, bottomMargin=1.5*cm)
+    W = doc.width
+    styles = getSampleStyleSheet()
+
+    NAVY   = colors.HexColor('#1a1a2e')
+    BORDER = colors.HexColor('#dee2e6')
+
+    def ps(name, **kw):
+        return ParagraphStyle(name, parent=styles['Normal'], **kw)
+
+    title_s = ps('T', fontSize=14, fontName='Helvetica-Bold', textColor=NAVY, spaceAfter=2)
+    sub_s   = ps('S', fontSize=8,  textColor=colors.HexColor('#6c757d'), spaceAfter=8)
+    sec_s   = ps('H', fontSize=10, fontName='Helvetica-Bold', textColor=NAVY,
+                 spaceBefore=10, spaceAfter=4)
+
+    def th(txt):
+        return Paragraph(f'<b><font color="white">{txt}</font></b>',
+                         ps('TH', fontSize=7, alignment=1))
+    def td(txt):
+        return Paragraph(str(txt), ps('TD', fontSize=7))
+    def tdr(txt):
+        return Paragraph(str(txt), ps('TR', fontSize=7, alignment=2))
+    def tdb(txt):
+        return Paragraph(f'<b>{txt}</b>', ps('TB', fontSize=7, alignment=2))
+
+    def tbl(data, col_widths, total_last=False):
+        t = Table(data, colWidths=col_widths, repeatRows=1)
+        cmds = [
+            ('BACKGROUND',    (0, 0), (-1, 0), NAVY),
+            ('GRID',          (0, 0), (-1, -1), 0.3, BORDER),
+            ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+            ('TOPPADDING',    (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
+        ]
+        if total_last:
+            cmds += [
+                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#e8f0fe')),
+                ('FONTNAME',   (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ]
+        t.setStyle(TableStyle(cmds))
+        return t
+
+    # KPIs
+    total_contrato   = sum(c.valor_contrato       for c in qs)
+    total_comissao   = sum(c.valor_comissao        for c in qs)
+    total_pagar      = sum(c.valor_comissao_pagar  for c in qs)
+    total_premio     = sum(c.valor_premio           for c in qs)
+
+    story = []
+    story.append(Paragraph('Cota 365 — Comissões', title_s))
+    story.append(Paragraph(
+        f'Gerado em {datetime.now().strftime("%d/%m/%Y %H:%M")}  |  {len(qs)} comissões', sub_s))
+    story.append(HRFlowable(width='100%', thickness=1, color=BORDER, spaceAfter=8))
+
+    # Resumo KPI
+    story.append(Paragraph('Resumo Geral', sec_s))
+    story.append(tbl([
+        [th('COMISSÕES'), th('VALOR CONTRATOS'), th('TOTAL COMISSÕES'), th('A PAGAR'), th('TOTAL PRÊMIOS')],
+        [tdr(str(len(qs))), tdr(_fmt_brl(total_contrato)), tdr(_fmt_brl(total_comissao)),
+         tdr(_fmt_brl(total_pagar)), tdr(_fmt_brl(total_premio))],
+    ], [W/5]*5))
+    story.append(Spacer(1, 8))
+
+    # Por Imobiliária
+    imob_map = defaultdict(lambda: {'n': 0, 'contrato': 0.0, 'comissao': 0.0, 'pagar': 0.0})
+    for c in qs:
+        k = c.imobiliaria or '(sem imobiliária)'
+        imob_map[k]['n']        += 1
+        imob_map[k]['contrato'] += c.valor_contrato
+        imob_map[k]['comissao'] += c.valor_comissao
+        imob_map[k]['pagar']    += c.valor_comissao_pagar
+
+    story.append(Paragraph('Por Imobiliária', sec_s))
+    imob_rows = [[th('IMOBILIÁRIA'), th('QTDE'), th('VALOR CONTRATOS'), th('COMISSÃO'), th('A PAGAR')]]
+    for k, v in sorted(imob_map.items(), key=lambda x: x[0].lower()):
+        imob_rows.append([td(k), tdr(str(v['n'])), tdr(_fmt_brl(v['contrato'])),
+                          tdr(_fmt_brl(v['comissao'])), tdr(_fmt_brl(v['pagar']))])
+    imob_rows.append([tdb('TOTAL'), tdb(str(len(qs))), tdb(_fmt_brl(total_contrato)),
+                      tdb(_fmt_brl(total_comissao)), tdb(_fmt_brl(total_pagar))])
+    story.append(tbl(imob_rows, [W*0.40, W*0.08, W*0.18, W*0.17, W*0.17], total_last=True))
+    story.append(Spacer(1, 8))
+
+    # Por Corretor
+    cor_map = defaultdict(lambda: {'n': 0, 'comissao': 0.0, 'pagar': 0.0})
+    for c in qs:
+        k = c.corretor or '(sem corretor)'
+        cor_map[k]['n']        += 1
+        cor_map[k]['comissao'] += c.valor_comissao
+        cor_map[k]['pagar']    += c.valor_comissao_pagar
+
+    story.append(Paragraph('Por Corretor', sec_s))
+    cor_rows = [[th('CORRETOR'), th('QTDE'), th('COMISSÃO'), th('A PAGAR')]]
+    for k, v in sorted(cor_map.items(), key=lambda x: x[0].lower()):
+        cor_rows.append([td(k), tdr(str(v['n'])), tdr(_fmt_brl(v['comissao'])), tdr(_fmt_brl(v['pagar']))])
+    cor_rows.append([tdb('TOTAL'), tdb(str(len(qs))), tdb(_fmt_brl(total_comissao)), tdb(_fmt_brl(total_pagar))])
+    story.append(tbl(cor_rows, [W*0.50, W*0.10, W*0.20, W*0.20], total_last=True))
+
+    # Lista completa
+    story.append(PageBreak())
+    story.append(Paragraph('Lista de Comissões', sec_s))
+    list_rows = [[th('Nº'), th('RESERVA'), th('UNID.'), th('CLIENTE'), th('CORRETOR'),
+                  th('IMOBILIÁRIA'), th('DATA'), th('CONTRATO'), th('%'), th('COMISSÃO'), th('A PAGAR')]]
+    for c in sorted(qs, key=lambda x: x.cliente.lower()):
+        list_rows.append([
+            td(c.numero), td(c.reserva), td(c.unidade),
+            td(c.cliente[:28] if c.cliente else ''),
+            td(c.corretor[:22] if c.corretor else ''),
+            td(c.imobiliaria[:22] if c.imobiliaria else ''),
+            td(c.data_venda.strftime('%d/%m/%y') if c.data_venda else '—'),
+            tdr(_fmt_brl(c.valor_contrato)),
+            tdr(f"{c.pct_comissao:.1f}%".replace('.', ',')),
+            tdr(_fmt_brl(c.valor_comissao)),
+            tdr(_fmt_brl(c.valor_comissao_pagar)),
+        ])
+    list_rows.append([tdb('TOTAL'), tdb(''), tdb(''), tdb(''), tdb(''), tdb(''), tdb(''),
+                      tdb(_fmt_brl(total_contrato)), tdb(''),
+                      tdb(_fmt_brl(total_comissao)), tdb(_fmt_brl(total_pagar))])
+    story.append(tbl(list_rows,
+                     [W*0.04, W*0.06, W*0.06, W*0.14, W*0.12,
+                      W*0.14, W*0.07, W*0.11, W*0.05, W*0.10, W*0.11],
+                     total_last=True))
+
+    doc.build(story)
+    buf.seek(0)
+    resp = HttpResponse(buf, content_type='application/pdf')
+    resp['Content-Disposition'] = 'attachment; filename="comissoes_cota365.pdf"'
     return resp

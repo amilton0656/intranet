@@ -1,0 +1,268 @@
+{% extends 'cota365/base.html' %}
+{% block title %}Comissões — Cota 365{% endblock %}
+{% block nav_comissoes %}active{% endblock %}
+
+{% block content %}
+<style>
+  .kpi-card {
+    background: #fff;
+    border: 1px solid #e2e6ea;
+    border-radius: 12px;
+    padding: 1.1rem 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .kpi-icon {
+    width: 48px; height: 48px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+  }
+  .kpi-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6c757d;
+    margin-bottom: 3px;
+  }
+  .kpi-value {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #1a1a2e;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+  .chart-card {
+    background: #fff;
+    border: 1px solid #e2e6ea;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+  }
+  .chart-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6c757d;
+    margin-bottom: 1rem;
+  }
+  .com-table td, .com-table th {
+    padding: 0.45rem 0.65rem;
+    font-size: 0.82rem;
+    vertical-align: middle;
+    border-color: #f0f2f5;
+    white-space: nowrap;
+  }
+  .com-table thead th {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6c757d;
+    background: #fff;
+    border-bottom: 2px solid #e2e6ea;
+  }
+  .com-table tbody tr:hover { background: #f8f9fa; }
+  .sit-badge {
+    font-size: 0.7rem;
+    padding: 0.2em 0.55em;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+</style>
+
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1><i class="bi bi-percent me-2"></i>Comissões</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'cota365:index' %}" class="text-decoration-none">Início</a></li>
+        <li class="breadcrumb-item active">Comissões</li>
+      </ol>
+    </nav>
+  </div>
+  {% if total_n %}
+  <div class="pt-1 d-flex gap-2">
+    <a href="{% url 'cota365:export_comissoes_pdf' %}" class="btn btn-outline-danger btn-sm">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+    </a>
+    <a href="{% url 'cota365:export_comissoes_excel' %}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="main-content">
+
+{% if not total_n %}
+  <div class="alert alert-warning d-flex gap-2 align-items-center">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    Nenhuma comissão importada. Acesse <a href="{% url 'cota365:importar' %}">Importar</a> para carregar o arquivo CSV.
+  </div>
+{% else %}
+
+  <!-- KPIs -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#e8f0fe;"><i class="bi bi-hash" style="color:#1a1a2e;"></i></div>
+        <div>
+          <div class="kpi-label">Comissões</div>
+          <div class="kpi-value">{{ total_n }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#e8f0fe;"><i class="bi bi-currency-dollar" style="color:#1a1a2e;"></i></div>
+        <div>
+          <div class="kpi-label">Valor Total Contratos</div>
+          <div class="kpi-value">{{ total_contrato_fmt }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#fff3cd;"><i class="bi bi-percent" style="color:#856404;"></i></div>
+        <div>
+          <div class="kpi-label">Total Comissões</div>
+          <div class="kpi-value">{{ total_comissao_fmt }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#d1e7dd;"><i class="bi bi-cash-stack" style="color:#0a3622;"></i></div>
+        <div>
+          <div class="kpi-label">A Pagar</div>
+          <div class="kpi-value">{{ total_pagar_fmt }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#f8d7da;"><i class="bi bi-star" style="color:#842029;"></i></div>
+        <div>
+          <div class="kpi-label">Total Prêmios</div>
+          <div class="kpi-value">{{ total_premio_fmt }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumos por Imobiliária e Corretor -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-7">
+      <div class="chart-card h-100">
+        <div class="chart-title"><i class="bi bi-building me-1"></i>Por Imobiliária</div>
+        <div style="overflow-x: auto;">
+          <table class="table com-table mb-0">
+            <thead>
+              <tr>
+                <th>Imobiliária</th>
+                <th class="text-end">Qtde</th>
+                <th class="text-end">Valor Contratos</th>
+                <th class="text-end">Comissão</th>
+                <th class="text-end">A Pagar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in resumo_imob %}
+              <tr>
+                <td>{{ r.imobiliaria }}</td>
+                <td class="text-end">{{ r.n }}</td>
+                <td class="text-end">{{ r.contrato_fmt }}</td>
+                <td class="text-end">{{ r.comissao_fmt }}</td>
+                <td class="text-end fw-bold">{{ r.pagar_fmt }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="chart-card h-100">
+        <div class="chart-title"><i class="bi bi-person me-1"></i>Por Corretor</div>
+        <div style="overflow-x: auto;">
+          <table class="table com-table mb-0">
+            <thead>
+              <tr>
+                <th>Corretor</th>
+                <th class="text-end">Qtde</th>
+                <th class="text-end">Comissão</th>
+                <th class="text-end">A Pagar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in resumo_corretor %}
+              <tr>
+                <td>{{ r.corretor }}</td>
+                <td class="text-end">{{ r.n }}</td>
+                <td class="text-end">{{ r.comissao_fmt }}</td>
+                <td class="text-end fw-bold">{{ r.pagar_fmt }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista completa -->
+  <div class="chart-card">
+    <div class="chart-title"><i class="bi bi-list-ul me-1"></i>Lista de Comissões</div>
+    <div style="overflow-x: auto;">
+      <table class="table com-table mb-0">
+        <thead>
+          <tr>
+            <th>Nº</th>
+            <th>Situação</th>
+            <th>Reserva</th>
+            <th>Unidade</th>
+            <th>Cliente</th>
+            <th>Corretor</th>
+            <th>Imobiliária</th>
+            <th class="text-end">Data Venda</th>
+            <th class="text-end">Valor Contrato</th>
+            <th class="text-end">% Comis.</th>
+            <th class="text-end">Comissão</th>
+            <th class="text-end">A Pagar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in lista %}
+          <tr>
+            <td>{{ r.numero }}</td>
+            <td>
+              <span class="sit-badge
+                {% if 'ENVIO' in r.situacao %}bg-warning-subtle text-warning-emphasis
+                {% else %}bg-success-subtle text-success-emphasis{% endif %}">
+                {{ r.situacao }}
+              </span>
+            </td>
+            <td>{{ r.reserva }}</td>
+            <td>{{ r.unidade }}</td>
+            <td>{{ r.cliente }}</td>
+            <td>{{ r.corretor }}</td>
+            <td>{{ r.imobiliaria }}</td>
+            <td class="text-end">{{ r.data_venda }}</td>
+            <td class="text-end">{{ r.valor_contrato_fmt }}</td>
+            <td class="text-end text-muted">{{ r.pct_comissao }}</td>
+            <td class="text-end">{{ r.valor_comissao_fmt }}</td>
+            <td class="text-end fw-bold">{{ r.valor_pagar_fmt }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+{% endif %}
+</div>
+{% endblock %}
