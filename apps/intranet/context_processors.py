@@ -76,18 +76,20 @@ NEWS_LINKS_SECONDARY = [
 
 BANK_LINKS = [
     {"name": "Banco do Brasil", "url": "https://www.bb.com.br"},
+    {"name": "Brasil - Office", "url": 'file:///C:/BancoBrasil/officeIE/index.html'},
     {"name": "Bradesco", "url": "https://www.bradesco.com.br"},
     {"name": "Caixa Econômica Federal", "url": "https://www.caixa.gov.br"},
     {"name": "Credicard", "url": "https://www.credicard.com.br"},
-    {"name": "Banco Fibra", "url": "https://portal.bancofibra.com.br"},
-    {"name": "Banco Inter", "url": "https://www.bancointer.com.br"},
+    {"name": "Fibra", "url": 'https://portal.bancofibra.com.br/produtos.html'},
+    {"name": "Inter", "url": "https://www.bancointer.com.br"},
     {"name": "Itau Empresas", "url": "https://www.itau.com.br/empresas"},
-    {"name": "Safra", "url": "https://www.safra.com.br"},
-    {"name": "Santander", "url": "https://www.santander.com.br"},
-    {"name": "Sicoob", "url": "https://www.sicoob.com.br"},
-    {"name": "Sicredi", "url": "https://www.sicredi.com.br"},
-    {"name": "Unicred", "url": "https://www.unicred.com.br"},
+    {"name": "Real", "url": "https://www.secureweb.com.br"},
     {"name": "Redasset", "url": "https://redasset.com.br"},
+    {"name": "Safra", "url": "https://www.safra.com.br/pessoa-juridica.htm"},
+    {"name": "Santander", "url": "https://www.santander.com.br"},
+    {"name": "Sicoob", "url": "https://www.sicoob.com.br/sicoobnet/"},
+    {"name": "Sicredi", "url": "https://www.sicredi.com.br"},
+    {"name": "Unicred", "url": "https://www.unicred.com.br/valorcapital/home"},
     {"name": "Unilos", "url": "https://www.unilos.coop.br"},
 ]
 

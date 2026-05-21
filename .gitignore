@@ -1,3 +1,8 @@
 .venv
 .env
-db.sqlite3"apps/intranet/static/downloads/*.pdf" 
+db.sqlite3
+__pycache__/
+*.pyc
+*.pyo
+media/
+
