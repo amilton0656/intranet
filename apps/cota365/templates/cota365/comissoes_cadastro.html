@@ -168,6 +168,13 @@
         </tr>
         {% endfor %}
       </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="10" class="text-end text-muted py-2 px-2" style="font-size:0.78rem; border-top:2px solid #e2e6ea;">
+            <span id="total-reservas"></span>
+          </td>
+        </tr>
+      </tfoot>
     </table>
   </div>
 
@@ -246,6 +253,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.getElementById('filtro-contador').textContent =
       visíveis < rows.length ? visíveis + ' de ' + rows.length + ' registros' : '';
+
+    var totalEl = document.getElementById('total-reservas');
+    if (totalEl) {
+      totalEl.textContent = visíveis === rows.length
+        ? rows.length + ' reservas'
+        : visíveis + ' de ' + rows.length + ' reservas';
+    }
 
     var pdfBtn = document.getElementById('btn-pdf');
     if (pdfBtn) {
