@@ -135,6 +135,7 @@
             {{ r.total_fmt }}
           </td>
           <td class="text-center">
+            {% if r.is_cota %}<span class="outros-badge bg-primary text-white me-1">COTA</span>{% endif %}
             {% if r.outros_str %}
               <span class="outros-badge {% if r.tem_premio %}bg-warning text-dark{% else %}bg-info-subtle text-info-emphasis{% endif %}">
                 {{ r.outros_str }}

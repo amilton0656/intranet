@@ -738,6 +738,7 @@ def comissoes_cadastro(request):
             for r in records
         )
         outros_str = f'+{extra}{"P" if tem_premio else ""}' if extra > 0 else ''
+        is_cota = 'COTA EMPREENDIMENTOS' in first.imobiliaria.upper()
 
         total_comissao = sum(r.valor_comissao for r in records)
         data_prevista  = next((r.data_prevista  for r in records if r.data_prevista),  None)
@@ -758,6 +759,7 @@ def comissoes_cadastro(request):
             'total_fmt':          _fmt_brl(total_comissao),
             'outros_str':         outros_str,
             'tem_premio':         tem_premio,
+            'is_cota':            is_cota,
             'data_prevista_iso':  data_prevista.strftime('%Y-%m-%d')  if data_prevista  else '',
             'data_pagamento_iso': data_pagamento.strftime('%Y-%m-%d') if data_pagamento else '',
             'pago':               bool(data_pagamento),
@@ -804,7 +806,9 @@ def export_cadastro_pdf(request):
         extra      = len(records) - 1
         tem_premio = any('premio' in r.tipo_comissao.lower() or
                          'prêmio' in r.tipo_comissao.lower() for r in records)
-        outros_str = f'+{extra}{"P" if tem_premio else ""}' if extra > 0 else ''
+        extra_str  = f'+{extra}{"P" if tem_premio else ""}' if extra > 0 else ''
+        is_cota    = 'COTA EMPREENDIMENTOS' in first.imobiliaria.upper()
+        outros_str = ('COTA ' + extra_str if extra_str else 'COTA') if is_cota else extra_str
         total      = sum(r.valor_comissao for r in records)
         dp_prev    = next((r.data_prevista  for r in records if r.data_prevista),  None)
         dp_pago    = next((r.data_pagamento for r in records if r.data_pagamento), None)
