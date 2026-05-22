@@ -113,18 +113,6 @@
   <div class="alert alert-warning">Nenhuma comissão importada ainda.</div>
 {% else %}
 
-  <div class="row g-3 mb-3">
-    <div class="col-auto">
-      <div class="kpi-card">
-        <div class="kpi-icon" style="background:#e8f0fe;"><i class="bi bi-hash" style="color:#1a1a2e;"></i></div>
-        <div>
-          <div class="kpi-label">Vendas</div>
-          <div class="kpi-value">{{ total_n }}</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div class="mb-2 d-flex gap-3 align-items-center flex-wrap" style="font-size:0.82rem; color:#6c757d;">
     <span><span style="display:inline-block;width:14px;height:14px;background:#d1e7dd;border-radius:3px;vertical-align:middle;"></span> Paga</span>
     <span><span style="display:inline-block;width:14px;height:14px;background:#fff3cd;border-radius:3px;vertical-align:middle;"></span> Com data prevista</span>
@@ -145,6 +133,11 @@
       <button type="button" class="btn btn-outline-secondary active" id="btn-nao-pagas">Não pagas</button>
     </div>
     <span id="filtro-contador" class="text-muted" style="font-size:0.8rem;"></span>
+    <span class="ms-auto d-flex align-items-center gap-1" style="font-size:0.8rem; color:#6c757d;">
+      <i class="bi bi-hash" style="font-size:0.75rem;"></i>
+      <span style="font-weight:700; color:#1a1a2e;">{{ total_n }}</span>
+      <span>vendas</span>
+    </span>
   </div>
 
   <div style="overflow-x: auto;">
