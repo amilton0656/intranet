@@ -784,9 +784,18 @@ def export_cadastro_pdf(request):
     if not Comissao.objects.exists():
         return HttpResponse('Sem dados.', status=404)
 
-    # Mesma lógica de agrupamento do template
+    cliente_filter = request.GET.get('cliente', '').strip()
+    imob_filter    = request.GET.get('imob', '').strip()
+    status_filter  = request.GET.get('status', 'todas')
+
+    qs = Comissao.objects.order_by('unidade', 'reserva', 'beneficiario')
+    if cliente_filter:
+        qs = qs.filter(cliente__icontains=cliente_filter)
+    if imob_filter:
+        qs = qs.filter(imobiliaria__icontains=imob_filter)
+
     groups = defaultdict(list)
-    for c in Comissao.objects.order_by('unidade', 'reserva', 'beneficiario'):
+    for c in qs:
         groups[c.reserva].append(c)
 
     lista = []
@@ -799,6 +808,8 @@ def export_cadastro_pdf(request):
         total      = sum(r.valor_comissao for r in records)
         dp_prev    = next((r.data_prevista  for r in records if r.data_prevista),  None)
         dp_pago    = next((r.data_pagamento for r in records if r.data_pagamento), None)
+        if status_filter == 'nao-pagas' and dp_pago:
+            continue
         lista.append({
             'unidade':    first.unidade,
             'reserva':    reserva,
