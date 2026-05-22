@@ -5,14 +5,14 @@
 {% block content %}
 <style>
   .cad-table td, .cad-table th {
-    padding: 0.45rem 0.65rem;
-    font-size: 0.82rem;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.8rem;
     vertical-align: middle;
     border-color: #f0f2f5;
     white-space: nowrap;
   }
   .cad-table thead th {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -20,23 +20,30 @@
     background: #fff;
     border-bottom: 2px solid #e2e6ea;
   }
-  .cad-table tbody tr:hover { background: #f8f9fa; }
+  .cad-table tbody tr.row-clicavel:hover { background: #f0f4ff !important; cursor: pointer; }
+  .row-pago     { background: #d1e7dd !important; }
+  .row-prevista { background: #fff3cd !important; }
   .date-input {
     border: 1px solid #dee2e6;
     border-radius: 6px;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.8rem;
-    width: 120px;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.78rem;
+    width: 118px;
   }
   .date-input:focus { outline: none; border-color: #86b7fe; box-shadow: 0 0 0 2px rgba(13,110,253,.15); }
-  .row-pago { background: #d1e7dd !important; }
-  .row-prevista { background: #fff3cd !important; }
+  .outros-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.15em 0.5em;
+    border-radius: 20px;
+    letter-spacing: 0.02em;
+  }
 </style>
 
 {% for r in lista %}
-<form id="form-{{ r.numero }}" method="post" action="">
+<form id="form-{{ r.reserva }}" method="post" action="">
   {% csrf_token %}
-  <input type="hidden" name="numero" value="{{ r.numero }}">
+  <input type="hidden" name="reserva" value="{{ r.reserva }}">
 </form>
 {% endfor %}
 
@@ -76,12 +83,26 @@
   <div class="alert alert-warning">Nenhuma comissão importada ainda.</div>
 {% else %}
 
-  <div class="mb-3 d-flex gap-3 align-items-center" style="font-size:0.82rem; color:#6c757d;">
+  <div class="mb-2 d-flex gap-3 align-items-center flex-wrap" style="font-size:0.82rem; color:#6c757d;">
     <span><span style="display:inline-block;width:14px;height:14px;background:#d1e7dd;border-radius:3px;vertical-align:middle;"></span> Paga</span>
     <span><span style="display:inline-block;width:14px;height:14px;background:#fff3cd;border-radius:3px;vertical-align:middle;"></span> Com data prevista</span>
-    <span><span style="display:inline-block;width:14px;height:14px;background:#fff;border:1px solid #dee2e6;border-radius:3px;vertical-align:middle;"></span> Sem datas</span>
     <span><i class="bi bi-circle-fill" style="color:#0d6efd;font-size:0.65rem;"></i> Valor em azul = previsto</span>
     <span><i class="bi bi-circle-fill" style="color:#198754;font-size:0.65rem;"></i> Valor em verde = pago</span>
+    <span style="color:#adb5bd;"><i class="bi bi-hand-index me-1"></i>Clique na linha para ver beneficiários</span>
+  </div>
+
+  <!-- Filtros -->
+  <div class="mb-3 d-flex gap-2 align-items-center flex-wrap">
+    <input type="text" id="filtro-cliente" placeholder="Filtrar por cliente…"
+           class="form-control form-control-sm" style="max-width:220px;">
+    <select id="filtro-imob" class="form-select form-select-sm" style="max-width:240px;">
+      <option value="">Todas as imobiliárias</option>
+    </select>
+    <div class="btn-group btn-group-sm" role="group">
+      <button type="button" class="btn btn-outline-secondary active" id="btn-todas">Todas</button>
+      <button type="button" class="btn btn-outline-secondary" id="btn-nao-pagas">Não pagas</button>
+    </div>
+    <span id="filtro-contador" class="text-muted" style="font-size:0.8rem;"></span>
   </div>
 
   <div style="overflow-x: auto;">
@@ -93,37 +114,182 @@
           <th>Cliente</th>
           <th>Imobiliária</th>
           <th class="text-end">Comissão</th>
-          <th class="text-center">Data Prevista</th>
-          <th class="text-center">Data Pagamento</th>
+          <th class="text-center">Outras</th>
+          <th class="text-center">Prevista</th>
+          <th class="text-center">Pagamento</th>
+          <th></th>
           <th></th>
         </tr>
       </thead>
       <tbody>
         {% for r in lista %}
-        <tr class="{% if r.pago %}row-pago{% elif r.data_prevista %}row-prevista{% endif %}">
+        <tr class="row-clicavel {% if r.pago %}row-pago{% elif r.tem_data %}row-prevista{% endif %}"
+            data-reserva="{{ r.reserva }}"
+            data-parceiros='{{ r.parceiros_json }}'
+            data-total="{{ r.total_json }}">
           <td>{{ r.unidade }}</td>
           <td>{{ r.reserva }}</td>
           <td>{{ r.cliente }}</td>
           <td>{{ r.imobiliaria }}</td>
-          <td class="text-end fw-bold {% if r.pago %}text-success{% elif r.tem_data %}text-primary{% endif %}">{{ r.valor_comissao_fmt }}</td>
+          <td class="text-end fw-bold {% if r.pago %}text-success{% elif r.tem_data %}text-primary{% endif %}">
+            {{ r.total_fmt }}
+          </td>
           <td class="text-center">
-            <input form="form-{{ r.numero }}" type="date" name="data_prevista"
+            {% if r.outros_str %}
+              <span class="outros-badge {% if r.tem_premio %}bg-warning text-dark{% else %}bg-info-subtle text-info-emphasis{% endif %}">
+                {{ r.outros_str }}
+              </span>
+            {% endif %}
+          </td>
+          <td class="text-center" onclick="event.stopPropagation()">
+            <input form="form-{{ r.reserva }}" type="date" name="data_prevista"
                    class="date-input" value="{{ r.data_prevista_iso }}" title="Data Prevista">
           </td>
-          <td class="text-center">
-            <input form="form-{{ r.numero }}" type="date" name="data_pagamento"
+          <td class="text-center" onclick="event.stopPropagation()">
+            <input form="form-{{ r.reserva }}" type="date" name="data_pagamento"
                    class="date-input" value="{{ r.data_pagamento_iso }}" title="Data Pagamento">
           </td>
-          <td>
-            <button form="form-{{ r.numero }}" type="submit" class="btn btn-sm btn-primary" title="Salvar">
+          <td onclick="event.stopPropagation()">
+            <button form="form-{{ r.reserva }}" type="submit"
+                    class="btn btn-sm btn-primary" title="Salvar datas">
               <i class="bi bi-check-lg"></i>
             </button>
+          </td>
+          <td onclick="event.stopPropagation()">
+            <form method="post" action="{% url 'cota365:delete_reserva' r.reserva %}"
+                  onsubmit="return confirm('Excluir todos os registros da reserva {{ r.reserva }}?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir reserva">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+
 {% endif %}
 </div>
+
+<!-- Modal Beneficiários -->
+<div class="modal fade" id="parceirosModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 575px;">
+    <div class="modal-content">
+      <div class="modal-header py-2 px-3">
+        <h6 class="modal-title mb-0">
+          <i class="bi bi-people me-2"></i>Beneficiários — Reserva <span id="modal-reserva" class="fw-bold"></span>
+        </h6>
+        <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <table class="table table-sm mb-0" style="font-size:0.83rem;">
+          <thead>
+            <tr style="background:#f8f9fa;">
+              <th class="px-3 py-2">Beneficiário</th>
+              <th class="px-2 py-2">Tipo</th>
+              <th class="px-3 py-2 text-end">Valor</th>
+            </tr>
+          </thead>
+          <tbody id="modal-tbody"></tbody>
+          <tfoot>
+            <tr style="background:#e8f0fe; font-weight:700;">
+              <td class="px-3 py-2">Total</td>
+              <td></td>
+              <td class="px-3 py-2 text-end" id="modal-total"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var modalEl  = document.getElementById('parceirosModal');
+  var rows     = Array.from(document.querySelectorAll('.row-clicavel'));
+  var filtroStatus = 'todas';
+
+  // ── Popula select de imobiliárias ──────────────────────────────────────
+  var imobs = Array.from(new Set(rows.map(function (r) {
+    return r.cells[3].textContent.trim();
+  }))).filter(Boolean).sort();
+  var selImob = document.getElementById('filtro-imob');
+  imobs.forEach(function (imob) {
+    var opt = document.createElement('option');
+    opt.value = imob;
+    opt.textContent = imob;
+    selImob.appendChild(opt);
+  });
+
+  // ── Lógica de filtro ───────────────────────────────────────────────────
+  function aplicar() {
+    var txtCliente = document.getElementById('filtro-cliente').value.toLowerCase().trim();
+    var txtImob    = selImob.value.toLowerCase().trim();
+    var visíveis   = 0;
+
+    rows.forEach(function (row) {
+      var okCliente = !txtCliente || row.cells[2].textContent.toLowerCase().includes(txtCliente);
+      var okImob    = !txtImob    || row.cells[3].textContent.toLowerCase().includes(txtImob);
+      var okStatus  = filtroStatus === 'todas' || !row.classList.contains('row-pago');
+
+      var mostrar = okCliente && okImob && okStatus;
+      row.style.display = mostrar ? '' : 'none';
+      if (mostrar) visíveis++;
+    });
+
+    document.getElementById('filtro-contador').textContent =
+      visíveis < rows.length ? visíveis + ' de ' + rows.length + ' registros' : '';
+  }
+
+  document.getElementById('filtro-cliente').addEventListener('input', aplicar);
+  selImob.addEventListener('change', aplicar);
+
+  document.getElementById('btn-todas').addEventListener('click', function () {
+    filtroStatus = 'todas';
+    this.classList.add('active');
+    document.getElementById('btn-nao-pagas').classList.remove('active');
+    aplicar();
+  });
+  document.getElementById('btn-nao-pagas').addEventListener('click', function () {
+    filtroStatus = 'nao-pagas';
+    this.classList.add('active');
+    document.getElementById('btn-todas').classList.remove('active');
+    aplicar();
+  });
+
+  // ── Modal beneficiários ────────────────────────────────────────────────
+  rows.forEach(function (row) {
+    row.addEventListener('click', function (e) {
+      if (e.target.closest('input, button, form, a')) return;
+
+      var reserva   = this.dataset.reserva;
+      var parceiros = JSON.parse(this.dataset.parceiros);
+      var total     = this.dataset.total;
+
+      document.getElementById('modal-reserva').textContent = reserva;
+      document.getElementById('modal-total').textContent   = total;
+
+      var tbody = document.getElementById('modal-tbody');
+      tbody.innerHTML = '';
+      parceiros.forEach(function (p) {
+        var tr = document.createElement('tr');
+        var isPremio = p.tipo.toLowerCase().includes('pr');
+        tr.innerHTML =
+          '<td class="px-3 py-1">' + p.beneficiario + '</td>' +
+          '<td class="px-2 py-1"><span class="badge ' +
+            (isPremio ? 'bg-warning-subtle text-warning-emphasis'
+                      : 'bg-secondary-subtle text-secondary-emphasis') +
+          '" style="font-size:0.7rem;">' + p.tipo + '</span></td>' +
+          '<td class="px-3 py-1 text-end fw-bold">' + p.valor + '</td>';
+        tbody.appendChild(tr);
+      });
+
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
+  });
+});
+</script>
 {% endblock %}

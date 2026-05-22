@@ -1,5 +1,6 @@
 import csv
 import io
+import json
 import re
 from datetime import datetime, date
 from collections import defaultdict, OrderedDict
@@ -598,20 +599,18 @@ def _import_unidades(file_obj, nome):
 
 def _import_comissoes(f, nome):
     def _brl(s):
-        s = str(s).strip().replace('.', '').replace(',', '.')
+        s = str(s).strip().strip('"').replace('.', '').replace(',', '.')
         try:
             return float(s)
         except ValueError:
             return 0.0
 
-    def _date(s):
-        s = str(s).strip()
-        if not s or s == '--':
-            return None
-        try:
-            return datetime.strptime(s, '%d/%m/%Y').date()
-        except ValueError:
-            return None
+    def _col(row, *keys):
+        for k in keys:
+            v = row.get(k, '')
+            if v.strip():
+                return v.strip().strip('"')
+        return ''
 
     for enc in ('utf-8-sig', 'latin-1'):
         try:
@@ -623,43 +622,61 @@ def _import_comissoes(f, nome):
 
     reader = csv.DictReader(raw.splitlines(), delimiter=';')
 
-    campos_csv = [
-        'situacao', 'reserva', 'corretor', 'data_venda', 'imobiliaria',
-        'unidade', 'cliente', 'tipo_unidade', 'valor_contrato', 'pct_comissao',
-        'valor_comissao', 'pct_premio', 'valor_premio', 'tipo_comissao', 'valor_comissao_pagar',
-    ]
-    total_comissao = 0.0
+    csv_keys = set()
     count = 0
     with transaction.atomic():
-        numeros_csv = set()
         for row in reader:
-            num = row.get('Número', row.get('NÃºmero', '')).strip()
+            num = _col(row, 'Número', 'NÃºmero', 'Numero')
             if not num or not num.isdigit():
                 continue
+
+            beneficiario  = _col(row, 'Beneficiário', 'BeneficiÃ¡rio')
+            tipo_comissao = _col(row, 'Tipo da comissão', 'Tipo da comissÃ£o')
+            csv_keys.add((num, beneficiario, tipo_comissao))
+
             dados = {
-                'situacao':             row.get('Situação', row.get('SituaÃ§Ã£o', '')).strip(),
-                'reserva':              row.get('Reserva', '').strip(),
-                'corretor':             row.get('Corretor', '').strip(),
-                'data_venda':           _date(row.get('Data da Venda', '')),
-                'imobiliaria':          row.get('Imobiliária', row.get('ImobiliÃ¡ria', '')).strip(),
-                'unidade':              row.get('Unidade', '').strip(),
-                'cliente':              row.get('Cliente', '').strip(),
-                'tipo_unidade':         row.get('Tipo Unidade', '').strip(),
-                'valor_contrato':       _brl(row.get('Valor do contrato', 0)),
-                'pct_comissao':         _brl(row.get('Porcentagem Comissao (%)', 0)),
-                'valor_comissao':       _brl(row.get('Valor Comissão', row.get('Valor ComissÃ£o', 0))),
-                'pct_premio':           _brl(row.get('Porcentagem Prêmio (%)', row.get('Porcentagem PrÃªmio (%)', 0))),
-                'valor_premio':         _brl(row.get('Valor Prêmio', row.get('Valor PrÃªmio', 0))),
-                'tipo_comissao':        row.get('Tipo da comissão', row.get('Tipo da comissÃ£o', '')).strip(),
-                'valor_comissao_pagar': _brl(row.get('Valor Comissão a pagar', row.get('Valor ComissÃ£o a pagar', 0))),
+                'reserva':              _col(row, 'Reserva'),
+                'corretor':             _col(row, 'Corretor'),
+                'imobiliaria':          _col(row, 'Imobiliária', 'ImobiliÃ¡ria'),
+                'unidade':              _col(row, 'Unidade'),
+                'cliente':              _col(row, 'Cliente'),
+                'valor_contrato':       _brl(_col(row, 'Valor do contrato')),
+                'valor_comissao_pagar': _brl(_col(row, 'Valor Comissão a pagar', 'Valor ComissÃ£o a pagar')),
+                'valor_comissao':       _brl(_col(row, 'Valor da Comissão do Beneficiário',
+                                                   'Valor da ComissÃ£o do BeneficiÃ¡rio')),
+                'pct_comissao':         _brl(_col(row, 'Porcentagem da Comissão do Beneficiário',
+                                                  'Porcentagem da ComissÃ£o do BeneficiÃ¡rio')),
             }
-            Comissao.objects.update_or_create(numero=num, defaults=dados)
-            numeros_csv.add(num)
-            total_comissao += dados['valor_comissao']
-            count += 1
-        # remove comissões que não estão mais no CSV
-        Comissao.objects.exclude(numero__in=numeros_csv).delete()
-    return count, {'Valor total comissões': _fmt_brl(total_comissao)}
+
+            try:
+                obj = Comissao.objects.get(
+                    numero=num, beneficiario=beneficiario, tipo_comissao=tipo_comissao)
+                if obj.data_prevista or obj.data_pagamento:
+                    continue  # protegido — tem data, não atualiza
+                for k, v in dados.items():
+                    setattr(obj, k, v)
+                obj.save()
+            except Comissao.DoesNotExist:
+                Comissao.objects.create(
+                    numero=num,
+                    beneficiario=beneficiario,
+                    tipo_comissao=tipo_comissao,
+                    **dados,
+                )
+                count += 1
+
+        # Remove apenas registros SEM datas que não estão no CSV
+        pks_deletar = [
+            obj.pk
+            for obj in Comissao.objects.filter(
+                data_prevista__isnull=True, data_pagamento__isnull=True)
+            if (obj.numero, obj.beneficiario, obj.tipo_comissao) not in csv_keys
+        ]
+        if pks_deletar:
+            Comissao.objects.filter(pk__in=pks_deletar).delete()
+
+    total = sum(c.valor_comissao for c in Comissao.objects.all())
+    return count, {'Valor total comissões': _fmt_brl(total)}
 
 
 _IMPORTERS = {
@@ -684,54 +701,116 @@ _LABELS = {
 
 
 def comissoes_cadastro(request):
-    if request.method == 'POST':
-        numero = request.POST.get('numero', '').strip()
-        try:
-            obj = Comissao.objects.get(numero=numero)
-        except Comissao.DoesNotExist:
-            messages.error(request, f'Comissão #{numero} não encontrada.')
-            return redirect('cota365:comissoes_cadastro')
-
-        def _parse_date(s):
-            s = (s or '').strip()
-            if not s:
-                return None
-            for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
-                try:
-                    return datetime.strptime(s, fmt).date()
-                except ValueError:
-                    continue
+    def _parse_date(s):
+        s = (s or '').strip()
+        if not s:
             return None
+        for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
+            try:
+                return datetime.strptime(s, fmt).date()
+            except ValueError:
+                continue
+        return None
 
-        obj.data_prevista  = _parse_date(request.POST.get('data_prevista'))
-        obj.data_pagamento = _parse_date(request.POST.get('data_pagamento'))
-        obj.save(update_fields=['data_prevista', 'data_pagamento'])
-        messages.success(request, f'Datas da comissão #{numero} atualizadas.')
+    if request.method == 'POST':
+        reserva = request.POST.get('reserva', '').strip()
+        n = Comissao.objects.filter(reserva=reserva).update(
+            data_prevista  = _parse_date(request.POST.get('data_prevista')),
+            data_pagamento = _parse_date(request.POST.get('data_pagamento')),
+        )
+        if n:
+            messages.success(request, f'Datas da reserva {reserva} atualizadas.')
+        else:
+            messages.error(request, f'Reserva {reserva} não encontrada.')
         return redirect('cota365:comissoes_cadastro')
 
-    qs = Comissao.objects.order_by('unidade')
-    lista = [{
-        'numero':               c.numero,
-        'unidade':              c.unidade,
-        'reserva':              c.reserva,
-        'cliente':              c.cliente,
-        'imobiliaria':          c.imobiliaria,
-        'valor_comissao_fmt':   _fmt_brl(c.valor_comissao),
-        'data_prevista':        c.data_prevista.strftime('%d/%m/%Y') if c.data_prevista else '',
-        'data_pagamento':       c.data_pagamento.strftime('%d/%m/%Y') if c.data_pagamento else '',
-        'data_prevista_iso':    c.data_prevista.strftime('%Y-%m-%d') if c.data_prevista else '',
-        'data_pagamento_iso':   c.data_pagamento.strftime('%Y-%m-%d') if c.data_pagamento else '',
-        'pago':                 bool(c.data_pagamento),
-        'tem_data':             bool(c.data_prevista or c.data_pagamento),
-    } for c in qs]
+    # Agrupa por reserva
+    groups = defaultdict(list)
+    for c in Comissao.objects.order_by('unidade', 'reserva', 'beneficiario'):
+        groups[c.reserva].append(c)
 
+    lista = []
+    for reserva, records in groups.items():
+        first  = records[0]
+        extra  = len(records) - 1
+        tem_premio = any(
+            'premio' in r.tipo_comissao.lower() or 'prêmio' in r.tipo_comissao.lower()
+            for r in records
+        )
+        outros_str = f'+{extra}{"P" if tem_premio else ""}' if extra > 0 else ''
+
+        total_comissao = sum(r.valor_comissao for r in records)
+        data_prevista  = next((r.data_prevista  for r in records if r.data_prevista),  None)
+        data_pagamento = next((r.data_pagamento for r in records if r.data_pagamento), None)
+
+        parceiros = [
+            {'beneficiario': r.beneficiario,
+             'tipo':         r.tipo_comissao,
+             'valor':        _fmt_brl(r.valor_comissao)}
+            for r in records
+        ]
+
+        lista.append({
+            'reserva':            reserva,
+            'unidade':            first.unidade,
+            'cliente':            first.cliente,
+            'imobiliaria':        first.imobiliaria,
+            'total_fmt':          _fmt_brl(total_comissao),
+            'outros_str':         outros_str,
+            'tem_premio':         tem_premio,
+            'data_prevista_iso':  data_prevista.strftime('%Y-%m-%d')  if data_prevista  else '',
+            'data_pagamento_iso': data_pagamento.strftime('%Y-%m-%d') if data_pagamento else '',
+            'pago':               bool(data_pagamento),
+            'tem_data':           bool(data_prevista or data_pagamento),
+            'parceiros_json':     json.dumps(parceiros, ensure_ascii=False),
+            'total_json':         _fmt_brl(total_comissao),
+        })
+
+    lista.sort(key=lambda x: x['unidade'])
     return render(request, 'cota365/comissoes_cadastro.html', {'lista': lista})
 
 
+def delete_reserva(request, reserva):
+    if request.method == 'POST':
+        n, _ = Comissao.objects.filter(reserva=reserva).delete()
+        if n:
+            messages.success(request, f'Reserva {reserva} excluída.')
+        else:
+            messages.error(request, f'Reserva {reserva} não encontrada.')
+    return redirect('cota365:comissoes_cadastro')
+
+
 def export_cadastro_pdf(request):
-    qs = list(Comissao.objects.order_by('unidade'))
-    if not qs:
+    if not Comissao.objects.exists():
         return HttpResponse('Sem dados.', status=404)
+
+    # Mesma lógica de agrupamento do template
+    groups = defaultdict(list)
+    for c in Comissao.objects.order_by('unidade', 'reserva', 'beneficiario'):
+        groups[c.reserva].append(c)
+
+    lista = []
+    for reserva, records in groups.items():
+        first      = records[0]
+        extra      = len(records) - 1
+        tem_premio = any('premio' in r.tipo_comissao.lower() or
+                         'prêmio' in r.tipo_comissao.lower() for r in records)
+        outros_str = f'+{extra}{"P" if tem_premio else ""}' if extra > 0 else ''
+        total      = sum(r.valor_comissao for r in records)
+        dp_prev    = next((r.data_prevista  for r in records if r.data_prevista),  None)
+        dp_pago    = next((r.data_pagamento for r in records if r.data_pagamento), None)
+        lista.append({
+            'unidade':    first.unidade,
+            'reserva':    reserva,
+            'cliente':    first.cliente,
+            'imobiliaria':first.imobiliaria,
+            'total':      total,
+            'outros_str': outros_str,
+            'tem_premio': tem_premio,
+            'dp_prev':    dp_prev,
+            'dp_pago':    dp_pago,
+        })
+    lista.sort(key=lambda x: x['unidade'])
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=landscape(A4),
@@ -744,34 +823,38 @@ def export_cadastro_pdf(request):
     BORDER = colors.HexColor('#dee2e6')
     GREEN  = colors.HexColor('#d1e7dd')
     YELLOW = colors.HexColor('#fff3cd')
+    ORANGE = colors.HexColor('#fff3cd')
 
     def ps(name, **kw):
         return ParagraphStyle(name, parent=styles['Normal'], **kw)
 
-    title_s = ps('CT', fontSize=14, fontName='Helvetica-Bold', textColor=NAVY, spaceAfter=2)
-    sub_s   = ps('CS', fontSize=8,  textColor=colors.HexColor('#6c757d'), spaceAfter=10)
+    title_s = ps('CPT', fontSize=14, fontName='Helvetica-Bold', textColor=NAVY, spaceAfter=2)
+    sub_s   = ps('CPS', fontSize=8,  textColor=colors.HexColor('#6c757d'), spaceAfter=10)
 
     def th(txt):
         return Paragraph(f'<b><font color="white">{txt}</font></b>',
-                         ps(f'CTH{txt}', fontSize=7, alignment=1))
+                         ps(f'CPTH{txt}', fontSize=7, alignment=1))
     def td(txt):
-        return Paragraph(str(txt), ps(f'CTD{txt}', fontSize=7))
+        return Paragraph(str(txt), ps(f'CPTD{txt}', fontSize=7))
+    def tdc(txt):
+        return Paragraph(str(txt), ps(f'CPTC{txt}', fontSize=7, alignment=1))
     def tdr(txt):
-        return Paragraph(str(txt), ps(f'CTR{txt}', fontSize=7, alignment=2))
-    def tdb_blue(txt):
+        return Paragraph(str(txt), ps(f'CPTR{txt}', fontSize=7, alignment=2))
+    def tdr_blue(txt):
         return Paragraph(f'<b><font color="#0d6efd">{txt}</font></b>',
-                         ps(f'CBL{txt}', fontSize=7, alignment=2))
-    def tdb_green(txt):
+                         ps(f'CPLB{txt}', fontSize=7, alignment=2))
+    def tdr_green(txt):
         return Paragraph(f'<b><font color="#198754">{txt}</font></b>',
-                         ps(f'CGR{txt}', fontSize=7, alignment=2))
+                         ps(f'CPLG{txt}', fontSize=7, alignment=2))
 
     story = []
     story.append(Paragraph('Cota 365 — Cadastro de Comissões', title_s))
     story.append(Paragraph(
-        f'Gerado em {datetime.now().strftime("%d/%m/%Y %H:%M")}  |  {len(qs)} comissões', sub_s))
+        f'Gerado em {datetime.now().strftime("%d/%m/%Y %H:%M")}  |  {len(lista)} reservas',
+        sub_s))
 
-    rows = [[th('UNIDADE'), th('RESERVA'), th('CLIENTE'), th('IMOBILIÁRIA'),
-             th('COMISSÃO'), th('DATA PREVISTA'), th('DATA PAGAMENTO')]]
+    rows = [[th('UNID.'), th('RESERVA'), th('CLIENTE'), th('IMOBILIÁRIA'),
+             th('COMISSÃO'), th('OUTRAS'), th('PREVISTA'), th('PAGAMENTO')]]
 
     row_cmds = [
         ('BACKGROUND',    (0, 0), (-1, 0), NAVY),
@@ -783,31 +866,31 @@ def export_cadastro_pdf(request):
         ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
     ]
 
-    for i, c in enumerate(qs, 1):
-        pago     = bool(c.data_pagamento)
-        tem_data = bool(c.data_prevista or c.data_pagamento)
-        if pago:
-            val_cell = tdb_green(_fmt_brl(c.valor_comissao))
-        elif tem_data:
-            val_cell = tdb_blue(_fmt_brl(c.valor_comissao))
+    for i, r in enumerate(lista, 1):
+        if r['dp_pago']:
+            val_cell = tdr_green(_fmt_brl(r['total']))
+        elif r['dp_prev']:
+            val_cell = tdr_blue(_fmt_brl(r['total']))
         else:
-            val_cell = tdr(_fmt_brl(c.valor_comissao))
+            val_cell = tdr(_fmt_brl(r['total']))
+
         rows.append([
-            td(c.unidade),
-            td(c.reserva),
-            td(c.cliente[:32] if c.cliente else ''),
-            td(c.imobiliaria[:30] if c.imobiliaria else ''),
+            td(r['unidade']),
+            td(r['reserva']),
+            td(r['cliente'][:30]     if r['cliente']     else ''),
+            td(r['imobiliaria'][:28] if r['imobiliaria'] else ''),
             val_cell,
-            td(c.data_prevista.strftime('%d/%m/%Y') if c.data_prevista else '—'),
-            td(c.data_pagamento.strftime('%d/%m/%Y') if c.data_pagamento else '—'),
+            tdc(r['outros_str']),
+            td(r['dp_prev'].strftime('%d/%m/%Y') if r['dp_prev'] else '—'),
+            td(r['dp_pago'].strftime('%d/%m/%Y') if r['dp_pago'] else '—'),
         ])
-        if c.data_pagamento:
+        if r['dp_pago']:
             row_cmds.append(('BACKGROUND', (0, i), (-1, i), GREEN))
-        elif c.data_prevista:
+        elif r['dp_prev']:
             row_cmds.append(('BACKGROUND', (0, i), (-1, i), YELLOW))
 
     t = Table(rows,
-              colWidths=[W*0.08, W*0.08, W*0.22, W*0.22, W*0.13, W*0.13, W*0.14],
+              colWidths=[W*0.07, W*0.07, W*0.22, W*0.24, W*0.14, W*0.07, W*0.10, W*0.09],
               repeatRows=1)
     t.setStyle(TableStyle(row_cmds))
     story.append(t)
@@ -820,71 +903,72 @@ def export_cadastro_pdf(request):
 
 
 def comissoes(request):
-    qs = Comissao.objects.all()
+    qs = list(Comissao.objects.all())
 
-    # KPIs
-    total_n          = qs.count()
-    total_contrato   = sum(c.valor_contrato       for c in qs)
-    total_comissao   = sum(c.valor_comissao        for c in qs)
-    total_pagar      = sum(c.valor_comissao_pagar  for c in qs)
-    total_premio     = sum(c.valor_premio           for c in qs)
+    # KPIs — valor_contrato é o mesmo para todos os beneficiários da mesma reserva
+    reservas_vt = {}
+    for c in qs:
+        if c.reserva not in reservas_vt:
+            reservas_vt[c.reserva] = c.valor_contrato
+    total_vendas   = len(reservas_vt)
+    total_contrato = sum(reservas_vt.values())
+    total_comissao = sum(c.valor_comissao        for c in qs)
+    total_pagar    = sum(c.valor_comissao_pagar  for c in qs)
 
-    # Resumo por Imobiliária
-    imob_map = defaultdict(lambda: {'n': 0, 'contrato': 0.0, 'comissao': 0.0, 'pagar': 0.0})
+    # Resumo por Imobiliária (qtde = reservas únicas)
+    imob_map      = defaultdict(lambda: {'comissao': 0.0, 'pagar': 0.0})
+    imob_reservas = defaultdict(set)
     for c in qs:
         k = c.imobiliaria or '(sem imobiliária)'
-        imob_map[k]['n']        += 1
-        imob_map[k]['contrato'] += c.valor_contrato
         imob_map[k]['comissao'] += c.valor_comissao
         imob_map[k]['pagar']    += c.valor_comissao_pagar
+        imob_reservas[k].add(c.reserva)
     resumo_imob = sorted(
-        [{'imobiliaria': k, **v,
+        [{'imobiliaria': k, 'n': len(imob_reservas[k]), **v,
           'comissao_fmt': _fmt_brl(v['comissao']),
-          'pagar_fmt':    _fmt_brl(v['pagar']),
-          'contrato_fmt': _fmt_brl(v['contrato'])}
+          'pagar_fmt':    _fmt_brl(v['pagar'])}
          for k, v in imob_map.items()],
         key=lambda x: x['imobiliaria'].lower(),
     )
 
-    # Resumo por Corretor
-    cor_map = defaultdict(lambda: {'n': 0, 'comissao': 0.0, 'pagar': 0.0})
+    # Resumo por Beneficiário
+    benef_map = defaultdict(lambda: {'n': 0, 'comissao': 0.0, 'pagar': 0.0})
     for c in qs:
-        k = c.corretor or '(sem corretor)'
-        cor_map[k]['n']        += 1
-        cor_map[k]['comissao'] += c.valor_comissao
-        cor_map[k]['pagar']    += c.valor_comissao_pagar
-    resumo_corretor = sorted(
-        [{'corretor': k, **v,
+        k = c.beneficiario or '(sem beneficiário)'
+        benef_map[k]['n']        += 1
+        benef_map[k]['comissao'] += c.valor_comissao
+        benef_map[k]['pagar']    += c.valor_comissao_pagar
+    resumo_benef = sorted(
+        [{'beneficiario': k, **v,
           'comissao_fmt': _fmt_brl(v['comissao']),
           'pagar_fmt':    _fmt_brl(v['pagar'])}
-         for k, v in cor_map.items()],
-        key=lambda x: x['corretor'].lower(),
+         for k, v in benef_map.items()],
+        key=lambda x: x['beneficiario'].lower(),
     )
 
-    # Lista completa formatada
+    # Lista completa
     lista = [{
-        'numero':               c.numero,
-        'situacao':             c.situacao,
-        'reserva':              c.reserva,
-        'corretor':             c.corretor,
-        'imobiliaria':          c.imobiliaria,
-        'unidade':              c.unidade,
-        'cliente':              c.cliente,
-        'data_venda':           c.data_venda.strftime('%d/%m/%Y') if c.data_venda else '—',
-        'valor_contrato_fmt':   _fmt_brl(c.valor_contrato),
-        'pct_comissao':         f"{c.pct_comissao:.2f}%".replace('.', ','),
-        'valor_comissao_fmt':   _fmt_brl(c.valor_comissao),
-        'valor_pagar_fmt':      _fmt_brl(c.valor_comissao_pagar),
-    } for c in sorted(qs, key=lambda x: x.cliente.lower())]
+        'numero':             c.numero,
+        'reserva':            c.reserva,
+        'unidade':            c.unidade,
+        'cliente':            c.cliente,
+        'imobiliaria':        c.imobiliaria,
+        'beneficiario':       c.beneficiario,
+        'tipo_comissao':      c.tipo_comissao,
+        'valor_contrato_fmt': _fmt_brl(c.valor_contrato),
+        'pct_comissao':       f"{c.pct_comissao:.2f}%".replace('.', ','),
+        'valor_comissao_fmt': _fmt_brl(c.valor_comissao),
+        'valor_pagar_fmt':    _fmt_brl(c.valor_comissao_pagar),
+    } for c in sorted(qs, key=lambda x: (x.unidade, x.beneficiario.lower()))]
 
     context = {
-        'total_n':            total_n,
+        'total_n':            total_vendas,
+        'total_linhas':       len(qs),
         'total_contrato_fmt': _fmt_brl(total_contrato),
         'total_comissao_fmt': _fmt_brl(total_comissao),
         'total_pagar_fmt':    _fmt_brl(total_pagar),
-        'total_premio_fmt':   _fmt_brl(total_premio),
         'resumo_imob':        resumo_imob,
-        'resumo_corretor':    resumo_corretor,
+        'resumo_benef':       resumo_benef,
         'lista':              lista,
     }
     return render(request, 'cota365/comissoes.html', context)
@@ -1977,33 +2061,31 @@ def export_comissoes_excel(request):
     # ── Aba Lista ─────────────────────────────────────────────────────────────
     ws = wb.active
     ws.title = 'Comissões'
-    headers = ['Nº', 'Situação', 'Reserva', 'Unidade', 'Tipo Unidade', 'Cliente', 'Corretor',
-               'Imobiliária', 'Data Venda', 'Valor Contrato', '% Comissão',
-               'Valor Comissão', '% Prêmio', 'Valor Prêmio', 'Tipo Comissão', 'A Pagar']
+    headers = ['Nº', 'Reserva', 'Unidade', 'Cliente', 'Corretor', 'Imobiliária',
+               'Beneficiário', 'Tipo Comissão', 'Valor Contrato', '% Comissão',
+               'Valor Comissão', 'A Pagar']
     _hdr(ws, headers)
 
-    qs = Comissao.objects.all()
-    for i, c in enumerate(sorted(qs, key=lambda x: x.cliente.lower()), 2):
+    qs = list(Comissao.objects.all())
+    for i, c in enumerate(sorted(qs, key=lambda x: (x.unidade, x.beneficiario.lower())), 2):
         row = [
-            c.numero, c.situacao, c.reserva, c.unidade, c.tipo_unidade, c.cliente,
-            c.corretor, c.imobiliaria,
-            c.data_venda.strftime('%d/%m/%Y') if c.data_venda else '',
-            c.valor_contrato, c.pct_comissao, c.valor_comissao,
-            c.pct_premio, c.valor_premio, c.tipo_comissao, c.valor_comissao_pagar,
+            c.numero, c.reserva, c.unidade, c.cliente, c.corretor, c.imobiliaria,
+            c.beneficiario, c.tipo_comissao,
+            c.valor_contrato, c.pct_comissao, c.valor_comissao, c.valor_comissao_pagar,
         ]
         for col, val in enumerate(row, 1):
             cell = ws.cell(row=i, column=col, value=val)
             cell.border = BORDER
-            if col in (10, 12, 14, 16):
+            if col in (9, 11, 12):
                 cell.number_format = '#,##0.00'
                 cell.alignment = Alignment(horizontal='right')
-            elif col in (11, 13):
+            elif col == 10:
                 cell.number_format = '0.00"%"'
                 cell.alignment = Alignment(horizontal='right')
 
-    tr = qs.count() + 2
+    tr = len(qs) + 2
     ws.cell(row=tr, column=1, value='TOTAL').font = TOTAL_FONT
-    for col, attr in [(10, 'valor_contrato'), (12, 'valor_comissao'), (14, 'valor_premio'), (16, 'valor_comissao_pagar')]:
+    for col, attr in [(9, 'valor_contrato'), (11, 'valor_comissao'), (12, 'valor_comissao_pagar')]:
         c = ws.cell(row=tr, column=col, value=sum(getattr(x, attr) for x in qs))
         c.number_format = '#,##0.00'
         c.font = TOTAL_FONT
@@ -2011,33 +2093,33 @@ def export_comissoes_excel(request):
 
     # ── Aba Por Imobiliária ───────────────────────────────────────────────────
     ws2 = wb.create_sheet('Por Imobiliária')
-    _hdr(ws2, ['Imobiliária', 'Qtde', 'Valor Contratos', 'Comissão', 'A Pagar'])
-    imob_map = defaultdict(lambda: {'n': 0, 'contrato': 0.0, 'comissao': 0.0, 'pagar': 0.0})
+    _hdr(ws2, ['Imobiliária', 'Vendas', 'Comissão', 'A Pagar'])
+    imob_map      = defaultdict(lambda: {'comissao': 0.0, 'pagar': 0.0})
+    imob_reservas = defaultdict(set)
     for c in qs:
         k = c.imobiliaria or '(sem imobiliária)'
-        imob_map[k]['n']        += 1
-        imob_map[k]['contrato'] += c.valor_contrato
         imob_map[k]['comissao'] += c.valor_comissao
         imob_map[k]['pagar']    += c.valor_comissao_pagar
+        imob_reservas[k].add(c.reserva)
     for i, (k, v) in enumerate(sorted(imob_map.items(), key=lambda x: x[0].lower()), 2):
-        for col, val in enumerate([k, v['n'], v['contrato'], v['comissao'], v['pagar']], 1):
+        for col, val in enumerate([k, len(imob_reservas[k]), v['comissao'], v['pagar']], 1):
             cell = ws2.cell(row=i, column=col, value=val)
             cell.border = BORDER
-            if col in (3, 4, 5):
+            if col in (3, 4):
                 cell.number_format = '#,##0.00'
                 cell.alignment = Alignment(horizontal='right')
     _auto_width(ws2)
 
-    # ── Aba Por Corretor ──────────────────────────────────────────────────────
-    ws3 = wb.create_sheet('Por Corretor')
-    _hdr(ws3, ['Corretor', 'Qtde', 'Comissão', 'A Pagar'])
-    cor_map = defaultdict(lambda: {'n': 0, 'comissao': 0.0, 'pagar': 0.0})
+    # ── Aba Por Beneficiário ──────────────────────────────────────────────────
+    ws3 = wb.create_sheet('Por Beneficiário')
+    _hdr(ws3, ['Beneficiário', 'Qtde', 'Comissão', 'A Pagar'])
+    benef_map = defaultdict(lambda: {'n': 0, 'comissao': 0.0, 'pagar': 0.0})
     for c in qs:
-        k = c.corretor or '(sem corretor)'
-        cor_map[k]['n']        += 1
-        cor_map[k]['comissao'] += c.valor_comissao
-        cor_map[k]['pagar']    += c.valor_comissao_pagar
-    for i, (k, v) in enumerate(sorted(cor_map.items(), key=lambda x: x[0].lower()), 2):
+        k = c.beneficiario or '(sem beneficiário)'
+        benef_map[k]['n']        += 1
+        benef_map[k]['comissao'] += c.valor_comissao
+        benef_map[k]['pagar']    += c.valor_comissao_pagar
+    for i, (k, v) in enumerate(sorted(benef_map.items(), key=lambda x: x[0].lower()), 2):
         for col, val in enumerate([k, v['n'], v['comissao'], v['pagar']], 1):
             cell = ws3.cell(row=i, column=col, value=val)
             cell.border = BORDER
@@ -2109,83 +2191,87 @@ def export_comissoes_pdf(request):
         return t
 
     # KPIs
-    total_contrato   = sum(c.valor_contrato       for c in qs)
-    total_comissao   = sum(c.valor_comissao        for c in qs)
-    total_pagar      = sum(c.valor_comissao_pagar  for c in qs)
-    total_premio     = sum(c.valor_premio           for c in qs)
+    reservas_vt = {}
+    for c in qs:
+        if c.reserva not in reservas_vt:
+            reservas_vt[c.reserva] = c.valor_contrato
+    total_vendas   = len(reservas_vt)
+    total_contrato = sum(reservas_vt.values())
+    total_comissao = sum(c.valor_comissao       for c in qs)
+    total_pagar    = sum(c.valor_comissao_pagar for c in qs)
 
     story = []
     story.append(Paragraph('Cota 365 — Comissões', title_s))
     story.append(Paragraph(
-        f'Gerado em {datetime.now().strftime("%d/%m/%Y %H:%M")}  |  {len(qs)} comissões', sub_s))
+        f'Gerado em {datetime.now().strftime("%d/%m/%Y %H:%M")}  |  {total_vendas} vendas  |  {len(qs)} linhas',
+        sub_s))
     story.append(HRFlowable(width='100%', thickness=1, color=BORDER, spaceAfter=8))
 
     # Resumo KPI
     story.append(Paragraph('Resumo Geral', sec_s))
     story.append(tbl([
-        [th('COMISSÕES'), th('VALOR CONTRATOS'), th('TOTAL COMISSÕES'), th('A PAGAR'), th('TOTAL PRÊMIOS')],
-        [tdr(str(len(qs))), tdr(_fmt_brl(total_contrato)), tdr(_fmt_brl(total_comissao)),
-         tdr(_fmt_brl(total_pagar)), tdr(_fmt_brl(total_premio))],
+        [th('VENDAS'), th('LINHAS'), th('VALOR CONTRATOS'), th('TOTAL COMISSÕES'), th('A PAGAR')],
+        [tdr(str(total_vendas)), tdr(str(len(qs))), tdr(_fmt_brl(total_contrato)),
+         tdr(_fmt_brl(total_comissao)), tdr(_fmt_brl(total_pagar))],
     ], [W/5]*5))
     story.append(Spacer(1, 8))
 
     # Por Imobiliária
-    imob_map = defaultdict(lambda: {'n': 0, 'contrato': 0.0, 'comissao': 0.0, 'pagar': 0.0})
+    imob_map      = defaultdict(lambda: {'comissao': 0.0, 'pagar': 0.0})
+    imob_reservas = defaultdict(set)
     for c in qs:
         k = c.imobiliaria or '(sem imobiliária)'
-        imob_map[k]['n']        += 1
-        imob_map[k]['contrato'] += c.valor_contrato
         imob_map[k]['comissao'] += c.valor_comissao
         imob_map[k]['pagar']    += c.valor_comissao_pagar
+        imob_reservas[k].add(c.reserva)
 
     story.append(Paragraph('Por Imobiliária', sec_s))
-    imob_rows = [[th('IMOBILIÁRIA'), th('QTDE'), th('VALOR CONTRATOS'), th('COMISSÃO'), th('A PAGAR')]]
+    imob_rows = [[th('IMOBILIÁRIA'), th('VENDAS'), th('COMISSÃO'), th('A PAGAR')]]
     for k, v in sorted(imob_map.items(), key=lambda x: x[0].lower()):
-        imob_rows.append([td(k), tdr(str(v['n'])), tdr(_fmt_brl(v['contrato'])),
+        imob_rows.append([td(k), tdr(str(len(imob_reservas[k]))),
                           tdr(_fmt_brl(v['comissao'])), tdr(_fmt_brl(v['pagar']))])
-    imob_rows.append([tdb('TOTAL'), tdb(str(len(qs))), tdb(_fmt_brl(total_contrato)),
+    imob_rows.append([tdb('TOTAL'), tdb(str(total_vendas)),
                       tdb(_fmt_brl(total_comissao)), tdb(_fmt_brl(total_pagar))])
-    story.append(tbl(imob_rows, [W*0.40, W*0.08, W*0.18, W*0.17, W*0.17], total_last=True))
+    story.append(tbl(imob_rows, [W*0.48, W*0.12, W*0.20, W*0.20], total_last=True))
     story.append(Spacer(1, 8))
 
-    # Por Corretor
-    cor_map = defaultdict(lambda: {'n': 0, 'comissao': 0.0, 'pagar': 0.0})
+    # Por Beneficiário
+    benef_map = defaultdict(lambda: {'n': 0, 'comissao': 0.0, 'pagar': 0.0})
     for c in qs:
-        k = c.corretor or '(sem corretor)'
-        cor_map[k]['n']        += 1
-        cor_map[k]['comissao'] += c.valor_comissao
-        cor_map[k]['pagar']    += c.valor_comissao_pagar
+        k = c.beneficiario or '(sem beneficiário)'
+        benef_map[k]['n']        += 1
+        benef_map[k]['comissao'] += c.valor_comissao
+        benef_map[k]['pagar']    += c.valor_comissao_pagar
 
-    story.append(Paragraph('Por Corretor', sec_s))
-    cor_rows = [[th('CORRETOR'), th('QTDE'), th('COMISSÃO'), th('A PAGAR')]]
-    for k, v in sorted(cor_map.items(), key=lambda x: x[0].lower()):
-        cor_rows.append([td(k), tdr(str(v['n'])), tdr(_fmt_brl(v['comissao'])), tdr(_fmt_brl(v['pagar']))])
-    cor_rows.append([tdb('TOTAL'), tdb(str(len(qs))), tdb(_fmt_brl(total_comissao)), tdb(_fmt_brl(total_pagar))])
-    story.append(tbl(cor_rows, [W*0.50, W*0.10, W*0.20, W*0.20], total_last=True))
+    story.append(Paragraph('Por Beneficiário', sec_s))
+    benef_rows = [[th('BENEFICIÁRIO'), th('QTDE'), th('COMISSÃO'), th('A PAGAR')]]
+    for k, v in sorted(benef_map.items(), key=lambda x: x[0].lower()):
+        benef_rows.append([td(k), tdr(str(v['n'])),
+                           tdr(_fmt_brl(v['comissao'])), tdr(_fmt_brl(v['pagar']))])
+    benef_rows.append([tdb('TOTAL'), tdb(str(len(qs))),
+                       tdb(_fmt_brl(total_comissao)), tdb(_fmt_brl(total_pagar))])
+    story.append(tbl(benef_rows, [W*0.48, W*0.12, W*0.20, W*0.20], total_last=True))
 
     # Lista completa
     story.append(PageBreak())
     story.append(Paragraph('Lista de Comissões', sec_s))
-    list_rows = [[th('Nº'), th('RESERVA'), th('UNID.'), th('CLIENTE'), th('CORRETOR'),
-                  th('IMOBILIÁRIA'), th('DATA'), th('CONTRATO'), th('%'), th('COMISSÃO'), th('A PAGAR')]]
-    for c in sorted(qs, key=lambda x: x.cliente.lower()):
+    list_rows = [[th('Nº'), th('RESERVA'), th('UNID.'), th('CLIENTE'),
+                  th('IMOBILIÁRIA'), th('BENEFICIÁRIO'), th('TIPO'), th('%'), th('COMISSÃO'), th('A PAGAR')]]
+    for c in sorted(qs, key=lambda x: (x.unidade, x.beneficiario.lower())):
         list_rows.append([
             td(c.numero), td(c.reserva), td(c.unidade),
-            td(c.cliente[:28] if c.cliente else ''),
-            td(c.corretor[:22] if c.corretor else ''),
-            td(c.imobiliaria[:22] if c.imobiliaria else ''),
-            td(c.data_venda.strftime('%d/%m/%y') if c.data_venda else '—'),
-            tdr(_fmt_brl(c.valor_contrato)),
+            td(c.cliente[:22] if c.cliente else ''),
+            td(c.imobiliaria[:20] if c.imobiliaria else ''),
+            td(c.beneficiario[:20] if c.beneficiario else ''),
+            td(c.tipo_comissao[:10]),
             tdr(f"{c.pct_comissao:.1f}%".replace('.', ',')),
             tdr(_fmt_brl(c.valor_comissao)),
             tdr(_fmt_brl(c.valor_comissao_pagar)),
         ])
-    list_rows.append([tdb('TOTAL'), tdb(''), tdb(''), tdb(''), tdb(''), tdb(''), tdb(''),
-                      tdb(_fmt_brl(total_contrato)), tdb(''),
+    list_rows.append([tdb('TOTAL'), tdb(''), tdb(''), tdb(''), tdb(''), tdb(''), tdb(''), tdb(''),
                       tdb(_fmt_brl(total_comissao)), tdb(_fmt_brl(total_pagar))])
     story.append(tbl(list_rows,
-                     [W*0.04, W*0.06, W*0.06, W*0.14, W*0.12,
-                      W*0.14, W*0.07, W*0.11, W*0.05, W*0.10, W*0.11],
+                     [W*0.04, W*0.06, W*0.06, W*0.14, W*0.14, W*0.14, W*0.08, W*0.06, W*0.14, W*0.14],
                      total_last=True))
 
     doc.build(story)

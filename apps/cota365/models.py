@@ -101,27 +101,24 @@ class FluxoParcela(models.Model):
 
 
 class Comissao(models.Model):
-    numero               = models.CharField(max_length=20, unique=True)
-    situacao             = models.CharField(max_length=100, blank=True)
+    numero               = models.CharField(max_length=20)
     reserva              = models.CharField(max_length=20, blank=True)
     corretor             = models.CharField(max_length=255, blank=True)
-    data_venda           = models.DateField(null=True, blank=True)
     imobiliaria          = models.CharField(max_length=255, blank=True)
     unidade              = models.CharField(max_length=50, blank=True)
     cliente              = models.CharField(max_length=255, blank=True)
-    tipo_unidade         = models.CharField(max_length=100, blank=True)
     valor_contrato       = models.FloatField(default=0)
-    pct_comissao         = models.FloatField(default=0)
-    valor_comissao       = models.FloatField(default=0)
-    pct_premio           = models.FloatField(default=0)
-    valor_premio         = models.FloatField(default=0)
     tipo_comissao        = models.CharField(max_length=100, blank=True)
     valor_comissao_pagar = models.FloatField(default=0)
+    beneficiario         = models.CharField(max_length=255, blank=True)
+    valor_comissao       = models.FloatField(default=0)
+    pct_comissao         = models.FloatField(default=0)
     data_prevista        = models.DateField(null=True, blank=True)
     data_pagamento       = models.DateField(null=True, blank=True)
 
     class Meta:
-        ordering = ['numero']
+        ordering = ['unidade', 'beneficiario']
+        unique_together = [('numero', 'beneficiario', 'tipo_comissao')]
 
     def __str__(self):
-        return f'#{self.numero} — {self.cliente}'
+        return f'#{self.numero} — {self.beneficiario}'

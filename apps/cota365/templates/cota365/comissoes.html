@@ -114,7 +114,7 @@
       <div class="kpi-card">
         <div class="kpi-icon" style="background:#e8f0fe;"><i class="bi bi-hash" style="color:#1a1a2e;"></i></div>
         <div>
-          <div class="kpi-label">Comissões</div>
+          <div class="kpi-label">Vendas</div>
           <div class="kpi-value">{{ total_n }}</div>
         </div>
       </div>
@@ -148,10 +148,10 @@
     </div>
     <div class="col-6 col-lg">
       <div class="kpi-card">
-        <div class="kpi-icon" style="background:#f8d7da;"><i class="bi bi-star" style="color:#842029;"></i></div>
+        <div class="kpi-icon" style="background:#f8d7da;"><i class="bi bi-list-ol" style="color:#842029;"></i></div>
         <div>
-          <div class="kpi-label">Total Prêmios</div>
-          <div class="kpi-value">{{ total_premio_fmt }}</div>
+          <div class="kpi-label">Linhas</div>
+          <div class="kpi-value">{{ total_linhas }}</div>
         </div>
       </div>
     </div>
@@ -190,21 +190,21 @@
     </div>
     <div class="col-lg-5">
       <div class="chart-card h-100">
-        <div class="chart-title"><i class="bi bi-person me-1"></i>Por Corretor</div>
+        <div class="chart-title"><i class="bi bi-person me-1"></i>Por Beneficiário</div>
         <div style="overflow-x: auto;">
           <table class="table com-table mb-0">
             <thead>
               <tr>
-                <th>Corretor</th>
+                <th>Beneficiário</th>
                 <th class="text-end">Qtde</th>
                 <th class="text-end">Comissão</th>
                 <th class="text-end">A Pagar</th>
               </tr>
             </thead>
             <tbody>
-              {% for r in resumo_corretor %}
+              {% for r in resumo_benef %}
               <tr>
-                <td>{{ r.corretor }}</td>
+                <td>{{ r.beneficiario }}</td>
                 <td class="text-end">{{ r.n }}</td>
                 <td class="text-end">{{ r.comissao_fmt }}</td>
                 <td class="text-end fw-bold">{{ r.pagar_fmt }}</td>
@@ -225,13 +225,12 @@
         <thead>
           <tr>
             <th>Nº</th>
-            <th>Situação</th>
             <th>Reserva</th>
             <th>Unidade</th>
             <th>Cliente</th>
-            <th>Corretor</th>
             <th>Imobiliária</th>
-            <th class="text-end">Data Venda</th>
+            <th>Beneficiário</th>
+            <th>Tipo</th>
             <th class="text-end">Valor Contrato</th>
             <th class="text-end">% Comis.</th>
             <th class="text-end">Comissão</th>
@@ -242,19 +241,12 @@
           {% for r in lista %}
           <tr>
             <td>{{ r.numero }}</td>
-            <td>
-              <span class="sit-badge
-                {% if 'ENVIO' in r.situacao %}bg-warning-subtle text-warning-emphasis
-                {% else %}bg-success-subtle text-success-emphasis{% endif %}">
-                {{ r.situacao }}
-              </span>
-            </td>
             <td>{{ r.reserva }}</td>
             <td>{{ r.unidade }}</td>
             <td>{{ r.cliente }}</td>
-            <td>{{ r.corretor }}</td>
             <td>{{ r.imobiliaria }}</td>
-            <td class="text-end">{{ r.data_venda }}</td>
+            <td>{{ r.beneficiario }}</td>
+            <td><span class="sit-badge bg-secondary-subtle text-secondary-emphasis">{{ r.tipo_comissao }}</span></td>
             <td class="text-end">{{ r.valor_contrato_fmt }}</td>
             <td class="text-end text-muted">{{ r.pct_comissao }}</td>
             <td class="text-end">{{ r.valor_comissao_fmt }}</td>

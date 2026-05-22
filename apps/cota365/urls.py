@@ -16,6 +16,7 @@ urlpatterns = [
     path('comissoes/', views.comissoes, name='comissoes'),
     path('comissoes/cadastro/', views.comissoes_cadastro, name='comissoes_cadastro'),
     path('comissoes/cadastro/pdf/', views.export_cadastro_pdf, name='export_cadastro_pdf'),
+    path('comissoes/cadastro/<str:reserva>/delete/', views.delete_reserva, name='delete_reserva'),
     path('comissoes/export/pdf/', views.export_comissoes_pdf, name='export_comissoes_pdf'),
     path('comissoes/export/excel/', views.export_comissoes_excel, name='export_comissoes_excel'),
     path('importar/', views.importar, name='importar'),
