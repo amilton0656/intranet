@@ -769,7 +769,10 @@ def comissoes_cadastro(request):
         })
 
     lista.sort(key=lambda x: x['unidade'])
-    return render(request, 'cota365/comissoes_cadastro.html', {'lista': lista})
+    return render(request, 'cota365/comissoes_cadastro.html', {
+        'lista':   lista,
+        'total_n': len(lista),
+    })
 
 
 def delete_reserva(request, reserva):

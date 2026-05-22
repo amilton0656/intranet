@@ -4,6 +4,37 @@
 
 {% block content %}
 <style>
+  .kpi-card {
+    background: #fff;
+    border: 1px solid #e2e6ea;
+    border-radius: 12px;
+    padding: 1rem 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .kpi-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+  .kpi-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6c757d;
+    margin-bottom: 3px;
+  }
+  .kpi-value {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #1a1a2e;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
   .cad-table td, .cad-table th {
     padding: 0.4rem 0.55rem;
     font-size: 0.8rem;
@@ -53,8 +84,7 @@
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{% url 'cota365:index' %}" class="text-decoration-none">Início</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'cota365:comissoes' %}" class="text-decoration-none">Comissões</a></li>
-        <li class="breadcrumb-item active">Cadastro</li>
+        <li class="breadcrumb-item active">Comissões</li>
       </ol>
     </nav>
   </div>
@@ -82,6 +112,18 @@
 {% if not lista %}
   <div class="alert alert-warning">Nenhuma comissão importada ainda.</div>
 {% else %}
+
+  <div class="row g-3 mb-3">
+    <div class="col-auto">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#e8f0fe;"><i class="bi bi-hash" style="color:#1a1a2e;"></i></div>
+        <div>
+          <div class="kpi-label">Vendas</div>
+          <div class="kpi-value">{{ total_n }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div class="mb-2 d-flex gap-3 align-items-center flex-wrap" style="font-size:0.82rem; color:#6c757d;">
     <span><span style="display:inline-block;width:14px;height:14px;background:#d1e7dd;border-radius:3px;vertical-align:middle;"></span> Paga</span>
