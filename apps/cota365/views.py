@@ -22,7 +22,7 @@ from reportlab.lib.units import cm
 
 from .models import (
     ImportLog, Tabela, Permuta, Vinculo, Venda,
-    Unidade, FluxoContrato, FluxoParcela, Comissao,
+    Unidade, FluxoContrato, FluxoParcela, Comissao, SerieContrato,
 )
 
 # ---------------------------------------------------------------------------
@@ -679,6 +679,51 @@ def _import_comissoes(f, nome):
     return count, {'Valor total comissões': _fmt_brl(total)}
 
 
+def _import_series(file_obj, nome):
+    raw = file_obj.read()
+    for enc in ('utf-8-sig', 'latin-1', 'utf-8'):
+        try:
+            text = raw.decode(enc)
+            break
+        except UnicodeDecodeError:
+            continue
+    reader = csv.DictReader(io.StringIO(text), delimiter=';')
+
+    def _parse_brl(s):
+        if not s:
+            return 0.0
+        s = s.strip().replace('R$', '').strip().replace('.', '').replace(',', '.')
+        try:
+            return float(s)
+        except ValueError:
+            return 0.0
+
+    objs = []
+    for row in reader:
+        serie   = (row.get('Série') or row.get('Serie') or row.get('SÃ©rie') or '').strip().strip('"')
+        reserva = (row.get('Reserva') or '').strip()
+        if not serie or not reserva:
+            continue
+        total_sc = _parse_brl(row.get('Total Sem Comissão') or row.get('Total Sem ComissÃ£o') or '')
+        total    = _parse_brl(row.get('Total') or '')
+        objs.append(SerieContrato(
+            serie=serie, reserva=reserva,
+            total_sem_comissao=total_sc, total=total,
+        ))
+
+    if not objs:
+        raise ValueError('Nenhuma linha válida encontrada.')
+    SerieContrato.objects.all().delete()
+    SerieContrato.objects.bulk_create(objs)
+    ImportLog.objects.create(tipo='series', total_registros=len(objs), nome_arquivo=nome)
+    total_fin = sum(o.total for o in objs if 'financiamento' in o.serie.lower())
+    total_poup = sum(o.total for o in objs if 'financiamento' not in o.serie.lower())
+    return len(objs), {
+        'Financiamento': _fmt_brl(total_fin),
+        'Poupança':      _fmt_brl(total_poup),
+    }
+
+
 _IMPORTERS = {
     'tabela':     _import_tabela,
     'permutas':   _import_permutas,
@@ -687,6 +732,7 @@ _IMPORTERS = {
     'fluxo':      _import_fluxo,
     'unidades':   _import_unidades,
     'comissoes':  _import_comissoes,
+    'series':     _import_series,
 }
 
 _LABELS = {
@@ -697,6 +743,7 @@ _LABELS = {
     'fluxo':      'Fluxo de Caixa',
     'unidades':   'Unidades',
     'comissoes':  'Comissões',
+    'series':     'Séries de Contratos',
 }
 
 
@@ -1324,6 +1371,24 @@ def export_dashboard(request):
     ano_rows.append([tdb('TOTAL'), tdrb(_fmt_brl(total_fluxo)), tdrb('100%')])
     story.append(tbl(ano_header + ano_rows, [3*cm, 7*cm, 4*cm], total_last=True))
     story.append(Spacer(1, 6))
+
+    series_qs = SerieContrato.objects.all()
+    if series_qs.exists():
+        total_fin  = sum(s.total for s in series_qs if 'financiamento' in s.serie.lower())
+        total_poup = sum(s.total for s in series_qs if 'financiamento' not in s.serie.lower())
+        grand_total_ser = total_fin + total_poup
+        pct_fin  = total_fin  / grand_total_ser * 100 if grand_total_ser else 0
+        pct_poup = 100 - pct_fin
+
+        story.append(Paragraph('Poupança vs Financiamento', sec_s))
+        pf_data = [
+            [th(''), th('VALOR TOTAL'), th('% DO TOTAL')],
+            [td('Poupança'),      tdr(_fmt_brl(total_poup)), tdr(f'{pct_poup:.1f}%')],
+            [td('Financiamento'), tdr(_fmt_brl(total_fin)),  tdr(f'{pct_fin:.1f}%')],
+            [tdb('Total'),        tdrb(_fmt_brl(grand_total_ser)), tdrb('100%')],
+        ]
+        story.append(tbl(pf_data, [4*cm, 7*cm, 3*cm], total_last=True))
+        story.append(Spacer(1, 6))
 
     story.append(Paragraph('Fluxo de Caixa Mensal Completo', sec_s))
     fm_header = [[th('MÊS'), th('RECEBIMENTO'), th('ACUMULADO')]]

@@ -80,6 +80,7 @@
                 {% elif arq.tipo == 'vinculo' %}<i class="bi bi-link-45deg text-info fs-4"></i>
                 {% elif arq.tipo == 'permutas' %}<i class="bi bi-arrow-left-right text-purple fs-4"></i>
                 {% elif arq.tipo == 'comissoes' %}<i class="bi bi-percent text-danger fs-4"></i>
+                {% elif arq.tipo == 'series' %}<i class="bi bi-pie-chart text-secondary fs-4"></i>
                 {% endif %}
               </span>
               <div>
@@ -167,6 +168,10 @@
       <div class="col-md-4">
         <div class="fw-semibold text-primary mb-1">permutas.csv</div>
         <code>Uma unidade por linha (sem cabeçalho)</code>
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold text-primary mb-1">series.csv</div>
+        <code>Série; Reserva; Total Sem Comissão; Total</code>
       </div>
     </div>
   </div>

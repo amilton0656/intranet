@@ -9,6 +9,7 @@ class ImportLog(models.Model):
         ('fluxo',    'Fluxo de Caixa'),
         ('vinculo',  'Vínculos'),
         ('permutas', 'Permutas'),
+        ('series',   'Séries de Contratos'),
     ]
     tipo             = models.CharField(max_length=20, choices=TIPOS)
     importado_em     = models.DateTimeField(auto_now_add=True)
@@ -98,6 +99,19 @@ class FluxoParcela(models.Model):
 
     class Meta:
         ordering = ['mes_idx']
+
+
+class SerieContrato(models.Model):
+    serie              = models.CharField(max_length=100)
+    reserva            = models.CharField(max_length=20)
+    total_sem_comissao = models.FloatField(default=0)
+    total              = models.FloatField(default=0)
+
+    class Meta:
+        ordering = ['reserva', 'serie']
+
+    def __str__(self):
+        return f'{self.reserva} — {self.serie}'
 
 
 class Comissao(models.Model):
