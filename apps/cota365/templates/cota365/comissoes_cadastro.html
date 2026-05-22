@@ -99,8 +99,8 @@
       <option value="">Todas as imobiliárias</option>
     </select>
     <div class="btn-group btn-group-sm" role="group">
-      <button type="button" class="btn btn-outline-secondary active" id="btn-todas">Todas</button>
-      <button type="button" class="btn btn-outline-secondary" id="btn-nao-pagas">Não pagas</button>
+      <button type="button" class="btn btn-outline-secondary" id="btn-todas">Todas</button>
+      <button type="button" class="btn btn-outline-secondary active" id="btn-nao-pagas">Não pagas</button>
     </div>
     <span id="filtro-contador" class="text-muted" style="font-size:0.8rem;"></span>
   </div>
@@ -211,7 +211,7 @@
 document.addEventListener('DOMContentLoaded', function () {
   var modalEl  = document.getElementById('parceirosModal');
   var rows     = Array.from(document.querySelectorAll('.row-clicavel'));
-  var filtroStatus = 'todas';
+  var filtroStatus = 'nao-pagas';
 
   // ── Popula select de imobiliárias ──────────────────────────────────────
   var imobs = Array.from(new Set(rows.map(function (r) {
@@ -226,6 +226,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // ── Lógica de filtro ───────────────────────────────────────────────────
+  // aplicar() é chamado ao fim da inicialização para aplicar o filtro default
   function aplicar() {
     var rawCliente = document.getElementById('filtro-cliente').value.trim();
     var rawImob    = selImob.value.trim();
@@ -272,6 +273,8 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('btn-todas').classList.remove('active');
     aplicar();
   });
+
+  aplicar(); // aplica filtro default "não pagas" ao carregar
 
   // ── Modal beneficiários ────────────────────────────────────────────────
   rows.forEach(function (row) {
