@@ -22,7 +22,7 @@ from reportlab.lib.units import cm
 
 from .models import (
     ImportLog, Tabela, Permuta, Vinculo, Venda,
-    Unidade, FluxoContrato, FluxoParcela, Comissao, SerieContrato,
+    Unidade, FluxoContrato, FluxoParcela, Comissao, SerieContrato, Parcela,
 )
 
 # ---------------------------------------------------------------------------
@@ -55,6 +55,30 @@ def _fmt_brl(value):
         return 'R$ 0,00'
     formatted = f'{value:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
     return f'R$ {formatted}'
+
+
+def _fmt_num(value):
+    """Formata número no padrão BR sem prefixo R$."""
+    if not value:
+        return '0,00'
+    formatted = f'{abs(value):,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+    return formatted
+
+
+def _get_tipo_serie(serie_name):
+    """Mapeia nome da série para código de tipo: AT, PM, RA, PE, CH, FI."""
+    s = serie_name.lower()
+    if 'financiamento' in s:
+        return 'FI'
+    if 'ato' in s:
+        return 'AT'
+    if 'refor' in s:
+        return 'RA'
+    if 'permuta' in s:
+        return 'PE'
+    if 'chave' in s:
+        return 'CH'
+    return 'PM'
 
 
 def _fmt_m2(value):
@@ -158,6 +182,121 @@ def _build_monthly_totals(fluxo_rows):
                 totals[key] += amt
     return OrderedDict(
         sorted(totals.items(), key=lambda x: datetime.strptime(x[0], '%m/%Y'))
+    )
+
+
+def _build_monthly_tipo_breakdown():
+    """
+    Retorna OrderedDict {mes_key: {tipo: valor}} com tipos AT/PM/RA/PE/CH/FI.
+    Usa SerieContrato para identificar o tipo de cada parcela de FluxoParcela.
+    Poupança = AT + PM + RA + PE + CH (coluna calculada, não armazenada).
+    """
+    from collections import Counter
+
+    # Agrupa séries por reserva e tipo
+    series_by_reserva = defaultdict(lambda: defaultdict(float))
+    for s in SerieContrato.objects.all():
+        tipo = _get_tipo_serie(s.serie)
+        series_by_reserva[s.reserva][tipo] += s.total
+
+    monthly_breakdown = defaultdict(lambda: defaultdict(float))
+
+    for c in FluxoContrato.objects.prefetch_related('parcelas').all():
+        tipos = series_by_reserva.get(c.id_contrato, {})
+        base = datetime(c.primeira_parcela.year, c.primeira_parcela.month, 1)
+
+        parcelas = sorted(c.parcelas.all(), key=lambda p: p.mes_idx)
+        if not parcelas:
+            continue
+
+        first_idx = parcelas[0].mes_idx
+        last_idx  = parcelas[-1].mes_idx
+
+        # PM base = valor mais frequente nas parcelas (pagamento mensal padrão)
+        vals = [round(p.valor, 2) for p in parcelas]
+        pm_base = Counter(vals).most_common(1)[0][0]
+
+        # Detecta Ato parcelado: quando AT_total > mes0_valor, o AT installment = mes0_valor
+        at_total      = tipos.get('AT', 0)
+        at_installment = 0.0
+        num_at_parcelas = 0
+        if at_total > 0 and parcelas:
+            mes0_val = parcelas[0].valor
+            if at_total > mes0_val + 1:
+                ratio = at_total / mes0_val
+                if abs(ratio - round(ratio)) < 0.01:
+                    at_installment  = mes0_val
+                    num_at_parcelas = round(ratio)
+            else:
+                at_installment  = at_total
+                num_at_parcelas = 1
+
+        at_paid_count = 0  # controla quantas parcelas de AT já foram contabilizadas
+
+        for p in parcelas:
+            month_key = _add_months(base, p.mes_idx).strftime('%m/%Y')
+            remaining = p.valor
+
+            # Primeira parcela: pode ser AT puro, ou PE+PM misturado
+            if p.mes_idx == first_idx:
+                pe_total = tipos.get('PE', 0)
+                if at_installment > 0:
+                    if abs(at_installment - p.valor) < 1:
+                        # AT puro no primeiro mês
+                        monthly_breakdown[month_key]['AT'] += p.valor
+                        at_paid_count += 1
+                        continue
+                    elif at_installment < p.valor:
+                        # AT + PM no primeiro mês
+                        monthly_breakdown[month_key]['AT'] += at_installment
+                        remaining -= at_installment
+                        at_paid_count += 1
+                elif pe_total > 0 and p.valor > pm_base + 1:
+                    pe_first = p.valor - pm_base
+                    monthly_breakdown[month_key]['PE'] += pe_first
+                    remaining = pm_base
+
+            # Parcelas de AT parcelado (além do mês 0)
+            elif at_paid_count > 0 and at_paid_count < num_at_parcelas:
+                if abs(p.valor - at_installment - pm_base) < 1:
+                    monthly_breakdown[month_key]['AT'] += at_installment
+                    remaining = pm_base
+                    at_paid_count += 1
+
+            # Última parcela: FI, CH ou PE (segunda parcela de permuta)
+            elif p.mes_idx == last_idx:
+                fi_total = tipos.get('FI', 0)
+                ch_total = tipos.get('CH', 0)
+                pe_total = tipos.get('PE', 0)
+                if fi_total > 0:
+                    monthly_breakdown[month_key]['FI'] += p.valor
+                    continue
+                elif ch_total > 0 and abs(ch_total - p.valor) < 1:
+                    monthly_breakdown[month_key]['CH'] += p.valor
+                    continue
+                elif pe_total > 0 and abs(p.valor - pm_base) > 1:
+                    monthly_breakdown[month_key]['PE'] += p.valor
+                    continue
+
+            # Penúltima parcela: quando FI é a última, CH pode estar aqui (PM + CH misturados)
+            elif p.mes_idx == last_idx - 1 and tipos.get('FI', 0) > 0 and tipos.get('CH', 0) > 0:
+                ch_total = tipos['CH']
+                if abs(remaining - pm_base - ch_total) < 1:
+                    monthly_breakdown[month_key]['CH'] += ch_total
+                    remaining = pm_base
+
+            # Reforço anual: qualquer mês (após o primeiro e antes do último)
+            # com excedente acima do PM base, quando série RA existe
+            if remaining > 0 and p.mes_idx != first_idx and p.mes_idx != last_idx and 'RA' in tipos:
+                if remaining > pm_base + 1:
+                    monthly_breakdown[month_key]['RA'] += remaining - pm_base
+                    remaining = pm_base
+
+            if remaining > 0.01:
+                monthly_breakdown[month_key]['PM'] += remaining
+
+    return OrderedDict(
+        sorted(monthly_breakdown.items(), key=lambda x: datetime.strptime(x[0], '%m/%Y'))
     )
 
 
@@ -724,15 +863,78 @@ def _import_series(file_obj, nome):
     }
 
 
+def _read_csv_text(file_obj):
+    raw = file_obj.read()
+    for enc in ('utf-8-sig', 'latin-1', 'utf-8'):
+        try:
+            return raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode('latin-1', errors='replace')
+
+
+@transaction.atomic
+def _import_a_receber(file_obj, nome):
+    reader = csv.DictReader(io.StringIO(_read_csv_text(file_obj)), delimiter=';')
+    objs = []
+    for row in reader:
+        titulo = (row.get('nuTitulo') or '').strip()
+        if not titulo:
+            continue
+        vencimento = _parse_date(row.get('dtVencto') or '')
+        objs.append(Parcela(
+            titulo=titulo,
+            parcela=(row.get('nuParcelaApresentacao') or '').strip(),
+            tipo=(row.get('cdTipoCondicao') or '').strip(),
+            vencimento=vencimento.date() if vencimento else None,
+            data_pagamento=None,
+            valor=_parse_float(row.get('vlOriginal') or ''),
+            cliente=(row.get('nmCliente') or '').strip(),
+        ))
+    if not objs:
+        raise ValueError('Nenhuma linha válida encontrada.')
+    Parcela.objects.filter(data_pagamento__isnull=True).delete()
+    Parcela.objects.bulk_create(objs)
+    ImportLog.objects.create(tipo='a_receber', total_registros=len(objs), nome_arquivo=nome)
+    return len(objs), {'Total': _fmt_brl(sum(o.valor for o in objs))}
+
+
+@transaction.atomic
+def _import_recebidas(file_obj, nome):
+    reader = csv.DictReader(io.StringIO(_read_csv_text(file_obj)), delimiter=';')
+    objs = []
+    for row in reader:
+        titulo = (row.get('NumeroDoTitulo') or '').strip()
+        if not titulo:
+            continue
+        vencimento     = _parse_date(row.get('DataDeVencimento') or '')
+        data_pagamento = _parse_date(row.get('DataDaBaixa') or '')
+        objs.append(Parcela(
+            titulo=titulo,
+            parcela=(row.get('NumeroDaParcela') or '').strip(),
+            tipo=(row.get('CodigoDoTipoDeCondicao') or '').strip(),
+            vencimento=vencimento.date() if vencimento else None,
+            data_pagamento=data_pagamento.date() if data_pagamento else None,
+            valor=_parse_float(row.get('ValorDaBaixa') or ''),
+            cliente=(row.get('NomeDoCliente') or '').strip(),
+        ))
+    if not objs:
+        raise ValueError('Nenhuma linha válida encontrada.')
+    Parcela.objects.filter(data_pagamento__isnull=False).delete()
+    Parcela.objects.bulk_create(objs)
+    ImportLog.objects.create(tipo='recebidas', total_registros=len(objs), nome_arquivo=nome)
+    return len(objs), {'Total': _fmt_brl(sum(o.valor for o in objs))}
+
+
 _IMPORTERS = {
     'tabela':     _import_tabela,
     'permutas':   _import_permutas,
     'vinculo':    _import_vinculos,
     'vendas':     _import_vendas,
-    'fluxo':      _import_fluxo,
     'unidades':   _import_unidades,
     'comissoes':  _import_comissoes,
-    'series':     _import_series,
+    'a_receber':  _import_a_receber,
+    'recebidas':  _import_recebidas,
 }
 
 _LABELS = {
@@ -740,10 +942,10 @@ _LABELS = {
     'permutas':   'Permutas',
     'vinculo':    'Vínculos',
     'vendas':     'Vendas',
-    'fluxo':      'Fluxo de Caixa',
     'unidades':   'Unidades',
     'comissoes':  'Comissões',
-    'series':     'Séries de Contratos',
+    'a_receber':  'Parcelas a Receber',
+    'recebidas':  'Parcelas Recebidas',
 }
 
 
@@ -1103,86 +1305,81 @@ def index(request):
 
 
 def dashboard(request):
-    fluxo_rows = _load_fluxo()
-    monthly = _build_monthly_totals(fluxo_rows)
+    # ── Fluxo mensal via Parcela ──────────────────────────────────────────────
+    monthly_rec  = defaultdict(float)
+    monthly_pend = defaultdict(float)
+    for p in Parcela.objects.all():
+        if not p.vencimento:
+            continue
+        key = (p.vencimento.year, p.vencimento.month)
+        if p.data_pagamento:
+            monthly_rec[key]  += p.valor
+        else:
+            monthly_pend[key] += p.valor
 
-    total_geral = sum(monthly.values())
-    n_contratos = len(fluxo_rows)
-    ticket_medio = total_geral / n_contratos if n_contratos else 0
+    all_keys    = sorted(set(monthly_rec) | set(monthly_pend))
+    total_fluxo = sum(monthly_rec[k] + monthly_pend[k] for k in all_keys)
 
-    top5 = sorted(fluxo_rows, key=lambda x: -x['vgv'])[:5]
-    top5_data = [
-        {
-            'cliente':    r['cliente'],
-            'unidade':    r['unidade'],
-            'imobiliaria': r['imobiliaria'],
-            'vgv_fmt':    _fmt_brl(r['vgv']),
-        }
-        for r in top5
-    ]
-
-    proximos = [
-        {
-            'mes':        mes,
-            'total_fmt':  _fmt_brl(val),
-            'total':      round(val, 2),
-            'pct':        round(val / total_geral * 100, 1) if total_geral else 0,
-        }
-        for mes, val in list(monthly.items())[:6]
-    ]
-    proximos_total = sum(r['total'] for r in proximos)
-
-    resumo_sit, resumo_sit_liquido, resumo_tip, resumo_tip_estoque, preco_medio_tipo, preco_medio_estoque, vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada = _compute_resumos_tabela()
-    area_priv, area_priv_acess, total_priv, area_comum, area_total = _compute_areas()
-
-    total_vendido = sum(r['vgv'] for r in fluxo_rows)
+    acumulado = 0.0
+    fluxo_mensal_rows = []
+    for key in all_keys:
+        yr, mo  = key
+        rec     = monthly_rec[key]
+        pend    = monthly_pend[key]
+        total   = rec + pend
+        acumulado += total
+        fluxo_mensal_rows.append({
+            'mes':           f'{mo:02d}/{yr}',
+            'recebido_fmt':  _fmt_brl(rec),
+            'a_receber_fmt': _fmt_brl(pend),
+            'total_fmt':     _fmt_brl(total),
+            'acumulado_fmt': _fmt_brl(acumulado),
+        })
 
     ano_totals = defaultdict(float)
-    for mes, val in monthly.items():
-        ano_totals[mes.split('/')[1]] += val
+    for key in all_keys:
+        yr, mo = key
+        ano_totals[str(yr)] += monthly_rec[key] + monthly_pend[key]
     receita_por_ano = [
         {
-            'ano':        ano,
-            'total_fmt':  _fmt_brl(val),
-            'pct':        f"{val / total_geral * 100:.1f}%" if total_geral else "0%",
+            'ano':       ano,
+            'total_fmt': _fmt_brl(val),
+            'pct':       f'{val / total_fluxo * 100:.1f}%' if total_fluxo else '0%',
         }
         for ano, val in sorted(ano_totals.items())
     ]
 
-    acumulado = 0.0
-    fluxo_mensal_rows = []
-    for mes, val in monthly.items():
-        acumulado += val
-        fluxo_mensal_rows.append({
-            'mes':           mes,
-            'total_fmt':     _fmt_brl(val),
-            'acumulado_fmt': _fmt_brl(acumulado),
-        })
+    # ── KPIs de contrato via Venda + Tabela ───────────────────────────────────
+    resumo_sit, resumo_sit_liquido, resumo_tip, resumo_tip_estoque, \
+        preco_medio_tipo, preco_medio_estoque, \
+        vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada = _compute_resumos_tabela()
+    area_priv, area_priv_acess, total_priv, area_comum, area_total = _compute_areas()
 
-    vgv_liquido = vgv_tabela - vgv_permuta
+    n_contratos   = Venda.objects.count()
+    total_vendido = vgv_tabela - vgv_disponivel - vgv_reservada - vgv_permuta
+    ticket_medio  = total_vendido / n_contratos if n_contratos else 0
+    vgv_liquido   = vgv_tabela - vgv_permuta
 
     context = {
-        'total_geral':      _fmt_brl(vgv_tabela),
-        'vgv_liquido':      _fmt_brl(vgv_liquido),
-        'n_contratos':      n_contratos,
-        'ticket_medio':     _fmt_brl(ticket_medio),
-        'total_vendido':    _fmt_brl(total_vendido),
-        'area_priv':        _fmt_m2(area_priv),
-        'area_priv_acess':  _fmt_m2(area_priv_acess),
-        'total_priv':       _fmt_m2(total_priv),
-        'area_comum':       _fmt_m2(area_comum),
-        'area_total':       _fmt_m2(area_total),
-        'resumo_sit':            resumo_sit,
-        'resumo_sit_liquido':    resumo_sit_liquido,
-        'resumo_tip':            resumo_tip,
-        'resumo_tip_estoque':    resumo_tip_estoque,
-        'preco_medio_tipo':      preco_medio_tipo,
-        'preco_medio_estoque':   preco_medio_estoque,
-        'receita_por_ano':  receita_por_ano,
-        'total_fluxo_fmt':  _fmt_brl(total_geral),
-        'fluxo_mensal_rows': fluxo_mensal_rows,
-        'top5':             top5_data,
-        'proximos':         proximos,
+        'total_geral':        _fmt_brl(vgv_tabela),
+        'vgv_liquido':        _fmt_brl(vgv_liquido),
+        'n_contratos':        n_contratos,
+        'ticket_medio':       _fmt_brl(ticket_medio),
+        'total_vendido':      _fmt_brl(total_vendido),
+        'area_priv':          _fmt_m2(area_priv),
+        'area_priv_acess':    _fmt_m2(area_priv_acess),
+        'total_priv':         _fmt_m2(total_priv),
+        'area_comum':         _fmt_m2(area_comum),
+        'area_total':         _fmt_m2(area_total),
+        'resumo_sit':         resumo_sit,
+        'resumo_sit_liquido': resumo_sit_liquido,
+        'resumo_tip':         resumo_tip,
+        'resumo_tip_estoque': resumo_tip_estoque,
+        'preco_medio_tipo':   preco_medio_tipo,
+        'preco_medio_estoque':preco_medio_estoque,
+        'receita_por_ano':    receita_por_ano,
+        'total_fluxo_fmt':    _fmt_brl(total_fluxo),
+        'fluxo_mensal_rows':  fluxo_mensal_rows,
     }
     return render(request, 'cota365/dashboard.html', context)
 
@@ -1190,19 +1387,46 @@ def dashboard(request):
 def export_dashboard(request):
     from reportlab.platypus import HRFlowable
 
-    fluxo_rows = _load_fluxo()
-    monthly = _build_monthly_totals(fluxo_rows)
-    total_fluxo = sum(monthly.values())
-    n_contratos = len(fluxo_rows)
-    ticket_medio = total_fluxo / n_contratos if n_contratos else 0
-    total_vendido = sum(r['vgv'] for r in fluxo_rows)
+    # ── Fluxo via Parcela ─────────────────────────────────────────────────────
+    exp_monthly_rec  = defaultdict(float)
+    exp_monthly_pend = defaultdict(float)
+    poupanca_total = 0.0
+    fi_total = 0.0
+    tipo_totals = defaultdict(float)
+    total_recebido  = 0.0
+    total_a_receber = 0.0
+    for p in Parcela.objects.all():
+        if p.vencimento:
+            key = (p.vencimento.year, p.vencimento.month)
+            if p.data_pagamento:
+                exp_monthly_rec[key]  += p.valor
+                total_recebido        += p.valor
+            else:
+                exp_monthly_pend[key] += p.valor
+                total_a_receber       += p.valor
+        tipo_totals[p.tipo] += p.valor
+        if p.tipo == 'FI':
+            fi_total += p.valor
+        else:
+            poupanca_total += p.valor
 
-    resumo_sit, resumo_sit_liquido, resumo_tip, resumo_tip_estoque, preco_medio_tipo, preco_medio_estoque, vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada = _compute_resumos_tabela()
-    area_priv, area_priv_acess, total_priv, area_comum, area_total = _compute_areas()
+    exp_all_keys = sorted(set(exp_monthly_rec) | set(exp_monthly_pend))
+    total_fluxo  = sum(exp_monthly_rec[k] + exp_monthly_pend[k] for k in exp_all_keys)
 
     ano_totals = defaultdict(float)
-    for mes, val in monthly.items():
-        ano_totals[mes.split('/')[1]] += val
+    for key in exp_all_keys:
+        yr, mo = key
+        ano_totals[str(yr)] += exp_monthly_rec[key] + exp_monthly_pend[key]
+
+    # ── KPIs via Venda + Tabela ───────────────────────────────────────────────
+    resumo_sit, resumo_sit_liquido, resumo_tip, resumo_tip_estoque, \
+        preco_medio_tipo, preco_medio_estoque, \
+        vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada = _compute_resumos_tabela()
+    area_priv, area_priv_acess, total_priv, area_comum, area_total = _compute_areas()
+
+    n_contratos   = Venda.objects.count()
+    total_vendido = vgv_tabela - vgv_disponivel - vgv_reservada - vgv_permuta
+    ticket_medio  = total_vendido / n_contratos if n_contratos else 0
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4,
@@ -1274,7 +1498,7 @@ def export_dashboard(request):
 
     vgv_liquido    = vgv_tabela - vgv_permuta
     total_real_a   = vgv_disponivel + vgv_reservada + total_vendido + vgv_permuta
-    total_real_b   = vgv_disponivel + vgv_reservada + total_vendido
+    total_real_b   = vgv_disponivel + vgv_reservada + total_fluxo
 
     def _lbl(txt):
         return Paragraph(txt, ps('LB', fontSize=7, textColor=colors.HexColor('#6c757d'),
@@ -1282,9 +1506,9 @@ def export_dashboard(request):
 
     story.append(Paragraph('Indicadores Gerais', sec_s))
     kpi_table = Table([
-        [th('VGV TOTAL'), th('VGV LÍQUIDO'), th('CONTRATOS'), th('TICKET MÉDIO'), th('TOTAL VENDIDO')],
+        [th('VGV TOTAL'), th('VGV LÍQUIDO'), th('CONTRATOS'), th('TICKET MÉDIO'), th('VENDIDO')],
         [tdrb(_fmt_brl(vgv_tabela)), tdrb(_fmt_brl(vgv_liquido)),
-         tdrb(str(n_contratos)),     tdrb(_fmt_brl(ticket_medio)), tdrb(_fmt_brl(total_vendido))],
+         tdrb(str(n_contratos)),     tdrb(_fmt_brl(ticket_medio)), tdrb(_fmt_brl(total_fluxo))],
         [tdrb(_fmt_brl(total_real_a)), tdrb(_fmt_brl(total_real_b)),
          _lbl('—'), _lbl('—'), _lbl('—')],
     ], colWidths=[W/5]*5)
@@ -1372,33 +1596,103 @@ def export_dashboard(request):
     story.append(tbl(ano_header + ano_rows, [3*cm, 7*cm, 4*cm], total_last=True))
     story.append(Spacer(1, 6))
 
-    series_qs = SerieContrato.objects.all()
-    if series_qs.exists():
-        total_fin  = sum(s.total for s in series_qs if 'financiamento' in s.serie.lower())
-        total_poup = sum(s.total for s in series_qs if 'financiamento' not in s.serie.lower())
-        grand_total_ser = total_fin + total_poup
-        pct_fin  = total_fin  / grand_total_ser * 100 if grand_total_ser else 0
-        pct_poup = 100 - pct_fin
-
-        story.append(Paragraph('Poupança vs Financiamento', sec_s))
-        pf_data = [
-            [th(''), th('VALOR TOTAL'), th('% DO TOTAL')],
-            [td('Poupança'),      tdr(_fmt_brl(total_poup)), tdr(f'{pct_poup:.1f}%')],
-            [td('Financiamento'), tdr(_fmt_brl(total_fin)),  tdr(f'{pct_fin:.1f}%')],
-            [tdb('Total'),        tdrb(_fmt_brl(grand_total_ser)), tdrb('100%')],
-        ]
-        story.append(tbl(pf_data, [4*cm, 7*cm, 3*cm], total_last=True))
-        story.append(Spacer(1, 6))
-
-    story.append(Paragraph('Fluxo de Caixa Mensal Completo', sec_s))
-    fm_header = [[th('MÊS'), th('RECEBIMENTO'), th('ACUMULADO')]]
+    story.append(Paragraph('Fluxo de Caixa Mensal', sec_s))
+    fm_header = [[th('MÊS'), th('RECEBIDO'), th('A RECEBER'), th('TOTAL'), th('ACUMULADO')]]
     fm_rows = []
     acumulado = 0.0
-    for mes, val in monthly.items():
-        acumulado += val
-        fm_rows.append([td(mes), tdr(_fmt_brl(val)), tdr(_fmt_brl(acumulado))])
-    fm_rows.append([tdb('TOTAL'), tdrb(_fmt_brl(total_fluxo)), tdrb('')])
-    story.append(tbl(fm_header + fm_rows, [3*cm, 7*cm, 6.5*cm], total_last=True))
+    total_rec_acc  = 0.0
+    total_pend_acc = 0.0
+    for key in exp_all_keys:
+        yr, mo  = key
+        rec     = exp_monthly_rec[key]
+        pend    = exp_monthly_pend[key]
+        total   = rec + pend
+        acumulado      += total
+        total_rec_acc  += rec
+        total_pend_acc += pend
+        fm_rows.append([
+            td(f'{mo:02d}/{yr}'),
+            tdr(_fmt_brl(rec)),
+            tdr(_fmt_brl(pend)),
+            tdr(_fmt_brl(total)),
+            tdr(_fmt_brl(acumulado)),
+        ])
+    fm_rows.append([
+        tdb('TOTAL'),
+        tdrb(_fmt_brl(total_rec_acc)),
+        tdrb(_fmt_brl(total_pend_acc)),
+        tdrb(_fmt_brl(total_fluxo)),
+        tdrb(''),
+    ])
+    story.append(tbl(fm_header + fm_rows, [2.5*cm, 4*cm, 4*cm, 4*cm, 4*cm], total_last=True))
+
+    # ── Resumo por Tipo (igual ao Fluxo Mensal) ───────────────────────────────
+    if total_fluxo:
+        story.append(PageBreak())
+        story.append(Paragraph('Resumo por Tipo de Parcela', sec_s))
+
+        NAVY   = colors.HexColor('#1a1a2e')
+        POUPA  = colors.HexColor('#fffde7')
+        FIN    = colors.HexColor('#fff3e0')
+        LIGHT  = colors.HexColor('#f8f9fa')
+        BORDER = colors.HexColor('#dee2e6')
+
+        def pct_fmt(v):
+            return f'{v / total_fluxo * 100:.2f}%'.replace('.', ',') if total_fluxo else '0,00%'
+
+        TIPO_LABELS = [
+            ('AT', 'Ato'),
+            ('PM', 'Mensais'),
+            ('RA', 'Ref. Anuais'),
+            ('PE', 'Permuta'),
+            ('CH', 'Chaves'),
+        ]
+
+        def sr(label, val, bold=False, bg=None):
+            fn = 'Helvetica-Bold' if bold else 'Helvetica'
+            return (
+                Paragraph(f'<b>{label}</b>' if bold else label,
+                          ParagraphStyle('sl', fontName=fn, fontSize=8)),
+                Paragraph(f'<b>{_fmt_num(val)}</b>' if bold else _fmt_num(val),
+                          ParagraphStyle('sv', fontName=fn, fontSize=8, alignment=2)),
+                Paragraph(f'<b>{pct_fmt(val)}</b>' if bold else pct_fmt(val),
+                          ParagraphStyle('sp', fontName=fn, fontSize=8, alignment=2)),
+            )
+
+        def shdr(txt):
+            return Paragraph(f'<b><font color="white">{txt}</font></b>',
+                             ParagraphStyle('sh', fontName='Helvetica-Bold', fontSize=8, alignment=1))
+
+        sum_data = [[shdr('Tipo'), shdr('Total'), shdr('%')]]
+        for code, label in TIPO_LABELS:
+            sum_data.append(list(sr(label, tipo_totals.get(code, 0))))
+        sum_data.append(list(sr('Poupança',      poupanca_total, bold=True)))
+        sum_data.append(list(sr('Financiamento', fi_total,       bold=True)))
+        sum_data.append(list(sr('Total',         total_fluxo,    bold=True)))
+        sum_data.append(list(sr('Recebido',      total_recebido)))
+        sum_data.append(list(sr('A receber',     total_a_receber)))
+
+        # índices no sum_data (0 = header)
+        IDX_POUPANCA = 6   # linha Poupança
+        IDX_FI       = 7   # linha Financiamento
+        IDX_TOTAL    = 8   # linha Total
+
+        sum_table = Table(sum_data, colWidths=[4.5*cm, 4.5*cm, 2.5*cm])
+        sum_table.setStyle(TableStyle([
+            ('BACKGROUND',    (0, 0),           (-1, 0),           NAVY),
+            ('VALIGN',        (0, 0),           (-1, -1),          'MIDDLE'),
+            ('ALIGN',         (1, 1),           (-1, -1),          'RIGHT'),
+            ('ROWBACKGROUNDS',(0, 1),           (-1, IDX_POUPANCA - 1), [colors.white, LIGHT]),
+            ('BACKGROUND',    (0, IDX_POUPANCA),(-1, IDX_POUPANCA),POUPA),
+            ('BACKGROUND',    (0, IDX_FI),      (-1, IDX_FI),      FIN),
+            ('LINEABOVE',     (0, IDX_TOTAL),   (-1, IDX_TOTAL),   1, NAVY),
+            ('GRID',          (0, 0),           (-1, -1),          0.4, BORDER),
+            ('TOPPADDING',    (0, 0),           (-1, -1),          4),
+            ('BOTTOMPADDING', (0, 0),           (-1, -1),          4),
+            ('LEFTPADDING',   (0, 0),           (-1, -1),          4),
+            ('RIGHTPADDING',  (0, 0),           (-1, -1),          4),
+        ]))
+        story.append(sum_table)
 
     doc.build(story)
     buf.seek(0)
@@ -1540,23 +1834,140 @@ def vendas(request):
 
 
 def fluxo_mensal(request):
-    fluxo_rows = _load_fluxo()
-    monthly    = _build_monthly_totals(fluxo_rows)
+    TIPOS = ['AT', 'PM', 'RA', 'PE', 'CH']
+    TIPO_LABELS = {'AT': 'Ato', 'PM': 'Mensais', 'RA': 'Ref. Anuais',
+                   'PE': 'Permuta', 'CH': 'Chaves'}
 
-    total_geral = sum(monthly.values())
-    acumulado   = 0.0
+    monthly       = defaultdict(lambda: defaultdict(float))
+    monthly_rec   = defaultdict(float)
+    monthly_pend  = defaultdict(float)
+
+    for p in Parcela.objects.all():
+        if not p.vencimento:
+            continue
+        key = (p.vencimento.year, p.vencimento.month)
+        monthly[key][p.tipo] += p.valor
+        if p.data_pagamento:
+            monthly_rec[key] += p.valor
+        else:
+            monthly_pend[key] += p.valor
+
+    totals        = defaultdict(float)
+    total_rec     = 0.0
+    total_pend    = 0.0
     rows = []
-    for mes, val in monthly.items():
-        acumulado += val
-        rows.append({'mes': mes, 'total': val, 'total_fmt': _fmt_brl(val),
-                     'acumulado_fmt': _fmt_brl(acumulado)})
+
+    for key in sorted(monthly.keys()):
+        yr, mo = key
+        td = monthly[key]
+        at = td.get('AT', 0); pm = td.get('PM', 0); ra = td.get('RA', 0)
+        pe = td.get('PE', 0); ch = td.get('CH', 0); fi = td.get('FI', 0)
+        poupanca  = at + pm + ra + pe + ch
+        row_total = poupanca + fi
+        rec   = monthly_rec[key]
+        pend  = monthly_pend[key]
+        for t, v in (('AT', at), ('PM', pm), ('RA', ra), ('PE', pe), ('CH', ch), ('FI', fi)):
+            totals[t] += v
+        totals['poupanca'] += poupanca
+        totals['total']    += row_total
+        total_rec  += rec
+        total_pend += pend
+        rows.append({
+            'mes':       f'{mo:02d}/{yr}',
+            'at':        _fmt_num(at),
+            'pm':        _fmt_num(pm),
+            'ra':        _fmt_num(ra),
+            'pe':        _fmt_num(pe),
+            'ch':        _fmt_num(ch),
+            'poupanca':  _fmt_num(poupanca),
+            'fi':        _fmt_num(fi),
+            'total':     _fmt_num(row_total),
+            'recebido':  _fmt_num(rec),
+            'a_receber': _fmt_num(pend),
+        })
+
+    grand_total = totals['total'] or 1
+
+    def pct(v):
+        return f'{v / grand_total * 100:.2f}%'.replace('.', ',')
+
+    summary = [
+        {'tipo': TIPO_LABELS[t], 'total': _fmt_num(totals[t]), 'pct': pct(totals[t])}
+        for t in TIPOS
+    ] + [
+        {'tipo': 'Poupança',      'total': _fmt_num(totals['poupanca']), 'pct': pct(totals['poupanca'])},
+        {'tipo': 'Financiamento', 'total': _fmt_num(totals['FI']),       'pct': pct(totals['FI'])},
+        {'tipo': 'Total',         'total': _fmt_num(grand_total),        'pct': '100,00%'},
+        {'tipo': 'Recebido',      'total': _fmt_num(total_rec),          'pct': pct(total_rec)},
+        {'tipo': 'A receber',     'total': _fmt_num(total_pend),         'pct': pct(total_pend)},
+    ]
 
     context = {
         'rows':        rows,
-        'total_geral': _fmt_brl(total_geral),
-        'n_contratos': len(fluxo_rows),
+        'summary':     summary,
+        'total_geral': _fmt_brl(grand_total),
     }
     return render(request, 'cota365/fluxo.html', context)
+
+
+def parcelas_view(request):
+    TIPOS = ['AT', 'PM', 'RA', 'CH', 'PE', 'FI']
+
+    tipo_filtro   = request.GET.get('tipo', '')
+    status_filtro = request.GET.get('status', '')
+    q             = request.GET.get('q', '').strip()
+
+    qs = Parcela.objects.all()
+    if tipo_filtro:
+        qs = qs.filter(tipo=tipo_filtro)
+    if status_filtro == 'pago':
+        qs = qs.exclude(data_pagamento=None)
+    elif status_filtro == 'pendente':
+        qs = qs.filter(data_pagamento=None)
+    if q:
+        qs = qs.filter(cliente__icontains=q) | Parcela.objects.filter(titulo__icontains=q)
+        if tipo_filtro:
+            qs = qs.filter(tipo=tipo_filtro)
+
+    parcelas = list(qs.order_by('vencimento', 'titulo'))
+
+    total_geral   = sum(p.valor for p in parcelas)
+    total_pago    = sum(p.valor for p in parcelas if p.data_pagamento)
+    total_pendente = sum(p.valor for p in parcelas if not p.data_pagamento)
+    n_pagas       = sum(1 for p in parcelas if p.data_pagamento)
+    n_pendentes   = sum(1 for p in parcelas if not p.data_pagamento)
+
+    def fmt_date(d):
+        return d.strftime('%d/%m/%Y') if d else ''
+
+    rows = [
+        {
+            'titulo':         p.titulo,
+            'parcela':        p.parcela,
+            'tipo':           p.tipo,
+            'vencimento':     fmt_date(p.vencimento),
+            'data_pagamento': fmt_date(p.data_pagamento),
+            'valor':          _fmt_brl(p.valor),
+            'cliente':        p.cliente,
+            'pago':           bool(p.data_pagamento),
+        }
+        for p in parcelas
+    ]
+
+    context = {
+        'rows':           rows,
+        'tipos':          TIPOS,
+        'tipo_filtro':    tipo_filtro,
+        'status_filtro':  status_filtro,
+        'q':              q,
+        'total_geral':    _fmt_brl(total_geral),
+        'total_pago':     _fmt_brl(total_pago),
+        'total_pendente': _fmt_brl(total_pendente),
+        'n_pagas':        n_pagas,
+        'n_pendentes':    n_pendentes,
+        'n_total':        len(parcelas),
+    }
+    return render(request, 'cota365/parcelas.html', context)
 
 
 # ---------------------------------------------------------------------------
@@ -1597,14 +2008,53 @@ def export_vendas(request):
 
 def export_fluxo(request):
     fmt = request.GET.get('format', 'xlsx')
-    fluxo_rows  = _load_fluxo()
-    monthly     = _build_monthly_totals(fluxo_rows)
-    total_geral = sum(monthly.values())
-    rows = [{'mes': mes, 'total': val} for mes, val in monthly.items()]
+
+    monthly      = defaultdict(lambda: defaultdict(float))
+    monthly_rec  = defaultdict(float)
+    monthly_pend = defaultdict(float)
+    for p in Parcela.objects.all():
+        if not p.vencimento:
+            continue
+        key = (p.vencimento.year, p.vencimento.month)
+        monthly[key][p.tipo] += p.valor
+        if p.data_pagamento:
+            monthly_rec[key]  += p.valor
+        else:
+            monthly_pend[key] += p.valor
+
+    totals     = defaultdict(float)
+    total_rec  = 0.0
+    total_pend = 0.0
+    rows = []
+    for key in sorted(monthly.keys()):
+        yr, mo = key
+        td = monthly[key]
+        at = td.get('AT', 0); pm = td.get('PM', 0); ra = td.get('RA', 0)
+        pe = td.get('PE', 0); ch = td.get('CH', 0); fi = td.get('FI', 0)
+        poupanca  = at + pm + ra + pe + ch
+        row_total = poupanca + fi
+        rec   = monthly_rec[key]
+        pend  = monthly_pend[key]
+        for t, v in (('AT', at), ('PM', pm), ('RA', ra), ('PE', pe),
+                     ('CH', ch), ('FI', fi), ('poupanca', poupanca)):
+            totals[t] += v
+        totals['total'] += row_total
+        total_rec  += rec
+        total_pend += pend
+        rows.append({
+            'mes': f'{mo:02d}/{yr}',
+            'at': at, 'pm': pm, 'ra': ra, 'pe': pe, 'ch': ch,
+            'poupanca': poupanca, 'fi': fi,
+            'total': row_total, 'recebido': rec, 'a_receber': pend,
+        })
+
+    grand_total = totals['total']
+    totals['recebido']  = total_rec
+    totals['a_receber'] = total_pend
 
     if fmt == 'pdf':
-        return _export_fluxo_pdf(rows, total_geral)
-    return _export_fluxo_xlsx(rows, total_geral)
+        return _export_fluxo_pdf(rows, totals, grand_total)
+    return _export_fluxo_xlsx(rows, grand_total)
 
 
 # -- Excel helpers -----------------------------------------------------------
@@ -1899,43 +2349,169 @@ def _export_vendas_pdf(contracts, total_geral):
     return resp
 
 
-def _export_fluxo_pdf(rows, total_geral):
+def _export_fluxo_pdf(rows, totals, grand_total):
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=A4,
+    doc = SimpleDocTemplate(buf, pagesize=landscape(A4),
                             leftMargin=1.5*cm, rightMargin=1.5*cm,
-                            topMargin=1.5*cm, bottomMargin=1.5*cm)
+                            topMargin=1.2*cm, bottomMargin=1.2*cm)
     styles = getSampleStyleSheet()
+
+    NAVY  = colors.HexColor('#1a1a2e')
+    GRAY1 = colors.HexColor('#f8f9fa')
+    GRID  = colors.HexColor('#dee2e6')
+    POUPA = colors.HexColor('#fffde7')
+    FIN   = colors.HexColor('#fff3e0')
+
+    def n(v):
+        return _fmt_num(v)
+
+    def pct(v):
+        if not grand_total:
+            return '0,00%'
+        return f'{v / grand_total * 100:.2f}%'.replace('.', ',')
+
     story = [
         Paragraph('Cota 365 — Fluxo Mensal de Receitas',
-                  ParagraphStyle('title', parent=styles['Heading1'], fontSize=14, spaceAfter=4)),
-        Paragraph(f'Total Geral: {_fmt_brl(total_geral)}',
-                  ParagraphStyle('sub', parent=styles['Normal'], fontSize=10, spaceAfter=12)),
+                  ParagraphStyle('title', parent=styles['Normal'],
+                                 fontName='Helvetica-Bold', fontSize=13, spaceAfter=8)),
     ]
 
-    data = [['MÊS', 'TOTAL MÊS', 'ACUMULADO']]
-    acumulado = 0.0
-    for r in rows:
-        acumulado += r['total']
-        data.append([r['mes'], _fmt_brl(r['total']), _fmt_brl(acumulado)])
-    data.append(['Total por Série', _fmt_brl(total_geral), ''])
+    # ── Tabela principal ──────────────────────────────────────────────────────
+    HEADERS = ['Mês', 'Ato', 'Mensais', 'Ref. Anuais', 'Permuta', 'Chaves',
+               'Poupança', 'Financiamento', 'Total', 'Recebido', 'A receber']
 
-    t = Table(data, colWidths=[4*cm, 7*cm, 7*cm], repeatRows=1)
-    t.setStyle(TableStyle([
-        ('BACKGROUND',    (0, 0), (-1, 0), colors.HexColor('#1a1a2e')),
-        ('TEXTCOLOR',     (0, 0), (-1, 0), colors.white),
-        ('FONTNAME',      (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE',      (0, 0), (-1, 0), 9),
-        ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
-        ('ALIGN',         (1, 1), (-1, -1), 'RIGHT'),
-        ('FONTSIZE',      (0, 1), (-1, -1), 8),
-        ('ROWBACKGROUNDS',(0, 1), (-1, -2), [colors.white, colors.HexColor('#f8f9fa')]),
-        ('BACKGROUND',    (0, -1), (-1, -1), colors.HexColor('#e9ecef')),
-        ('FONTNAME',      (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ('GRID',          (0, 0), (-1, -1), 0.5, colors.HexColor('#dee2e6')),
-        ('TOPPADDING',    (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-    ]))
-    story.append(t)
+    # página landscape A4 = 29,7cm - 3cm margens = 26,7cm
+    W_MES = 1.7 * cm
+    W_COL = (26.7 * cm - W_MES) / 10
+    col_widths = [W_MES] + [W_COL] * 10
+
+    def hdr_cell(txt):
+        return Paragraph(f'<b><font color="white">{txt}</font></b>',
+                         ParagraphStyle('h', fontName='Helvetica-Bold',
+                                        fontSize=7, alignment=1))
+
+    data = [[hdr_cell(h) for h in HEADERS]]
+
+    for r in rows:
+        data.append([
+            Paragraph(f'<b>{r["mes"]}</b>', ParagraphStyle('m', fontSize=6.5, fontName='Helvetica-Bold')),
+            n(r['at']), n(r['pm']), n(r['ra']), n(r['pe']), n(r['ch']),
+            n(r['poupanca']), n(r['fi']),
+            Paragraph(f'<b>{n(r["total"])}</b>', ParagraphStyle('t', fontSize=6.5, fontName='Helvetica-Bold')),
+            n(r['recebido']), n(r['a_receber']),
+        ])
+
+    # Linha Total
+    data.append([
+        Paragraph('<b><font color="white">Total</font></b>',
+                  ParagraphStyle('tot', fontName='Helvetica-Bold', fontSize=7, alignment=1)),
+        *[Paragraph(f'<b><font color="white">{n(totals.get(k, 0))}</font></b>',
+                    ParagraphStyle('tv', fontName='Helvetica-Bold', fontSize=6.5, alignment=2))
+          for k in ('AT', 'PM', 'RA', 'PE', 'CH', 'poupanca', 'FI', 'total', 'recebido', 'a_receber')],
+    ])
+
+    # Linha %
+    def pct_cell(v):
+        return Paragraph(f'<i>{pct(v)}</i>',
+                         ParagraphStyle('pc', fontName='Helvetica-Oblique', fontSize=6, alignment=2))
+
+    data.append([
+        Paragraph('<i>%</i>', ParagraphStyle('pm', fontName='Helvetica-Oblique', fontSize=6)),
+        *[pct_cell(totals.get(k, 0))
+          for k in ('AT', 'PM', 'RA', 'PE', 'CH', 'poupanca', 'FI', 'total', 'recebido', 'a_receber')],
+    ])
+
+    n_data   = len(data)
+    total_r  = n_data - 2   # linha Total (0-based)
+    pct_r    = n_data - 1   # linha %
+
+    main_style = TableStyle([
+        # Header
+        ('BACKGROUND',    (0, 0),  (-1, 0),       NAVY),
+        ('FONTNAME',      (0, 0),  (-1, 0),       'Helvetica-Bold'),
+        ('FONTSIZE',      (0, 0),  (-1, 0),       7),
+        ('ALIGN',         (0, 0),  (-1, 0),       'CENTER'),
+        ('VALIGN',        (0, 0),  (-1, -1),      'MIDDLE'),
+        # Data rows — alternating
+        ('ROWBACKGROUNDS',(0, 1),  (-1, total_r - 1), [colors.white, GRAY1]),
+        ('FONTSIZE',      (0, 1),  (-1, -1),      6.5),
+        ('ALIGN',         (0, 1),  (0, -1),       'CENTER'),
+        ('ALIGN',         (1, 1),  (-1, -1),      'RIGHT'),
+        # Total row
+        ('BACKGROUND',    (0, total_r), (-1, total_r), NAVY),
+        ('FONTNAME',      (0, total_r), (-1, total_r), 'Helvetica-Bold'),
+        # % row
+        ('BACKGROUND',    (0, pct_r),  (-1, pct_r),  GRAY1),
+        ('FONTSIZE',      (0, pct_r),  (-1, pct_r),  6),
+        # Grid
+        ('GRID',          (0, 0),  (-1, -1),      0.4, GRID),
+        ('TOPPADDING',    (0, 0),  (-1, -1),      3),
+        ('BOTTOMPADDING', (0, 0),  (-1, -1),      3),
+        ('LEFTPADDING',   (0, 0),  (-1, -1),      3),
+        ('RIGHTPADDING',  (0, 0),  (-1, -1),      3),
+    ])
+
+    main_table = Table(data, colWidths=col_widths, repeatRows=1)
+    main_table.setStyle(main_style)
+    story.append(main_table)
+    story.append(Spacer(1, 0.5 * cm))
+
+    # ── Tabela resumo por tipo ────────────────────────────────────────────────
+    summary_rows = [
+        ('Ato',           totals.get('AT', 0)),
+        ('Mensais',       totals.get('PM', 0)),
+        ('Ref. Anuais',   totals.get('RA', 0)),
+        ('Permuta',       totals.get('PE', 0)),
+        ('Chaves',        totals.get('CH', 0)),
+        ('Poupança',      totals.get('poupanca', 0)),
+        ('Financiamento', totals.get('FI', 0)),
+        ('Total',         grand_total),
+        ('Recebido',      totals.get('recebido', 0)),
+        ('A receber',     totals.get('a_receber', 0)),
+    ]
+
+    def shdr(txt):
+        return Paragraph(f'<b><font color="white">{txt}</font></b>',
+                         ParagraphStyle('sh', fontName='Helvetica-Bold', fontSize=8, alignment=1))
+
+    sum_data = [[shdr('Tipo'), shdr('Total'), shdr('%')]]
+    for label, val in summary_rows:
+        bold = label in ('Total',)
+        fn   = 'Helvetica-Bold' if bold else 'Helvetica'
+        sum_data.append([
+            Paragraph(f'<b>{label}</b>' if bold else label,
+                      ParagraphStyle('sl', fontName=fn, fontSize=8)),
+            Paragraph(f'<b>{n(val)}</b>' if bold else n(val),
+                      ParagraphStyle('sv', fontName=fn, fontSize=8, alignment=2)),
+            Paragraph(f'<b>{pct(val)}</b>' if bold else pct(val),
+                      ParagraphStyle('sp', fontName=fn, fontSize=8, alignment=2)),
+        ])
+
+    sum_table = Table(sum_data, colWidths=[4.5*cm, 4.5*cm, 2.5*cm])
+    sum_style = TableStyle([
+        ('BACKGROUND',    (0, 0),  (-1, 0),  NAVY),
+        ('FONTNAME',      (0, 0),  (-1, 0),  'Helvetica-Bold'),
+        ('ALIGN',         (0, 0),  (-1, 0),  'CENTER'),
+        ('VALIGN',        (0, 0),  (-1, -1), 'MIDDLE'),
+        ('ALIGN',         (1, 1),  (-1, -1), 'RIGHT'),
+        ('FONTSIZE',      (0, 1),  (-1, -1), 8),
+        # Poupança row (index 6 = 7th data row after header)
+        ('BACKGROUND',    (0, 6),  (-1, 6),  POUPA),
+        # Financiamento row (index 7)
+        ('BACKGROUND',    (0, 7),  (-1, 7),  FIN),
+        # Total row (index 8)
+        ('FONTNAME',      (0, 8),  (-1, 8),  'Helvetica-Bold'),
+        ('LINEABOVE',     (0, 8),  (-1, 8),  1, NAVY),
+        # Grid
+        ('GRID',          (0, 0),  (-1, -1), 0.4, GRID),
+        ('TOPPADDING',    (0, 0),  (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0),  (-1, -1), 4),
+        ('LEFTPADDING',   (0, 0),  (-1, -1), 4),
+        ('RIGHTPADDING',  (0, 0),  (-1, -1), 4),
+    ])
+    sum_table.setStyle(sum_style)
+    story.append(sum_table)
+
     doc.build(story)
     buf.seek(0)
     resp = HttpResponse(buf, content_type='application/pdf')

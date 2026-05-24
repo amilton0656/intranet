@@ -1,0 +1,171 @@
+{% extends 'cota365/base.html' %}
+
+{% block title %}Parcelas — Cota 365{% endblock %}
+{% block nav_parcelas %}active{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1><i class="bi bi-calendar-check me-2"></i>Parcelas</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'cota365:index' %}" class="text-decoration-none">Início</a></li>
+        <li class="breadcrumb-item active">Parcelas</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="page-header-right">
+    <div>Total:</div>
+    <div class="big-number">{{ total_geral }}</div>
+  </div>
+</div>
+
+<div class="main-content">
+
+  <!-- Resumo -->
+  <div class="row g-2 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">Total Geral</div>
+        <div class="value" style="font-size:1rem;">{{ total_geral }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">Pagas</div>
+        <div class="value text-success" style="font-size:1rem;">{{ total_pago }}</div>
+        <div class="text-muted" style="font-size:0.72rem;">{{ n_pagas }} parcelas</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">Pendentes</div>
+        <div class="value text-danger" style="font-size:1rem;">{{ total_pendente }}</div>
+        <div class="text-muted" style="font-size:0.72rem;">{{ n_pendentes }} parcelas</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">Parcelas</div>
+        <div class="value">{{ n_total }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <form method="get" class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+    <input type="text" name="q" value="{{ q }}" placeholder="Buscar cliente ou título…"
+           class="form-control form-control-sm" style="max-width:220px;">
+
+    <select name="tipo" class="form-select form-select-sm" style="max-width:130px;">
+      <option value="">Todos os tipos</option>
+      {% for t in tipos %}
+      <option value="{{ t }}" {% if tipo_filtro == t %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="status" class="form-select form-select-sm" style="max-width:140px;">
+      <option value="">Todos</option>
+      <option value="pago"     {% if status_filtro == 'pago' %}selected{% endif %}>Pagas</option>
+      <option value="pendente" {% if status_filtro == 'pendente' %}selected{% endif %}>Pendentes</option>
+    </select>
+
+    <button type="submit" class="btn btn-primary btn-sm">
+      <i class="bi bi-search me-1"></i>Filtrar
+    </button>
+    {% if tipo_filtro or status_filtro or q %}
+    <a href="{% url 'cota365:parcelas' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-x me-1"></i>Limpar
+    </a>
+    {% endif %}
+  </form>
+
+  <!-- Tabela -->
+  <div class="data-table">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 parcelas-table">
+        <thead>
+          <tr>
+            <th>Título</th>
+            <th>Parcela</th>
+            <th>Tipo</th>
+            <th>Vencimento</th>
+            <th>Pagamento</th>
+            <th class="text-end">Valor</th>
+            <th>Cliente</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr class="{% if r.pago %}row-pago{% else %}row-pendente{% endif %}">
+            <td class="fw-bold text-muted">#{{ r.titulo }}</td>
+            <td>{{ r.parcela }}</td>
+            <td><span class="badge-tipo badge-{{ r.tipo|lower }}">{{ r.tipo }}</span></td>
+            <td class="text-nowrap">{{ r.vencimento }}</td>
+            <td class="text-nowrap">
+              {% if r.data_pagamento %}
+                <span class="text-success"><i class="bi bi-check-circle me-1"></i>{{ r.data_pagamento }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="amount">{{ r.valor }}</td>
+            <td class="col-cliente text-truncate" title="{{ r.cliente }}">{{ r.cliente }}</td>
+            <td>
+              {% if r.pago %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle">Paga</span>
+              {% else %}
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Pendente</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-4">
+              <i class="bi bi-inbox me-2"></i>Nenhuma parcela encontrada.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        {% if rows %}
+        <tfoot>
+          <tr>
+            <td colspan="5" class="fw-bold">Total ({{ n_total }} parcelas)</td>
+            <td class="text-end fw-bold">{{ total_geral }}</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<style>
+  .parcelas-table { font-size: 0.82rem; }
+  .parcelas-table th, .parcelas-table td { padding: 0.45rem 0.85rem; white-space: nowrap; }
+  .col-cliente { max-width: 220px; }
+
+  .badge-tipo {
+    display: inline-block;
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .badge-pm  { background: #e8f4fd; color: #0d6efd; }
+  .badge-at  { background: #fff3cd; color: #856404; }
+  .badge-fi  { background: #fef3e8; color: #fd7e14; }
+  .badge-ra  { background: #f3e8ff; color: #6f42c1; }
+  .badge-ch  { background: #d4edda; color: #155724; }
+  .badge-pe  { background: #fde8e8; color: #dc3545; }
+
+  .row-pendente td { background: #fffef8; }
+  .row-pago td     { background: #f8fff9; }
+</style>
+
+{% endblock %}

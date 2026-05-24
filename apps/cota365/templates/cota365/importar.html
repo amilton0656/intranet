@@ -65,8 +65,78 @@
   </div>
   {% endif %}
 
+  <!-- ── Fluxo Mensal ─────────────────────────────────────────────────── -->
+  <div class="section-label mb-2">
+    <i class="bi bi-graph-up-arrow me-2 text-warning"></i>
+    <span class="fw-semibold">Fluxo Mensal de Receitas</span>
+    <span class="text-muted ms-2" style="font-size:0.8rem;">— arquivos que alimentam a página de Fluxo</span>
+  </div>
+  <div class="row g-3 mb-4">
+    {% for arq in arquivos %}{% if arq.tipo == 'a_receber' or arq.tipo == 'recebidas' %}
+    <div class="col-12 col-lg-6">
+      <div class="card h-100 shadow-sm card-fluxo">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <span class="import-icon">
+                {% if arq.tipo == 'a_receber' %}<i class="bi bi-arrow-down-circle text-warning fs-4"></i>
+                {% elif arq.tipo == 'recebidas' %}<i class="bi bi-check2-circle text-success fs-4"></i>
+                {% endif %}
+              </span>
+              <div>
+                <div class="fw-bold">{{ arq.label }}</div>
+                <div class="text-muted" style="font-size:0.75rem;">{{ arq.tipo }}.csv</div>
+              </div>
+            </div>
+            {% if arq.ultimo %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="bi bi-check-circle me-1"></i>Importado
+              </span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                <i class="bi bi-dash-circle me-1"></i>Sem dados
+              </span>
+            {% endif %}
+          </div>
+
+          {% if arq.ultimo %}
+          <div class="d-flex gap-3 mb-3 text-muted" style="font-size:0.78rem;">
+            <span><i class="bi bi-clock me-1"></i>{{ arq.ultimo }}</span>
+            <span><i class="bi bi-database me-1"></i>{{ arq.registros }} registros</span>
+            <span class="text-truncate" title="{{ arq.arquivo }}">
+              <i class="bi bi-file-earmark-text me-1"></i>{{ arq.arquivo }}
+            </span>
+          </div>
+          {% else %}
+          <div class="mb-3 text-muted" style="font-size:0.78rem;">
+            <i class="bi bi-exclamation-circle me-1"></i>Nenhuma importação realizada ainda.
+          </div>
+          {% endif %}
+
+          <form method="post" enctype="multipart/form-data" class="import-form">
+            {% csrf_token %}
+            <input type="hidden" name="tipo" value="{{ arq.tipo }}">
+            <div class="input-group">
+              <input type="file" class="form-control form-control-sm" name="arquivo"
+                     accept=".csv" required id="file-{{ arq.tipo }}">
+              <button type="submit" class="btn btn-warning btn-sm text-white">
+                <i class="bi bi-upload me-1"></i>Importar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endif %}{% endfor %}
+  </div>
+
+  <!-- ── Demais arquivos ────────────────────────────────────────────────── -->
+  <div class="section-label mb-2">
+    <i class="bi bi-files me-2 text-primary"></i>
+    <span class="fw-semibold">Outros Arquivos</span>
+  </div>
   <div class="row g-3">
-    {% for arq in arquivos %}
+    {% for arq in arquivos %}{% if arq.tipo != 'a_receber' and arq.tipo != 'recebidas' %}
     <div class="col-12 col-lg-6">
       <div class="card h-100 shadow-sm">
         <div class="card-body">
@@ -76,11 +146,9 @@
                 {% if arq.tipo == 'tabela' %}<i class="bi bi-table text-primary fs-4"></i>
                 {% elif arq.tipo == 'unidades' %}<i class="bi bi-building text-navy fs-4"></i>
                 {% elif arq.tipo == 'vendas' %}<i class="bi bi-list-check text-success fs-4"></i>
-                {% elif arq.tipo == 'fluxo' %}<i class="bi bi-bar-chart-line text-warning fs-4"></i>
                 {% elif arq.tipo == 'vinculo' %}<i class="bi bi-link-45deg text-info fs-4"></i>
                 {% elif arq.tipo == 'permutas' %}<i class="bi bi-arrow-left-right text-purple fs-4"></i>
                 {% elif arq.tipo == 'comissoes' %}<i class="bi bi-percent text-danger fs-4"></i>
-                {% elif arq.tipo == 'series' %}<i class="bi bi-pie-chart text-secondary fs-4"></i>
                 {% endif %}
               </span>
               <div>
@@ -127,7 +195,7 @@
         </div>
       </div>
     </div>
-    {% endfor %}
+    {% endif %}{% endfor %}
   </div>
 
   <!-- ── Tabelas de Vendas PDF ─────────────────────────────────────────── -->
@@ -158,8 +226,12 @@
         <code>Reserva; Situação; Unidade; Cliente; Imobiliária; M² da unidade; Espaços complementares</code>
       </div>
       <div class="col-md-4">
-        <div class="fw-semibold text-primary mb-1">fluxo.csv</div>
-        <code>Id.; Cliente; Unidade; VGV; PV; Primeira parcela; Última parcela; Mês 0 … Mês 44; Empreendimento; Imobiliária; Corretor</code>
+        <div class="fw-semibold text-primary mb-1">a_receber.csv</div>
+        <code>nuTitulo; nuParcelaApresentacao; cdTipoCondicao; dtVencto; vlOriginal; nmCliente</code>
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold text-primary mb-1">recebidas.csv</div>
+        <code>NumeroDoTitulo; NumeroDaParcela; CodigoDoTipoDeCondicao; DataDeVencimento; DataDaBaixa; ValorDaBaixa; NomeDoCliente</code>
       </div>
       <div class="col-md-4">
         <div class="fw-semibold text-primary mb-1">vinculo.csv</div>
@@ -168,10 +240,6 @@
       <div class="col-md-4">
         <div class="fw-semibold text-primary mb-1">permutas.csv</div>
         <code>Uma unidade por linha (sem cabeçalho)</code>
-      </div>
-      <div class="col-md-4">
-        <div class="fw-semibold text-primary mb-1">series.csv</div>
-        <code>Série; Reserva; Total Sem Comissão; Total</code>
       </div>
     </div>
   </div>
@@ -183,5 +251,7 @@
   .text-purple { color: var(--purple); }
   .card { border: 1px solid #e2e6ea; border-radius: 10px; }
   .card-body { padding: 1.25rem; }
+  .card-fluxo { border-color: #ffc10740 !important; background: #fffdf0; }
+  .section-label { font-size: 0.85rem; border-bottom: 1px solid #dee2e6; padding-bottom: 0.4rem; }
 </style>
 {% endblock %}

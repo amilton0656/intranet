@@ -19,6 +19,7 @@ urlpatterns = [
     path('comissoes/cadastro/<str:reserva>/delete/', views.delete_reserva, name='delete_reserva'),
     path('comissoes/export/pdf/', views.export_comissoes_pdf, name='export_comissoes_pdf'),
     path('comissoes/export/excel/', views.export_comissoes_excel, name='export_comissoes_excel'),
+    path('parcelas/', views.parcelas_view, name='parcelas'),
     path('importar/', views.importar, name='importar'),
     path('areas/comparativo/', views.export_areas_comparativo, name='export_areas_comparativo'),
 ]

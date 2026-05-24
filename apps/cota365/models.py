@@ -114,6 +114,22 @@ class SerieContrato(models.Model):
         return f'{self.reserva} — {self.serie}'
 
 
+class Parcela(models.Model):
+    titulo         = models.CharField(max_length=20)
+    parcela        = models.CharField(max_length=30, blank=True)
+    tipo           = models.CharField(max_length=10, blank=True)
+    vencimento     = models.DateField(null=True, blank=True)
+    data_pagamento = models.DateField(null=True, blank=True)
+    valor          = models.FloatField(default=0)
+    cliente        = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ['vencimento', 'titulo']
+
+    def __str__(self):
+        return f'#{self.titulo} — {self.parcela}'
+
+
 class Comissao(models.Model):
     numero               = models.CharField(max_length=20)
     reserva              = models.CharField(max_length=20, blank=True)
