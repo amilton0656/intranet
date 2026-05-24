@@ -3,31 +3,31 @@
 <div class="bliss-menu d-flex flex-wrap gap-3 py-1 ps-3">
     {% if request.user|has_group:'admin' %}
     <a class="bliss-menu__item{% if current == 'bliss_unidades' or current == 'bliss_update' or current == 'bliss_delete' %} is-active{% endif %}"
-        href="{% url 'bliss_unidades' %}">Bliss</a>
+        href="{% url 'bliss_unidades' %}"><i class="bi bi-house me-1"></i>Bliss</a>
     <a class="bliss-menu__item{% if current == 'bliss_create' %} is-active{% endif %}"
-        href="{% url 'bliss_create' %}">Novo Registro</a>
+        href="{% url 'bliss_create' %}"><i class="bi bi-plus-circle me-1"></i>Novo Registro</a>
     <a class="bliss-menu__item{% if current == 'bliss_import' %} is-active{% endif %}"
-        href="{% url 'bliss_import' %}">Importar Excel</a>
+        href="{% url 'bliss_import' %}"><i class="bi bi-file-earmark-excel me-1"></i>Importar Excel</a>
     <a class="bliss-menu__item{% if current == 'bliss_unidades_full' or current == 'bliss_unidades_full' %} is-active{% endif %}"
-        href="{% url 'bliss_unidades_full' %}">Unidades</a>
+        href="{% url 'bliss_unidades_full' %}"><i class="bi bi-building me-1"></i>Unidades</a>
     <a class="bliss-menu__item{% if current == 'bliss_resumo' %} is-active{% endif %}"
-        href="{% url 'bliss_resumo' %}">Resumo</a>
+        href="{% url 'bliss_resumo' %}"><i class="bi bi-speedometer2 me-1"></i>Resumo</a>
     <form method="post" action="{% url 'atualizar_situacoes' %}" class="d-inline"
           onsubmit="return confirm('Aplicar atualizações de situação hardcodadas?')">
       {% csrf_token %}
       <button type="submit" class="bliss-menu__item border-0 bg-transparent p-0 cursor-pointer">
-        Atualizar Situações
+        <i class="bi bi-arrow-repeat me-1"></i>Atualizar Situações
       </button>
     </form>
     <a class="bliss-menu__item{% if current == 'atualizacao_mensal' %} is-active{% endif %}"
-        href="{% url 'atualizacao_mensal' %}">Atualização Mensal</a>
+        href="{% url 'atualizacao_mensal' %}"><i class="bi bi-calendar-month me-1"></i>Atualização Mensal</a>
     <a class="bliss-menu__item{% if current == 'bliss_import_clientes' %} is-active{% endif %}"
-        href="{% url 'bliss_import_clientes' %}">Importar Clientes</a>
+        href="{% url 'bliss_import_clientes' %}"><i class="bi bi-people me-1"></i>Importar Clientes</a>
     {% else %}
     <a class="bliss-menu__item{% if current == 'bliss_unidades_full' or current == 'bliss_unidades_full' %} is-active{% endif %}"
-        href="{% url 'bliss_unidades_full' %}">Unidades</a>
+        href="{% url 'bliss_unidades_full' %}"><i class="bi bi-building me-1"></i>Unidades</a>
     <a class="bliss-menu__item{% if current == 'bliss_resumo' %} is-active{% endif %}"
-        href="{% url 'bliss_summary' %}">Resumo</a>
+        href="{% url 'bliss_summary' %}"><i class="bi bi-speedometer2 me-1"></i>Resumo</a>
     {% endif %}
 </div>
 {% endwith %}
