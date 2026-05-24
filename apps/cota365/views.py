@@ -2454,7 +2454,7 @@ def _export_fluxo_pdf(rows, totals, grand_total):
     main_table = Table(data, colWidths=col_widths, repeatRows=1)
     main_table.setStyle(main_style)
     story.append(main_table)
-    story.append(Spacer(1, 0.5 * cm))
+    story.append(PageBreak())
 
     # ── Tabela resumo por tipo ────────────────────────────────────────────────
     summary_rows = [
