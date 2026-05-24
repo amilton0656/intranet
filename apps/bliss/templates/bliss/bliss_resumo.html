@@ -6,18 +6,17 @@
 {% block content %}
 {% include 'bliss/bliss_navbar.html' %}
 <div class="mx-3 mt-3">
-  <div class="d-flex gap-2 mb-3">
-    <a href="{% url 'bliss_resumo_pdf' %}" class="btn btn-sm btn-danger" target="_blank" rel="noopener">Exportar PDF</a>
-    <form method="post" action="{% url 'bliss_resumo_send_email' %}" class="d-inline">
-      {% csrf_token %}
-      <button type="submit" class="btn btn-sm btn-secondary">Enviar PDF por e-mail</button>
-    </form>
-    {% if email_enviado %}<span class="badge bg-success">Enviado</span>{% endif %}
-  </div>
-  
   {# ====== DESKTOP/TABLET: Tabela ====== #}
   <div class="d-none d-md-block">
-    <h3 class="mb-4">Resumo por Situação</h3>
+    <h3 class="mb-2">Resumo por Situação</h3>
+    <div class="d-flex gap-2 mb-3">
+      <a href="{% url 'bliss_resumo_pdf' %}" class="btn btn-sm btn-danger" target="_blank" rel="noopener">Exportar PDF</a>
+      <form method="post" action="{% url 'bliss_resumo_send_email' %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-secondary">Enviar PDF por e-mail</button>
+      </form>
+      {% if email_enviado %}<span class="badge bg-success">Enviado</span>{% endif %}
+    </div>
     <table class="table table-bordered table-sm">
       <thead class="table-light">
         <tr>
