@@ -5,7 +5,7 @@
 
 {% block content %}
 {% include 'bliss/bliss_navbar.html' %}
-<div class="mx-3">
+<div class="mx-3 mt-3">
   <div class="d-flex gap-2 mb-3">
     <a href="{% url 'bliss_resumo_pdf' %}" class="btn btn-sm btn-danger" target="_blank" rel="noopener">Exportar PDF</a>
     <form method="post" action="{% url 'bliss_resumo_send_email' %}" class="d-inline">

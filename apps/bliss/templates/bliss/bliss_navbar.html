@@ -9,7 +9,7 @@
     <a class="bliss-menu__item{% if current == 'bliss_import' %} is-active{% endif %}"
         href="{% url 'bliss_import' %}">Importar Excel</a>
     <a class="bliss-menu__item{% if current == 'bliss_unidades_full' or current == 'bliss_unidades_full' %} is-active{% endif %}"
-        href="{% url 'bliss_unidades_full' %}">Relatório</a>
+        href="{% url 'bliss_unidades_full' %}">Unidades</a>
     <a class="bliss-menu__item{% if current == 'bliss_resumo' %} is-active{% endif %}"
         href="{% url 'bliss_resumo' %}">Resumo</a>
     <form method="post" action="{% url 'atualizar_situacoes' %}" class="d-inline"
@@ -25,7 +25,7 @@
         href="{% url 'bliss_import_clientes' %}">Importar Clientes</a>
     {% else %}
     <a class="bliss-menu__item{% if current == 'bliss_unidades_full' or current == 'bliss_unidades_full' %} is-active{% endif %}"
-        href="{% url 'bliss_unidades_full' %}">Relatório</a>
+        href="{% url 'bliss_unidades_full' %}">Unidades</a>
     <a class="bliss-menu__item{% if current == 'bliss_resumo' %} is-active{% endif %}"
         href="{% url 'bliss_summary' %}">Resumo</a>
     {% endif %}
@@ -34,24 +34,27 @@
 
 <style>
     .bliss-menu {
-        margin-top: -0.25rem;
+        background: #A7A3AB;
+        padding: 0.6rem 1.5rem;
+        gap: 0.25rem;
+        margin-top: -24px !important;
+        position: relative;
+        z-index: 100;
     }
 
     .bliss-menu__item {
-        color: #404040;
+        color: rgba(40,40,40,.85);
         text-decoration: none;
-        border-bottom: 5px solid transparent;
-        padding-bottom: 2px;
-        transition: border-color .2s ease, color .2s ease;
+        font-size: 0.85rem;
+        padding: 0.4rem 0.9rem;
+        border-radius: 6px;
+        transition: background .2s, color .2s;
     }
 
-    .bliss-menu__item.is-active {
-        color: #000000;
-    }
-
+    .bliss-menu__item.is-active,
     .bliss-menu__item:hover,
     .bliss-menu__item:focus {
-        color: #404040;
-        border-bottom-color: orange;
+        background: rgba(0,0,0,.1);
+        color: #282828;
     }
 </style>

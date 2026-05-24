@@ -1,10 +1,18 @@
 ﻿{% extends 'intranet/intranet_base.html' %}
 {% load custom_filters %}
 {% block content %}
+<style>
+  body { background-color: #fff !important; }
+  .container-fluid { padding-left: 3mm !important; padding-right: 0 !important; }
+</style>
 {% include 'bliss/bliss_navbar.html' %}
-<h3>Relat&oacute;rio Geral</h3>
-<a href="{% url 'bliss_unidades_full_pdf' %}" class="btn btn-sm btn-danger mb-3">Exportar PDF</a>
 
+<div class="container-fluid px-4 pt-3">
+  <h3>Unidades</h3>
+  <a href="{% url 'bliss_unidades_full_pdf' %}" class="btn btn-sm btn-danger mb-3">Exportar PDF</a>
+</div>
+
+<div class="container-fluid px-4">
 <div class="d-none d-md-block">
 <table class="table table-bordered">
     <thead class="thead-dark">
@@ -182,6 +190,7 @@
     {% empty %}
     <div class="alert alert-info">Nenhum registro encontrado.</div>
     {% endfor %}
+</div>
 </div>
 {% endblock %}
 
