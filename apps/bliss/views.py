@@ -171,10 +171,9 @@ def bliss_summary(request):
         'resumo_lojas': resumo_lojas,
     })
 
-@login_required
-@require_POST
-def atualizar_situacoes(request):
-    updates = {
+def _aplicar_situacoes_fixas() -> int:
+    """Sobrescreve situações específicas após qualquer importação de tabela."""
+    _FIXAS = {
         'QA': [
             ('1-SUN', '201-SUN'),
             ('1-SUN', '206-SUN'),
@@ -199,20 +198,20 @@ def atualizar_situacoes(request):
         ],
         'Permuta/Venda': [
             ('1-SUNxxx', 'Loja'),
-        ]
+        ],
     }
+    total = 0
+    for situacao, pares in _FIXAS.items():
+        for bloco, unidade in pares:
+            total += Bliss.objects.filter(bloco=bloco, unidade=unidade).update(situacao=situacao)
+    return total
 
-    total_atualizados = 0
 
-    for situacao, unidades in updates.items():
-        for bloco, unidade in unidades:
-            obj = Bliss.objects.filter(bloco=bloco, unidade=unidade).first()
-            if obj:
-                obj.situacao = situacao
-                obj.save()
-                total_atualizados += 1
-
-    messages.success(request, f'{total_atualizados} registros atualizados com sucesso.')
+@login_required
+@require_POST
+def atualizar_situacoes(request):
+    total = _aplicar_situacoes_fixas()
+    messages.success(request, f'{total} registros atualizados com sucesso.')
     return redirect('bliss_unidades')
 
 # Importar planilha Excel
@@ -308,10 +307,10 @@ def atualizacao_mensal(request):
             messages.error(request, 'NÃ£o foi possÃ­vel ler os cabeÃ§alhos do CSV.')
             return redirect('bliss_unidades')
 
-        obrigatorios = {'bloco', 'unidade', 'valor_tabela', 'situacao'}
+        obrigatorios = {'bloco', 'unidade', 'situação', 'valor total'}
         faltando = obrigatorios - {h.lower().strip() for h in reader.fieldnames if h}
         if faltando:
-            messages.error(request, f'CabeÃ§alhos ausentes no CSV: {", ".join(sorted(faltando))}.')
+            messages.error(request, f'Cabeçalhos ausentes no CSV: {", ".join(sorted(faltando))}.')
             return redirect('bliss_unidades')
 
         total = puladas_excecao = nao_encontradas = sem_mudanca = 0
@@ -332,8 +331,8 @@ def atualizacao_mensal(request):
                 puladas_excecao += 1
                 continue
 
-            valor_tabela_csv = _parse_money_br(_get_ci(row, 'valor_tabela'))
-            situacao_csv = (_get_ci(row, 'situacao') or '').strip()
+            valor_tabela_csv = _parse_money_br(_get_ci(row, 'valor total'))
+            situacao_csv = (_get_ci(row, 'situação') or '').strip()
 
             obj = Bliss.objects.filter(bloco=bloco, unidade=unidade).first()
             if not obj:
@@ -356,20 +355,118 @@ def atualizacao_mensal(request):
         if objetos_para_update:
             Bliss.objects.bulk_update(objetos_para_update, ['valor_tabela', 'situacao'])
 
+        fixas = _aplicar_situacoes_fixas()
+
         messages.success(
             request,
             (
                 f'Processadas: {total}. '
                 f'Atualizadas: {len(objetos_para_update)}. '
-                f'Sem mudanÃ§a: {sem_mudanca}. '
-                f'Puladas (exceÃ§Ãµes): {puladas_excecao}. '
-                f'NÃ£o encontradas: {nao_encontradas}. '
-                f'(Delimitador detectado: "{delimiter}")'
+                f'Sem mudança: {sem_mudanca}. '
+                f'Não encontradas: {nao_encontradas}. '
+                f'Situações fixas aplicadas: {fixas}.'
             )
         )
         return redirect('bliss_unidades')
 
     return render(request, 'bliss/bliss_atualizacao_mensal.html')
+
+import re as _re
+
+def _strip_hyperlink(value: str) -> str:
+    """Extrai o texto de exibição de fórmulas =HIPERLINK(...) / =HYPERLINK(...)."""
+    s = (value or '').strip()
+    m = _re.match(r'=(?:HIPER|HYPER)LINK\([^;,]+[;,]"([^"]+)"\)', s, _re.IGNORECASE)
+    return m.group(1).strip() if m else s
+
+
+@login_required
+@transaction.atomic
+def bliss_import_clientes(request):
+    """Importa CSV com UNIDADE, CLIENTE e E-MAIL e atualiza os registros existentes."""
+    if request.method != 'POST' or not request.FILES.get('csv_file'):
+        return render(request, 'bliss/bliss_import_clientes.html')
+
+    f = request.FILES['csv_file']
+    wrapper = io.TextIOWrapper(f.file, encoding='utf-8-sig', newline='')
+    sample = wrapper.read(2048)
+    wrapper.seek(0)
+
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=';,|\t')
+        delimiter = dialect.delimiter
+    except csv.Error:
+        delimiter = ';'
+
+    reader = csv.DictReader(wrapper, delimiter=delimiter)
+    if not reader.fieldnames:
+        messages.error(request, 'Não foi possível ler os cabeçalhos do CSV.')
+        return render(request, 'bliss/bliss_import_clientes.html')
+
+    cabecalhos = {h.lower().strip() for h in reader.fieldnames if h}
+    if 'unidade' not in cabecalhos:
+        messages.error(request, 'Coluna UNIDADE não encontrada no CSV.')
+        return render(request, 'bliss/bliss_import_clientes.html')
+
+    tem_bloco   = 'bloco'  in cabecalhos
+    tem_cliente = 'cliente' in cabecalhos
+    tem_email   = 'e-mail' in cabecalhos or 'email' in cabecalhos
+
+    if not tem_cliente and not tem_email:
+        messages.error(request, 'O CSV precisa ter ao menos a coluna CLIENTE ou E-MAIL.')
+        return render(request, 'bliss/bliss_import_clientes.html')
+
+    atualizados = nao_encontrados = sem_mudanca = 0
+    objs = []
+
+    for row in reader:
+        if not any((row or {}).values()):
+            continue
+
+        unidade = (_get_ci(row, 'unidade') or '').strip()
+        if not unidade:
+            continue
+
+        qs = Bliss.objects.filter(unidade=unidade)
+        if tem_bloco:
+            bloco = (_get_ci(row, 'bloco') or '').strip()
+            if bloco:
+                qs = qs.filter(bloco=bloco)
+
+        obj = qs.first()
+        if not obj:
+            nao_encontrados += 1
+            continue
+
+        mudou = False
+        if tem_cliente:
+            novo = _strip_hyperlink(_get_ci(row, 'cliente') or '')
+            if obj.cliente != novo:
+                obj.cliente = novo
+                mudou = True
+        if tem_email:
+            chave_email = 'e-mail' if 'e-mail' in cabecalhos else 'email'
+            novo = _strip_hyperlink(_get_ci(row, chave_email) or '')
+            if obj.email != novo:
+                obj.email = novo
+                mudou = True
+
+        if mudou:
+            objs.append(obj)
+        else:
+            sem_mudanca += 1
+
+    campos = [f for f, ok in [('cliente', tem_cliente), ('email', tem_email)] if ok]
+    if objs:
+        Bliss.objects.bulk_update(objs, campos)
+        atualizados = len(objs)
+
+    messages.success(
+        request,
+        f'Atualizados: {atualizados}. Sem mudança: {sem_mudanca}. Não encontrados: {nao_encontrados}.'
+    )
+    return redirect('bliss_unidades_full')
+
 
 def _build_bliss_resumo_context():
     registros = list(Bliss.objects.all())

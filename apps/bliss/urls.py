@@ -13,6 +13,7 @@ urlpatterns = [
     path('atualizar-situacoes/', views.atualizar_situacoes, name='atualizar_situacoes'),
     path('importar/', views.bliss_import, name='bliss_import'),
     path('atualizacao_mensal/', views.atualizacao_mensal, name='atualizacao_mensal'),
+    path('importar-clientes/', views.bliss_import_clientes, name='bliss_import_clientes'),
     path('bliss_resumo', views.bliss_resumo, name='bliss_resumo'),
     path('bliss_dashboard/', views.bliss_dashboard, name='bliss_dashboard'),
     path('bliss_resumo/pdf/', views.bliss_resumo_pdf, name='bliss_resumo_pdf'),

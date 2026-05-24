@@ -21,6 +21,8 @@
     </form>
     <a class="bliss-menu__item{% if current == 'atualizacao_mensal' %} is-active{% endif %}"
         href="{% url 'atualizacao_mensal' %}">Atualização Mensal</a>
+    <a class="bliss-menu__item{% if current == 'bliss_import_clientes' %} is-active{% endif %}"
+        href="{% url 'bliss_import_clientes' %}">Importar Clientes</a>
     {% else %}
     <a class="bliss-menu__item{% if current == 'bliss_unidades_full' or current == 'bliss_unidades_full' %} is-active{% endif %}"
         href="{% url 'bliss_unidades_full' %}">Relatório</a>
