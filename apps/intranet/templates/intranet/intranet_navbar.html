@@ -93,27 +93,6 @@
                 
 
 
-                {% if show_financeiro_menu %}
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle me-4" href="#" role="button"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                        Financeiro
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><h6 class="dropdown-header">Bliss Living</h6></li>
-                        <li><a class="dropdown-item" href="{% url 'bliss_unidades_full' %}">Relatório</a></li>
-                        <li><a class="dropdown-item" href="{% url 'bliss_resumo' %}">Resumo</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><h6 class="dropdown-header">Cota 365</h6></li>
-                        <li><a class="dropdown-item" href="{% url 'cota365:unidades' %}">Unidades</a></li>
-                        <li><a class="dropdown-item" href="{% url 'cota365:vendas' %}">Unidades Vendidas</a></li>
-                        <li><a class="dropdown-item" href="{% url 'cota365:fluxo' %}">Fluxo Mensal</a></li>
-                        <li><a class="dropdown-item" href="{% url 'cota365:parcelas' %}">Parcelas</a></li>
-                        <li><a class="dropdown-item" href="{% url 'cota365:comissoes_cadastro' %}">Comissões</a></li>
-                    </ul>
-                </li>
-                {% endif %}
-
                 {% if show_gerencial_menu %}
 
                 <li class="nav-item dropdown">
@@ -142,6 +121,27 @@
                             <a class="dropdown-item" href="{{ link.url }}">{{link.name }}</a>
                         </li>
                         {% endfor %}
+                    </ul>
+                </li>
+                {% endif %}
+
+                {% if show_financeiro_menu %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle me-4" href="#" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        Financeiro
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><h6 class="dropdown-header">Bliss Living</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'bliss_unidades_full' %}">Relatório</a></li>
+                        <li><a class="dropdown-item" href="{% url 'bliss_resumo' %}">Resumo</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Cota 365</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'cota365:unidades' %}">Unidades</a></li>
+                        <li><a class="dropdown-item" href="{% url 'cota365:vendas' %}">Unidades Vendidas</a></li>
+                        <li><a class="dropdown-item" href="{% url 'cota365:fluxo' %}">Fluxo Mensal</a></li>
+                        <li><a class="dropdown-item" href="{% url 'cota365:parcelas' %}">Parcelas</a></li>
+                        <li><a class="dropdown-item" href="{% url 'cota365:comissoes_cadastro' %}">Comissões</a></li>
                     </ul>
                 </li>
                 {% endif %}
