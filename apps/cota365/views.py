@@ -528,6 +528,7 @@ def _compute_resumos_tabela():
         sit_vt.get('Permuta',    0.0),
         sit_vt.get('Disponível', 0.0),
         sit_vt.get('Reservada',  0.0),
+        sit_vt.get('Vendida',    0.0),
     )
 
 
@@ -1481,11 +1482,11 @@ def dashboard(request):
     # ── KPIs de contrato via Venda + Tabela ───────────────────────────────────
     resumo_sit, resumo_sit_liquido, resumo_tip, resumo_tip_estoque, \
         preco_medio_tipo, preco_medio_estoque, \
-        vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada = _compute_resumos_tabela()
+        vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada, vgv_vendida = _compute_resumos_tabela()
     area_priv, area_priv_acess, total_priv, area_comum, area_total = _compute_areas()
 
     n_contratos   = Venda.objects.count()
-    total_vendido = vgv_tabela - vgv_disponivel - vgv_reservada - vgv_permuta
+    total_vendido = total_fluxo
     ticket_medio  = total_vendido / n_contratos if n_contratos else 0
     vgv_liquido   = vgv_tabela - vgv_permuta
 
@@ -1550,11 +1551,11 @@ def export_dashboard(request):
     # ── KPIs via Venda + Tabela ───────────────────────────────────────────────
     resumo_sit, resumo_sit_liquido, resumo_tip, resumo_tip_estoque, \
         preco_medio_tipo, preco_medio_estoque, \
-        vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada = _compute_resumos_tabela()
+        vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada, vgv_vendida = _compute_resumos_tabela()
     area_priv, area_priv_acess, total_priv, area_comum, area_total = _compute_areas()
 
     n_contratos   = Venda.objects.count()
-    total_vendido = vgv_tabela - vgv_disponivel - vgv_reservada - vgv_permuta
+    total_vendido = vgv_vendida
     ticket_medio  = total_vendido / n_contratos if n_contratos else 0
 
     buf = io.BytesIO()
