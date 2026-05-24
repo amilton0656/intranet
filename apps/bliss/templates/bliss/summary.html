@@ -1,5 +1,4 @@
 {% extends 'intranet/intranet_base.html' %}
-{% load humanize %}
 {% load custom_filters %}
 {% block title %}Resumo de Situações{% endblock %}
 
@@ -112,14 +111,14 @@
         <tr>
           <td class="text-center">
             {% if item.preco_medio_tipo %}
-            R$ {{ item.preco_medio_tipo|floatformat:2|intcomma }}
+            {{ item.preco_medio_tipo|format_real }}
             {% endif %}
           </td>
           <td>{{ item.quantidade }}</td>
           <td class="text-start">{{ item.tipo }}</td>
-          <td>{{ item.m2|floatformat:2|intcomma }}</td>
-          <td>R$ {{ item.valor_venda|floatformat:2|intcomma }}</td>
-          <td>R$ {{ item.valor_m2|floatformat:2|intcomma }}</td>
+          <td>{{ item.m2|format_number_ptbr }}</td>
+          <td>{{ item.valor_venda|format_real }}</td>
+          <td>{{ item.valor_m2|format_real }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -135,7 +134,7 @@
       <div class="d-flex justify-content-between align-items-baseline">
         <strong class="text-truncate">{{ item.tipo }}</strong>
         {% if item.preco_medio_tipo %}
-        <small class="text-muted">Preço médio: R$ {{ item.preco_medio_tipo|floatformat:2|intcomma }}</small>
+        <small class="text-muted">Preço médio: {{ item.preco_medio_tipo|format_real }}</small>
         {% endif %}
       </div>
 
@@ -146,15 +145,15 @@
         </div>
         <div class="d-flex justify-content-between">
           <span class="text-muted">M² Priv</span>
-          <span>{{ item.m2|floatformat:2|intcomma }}</span>
+          <span>{{ item.m2|format_number_ptbr }}</span>
         </div>
         <div class="d-flex justify-content-between">
           <span class="text-muted">Valor Tabela</span>
-          <span>R$ {{ item.valor_venda|floatformat:2|intcomma }}</span>
+          <span>{{ item.valor_venda|format_real }}</span>
         </div>
         <div class="d-flex justify-content-between">
           <span class="text-muted">R$ do M²</span>
-          <span>R$ {{ item.valor_m2|floatformat:2|intcomma }}</span>
+          <span>{{ item.valor_m2|format_real }}</span>
         </div>
       </div>
     </div>
