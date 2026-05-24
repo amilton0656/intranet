@@ -1662,6 +1662,26 @@ def export_dashboard(request):
     ))
     story.append(Spacer(1, 4))
 
+    desconto_val = total_vendido - total_fluxo
+    desconto_pct = f'{desconto_val / total_vendido * 100:.1f}%' if total_vendido else '0%'
+    story.append(Paragraph('Descontos', sec_s))
+    _dw = (W - 2*cm) / 4
+    desc_table = Table([
+        [th(''), th('VALOR TABELA'), th('VALOR CONTRATO'), th('DESCONTO'), th('% DESCONTO')],
+        [td('Vendidos'), tdrb(_fmt_brl(total_vendido)), tdrb(_fmt_brl(total_fluxo)), tdrb(_fmt_brl(desconto_val)), tdrb(desconto_pct)],
+    ], colWidths=[2*cm, _dw, _dw, _dw, _dw])
+    desc_table.setStyle(TableStyle([
+        ('BACKGROUND',    (0, 0), (-1, 0), colors.HexColor('#1a1a2e')),
+        ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white]),
+        ('GRID',          (0, 0), (-1, -1), 0.4, colors.HexColor('#dee2e6')),
+        ('TOPPADDING',    (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+    ]))
+    story.append(desc_table)
+    story.append(Spacer(1, 6))
+
     story.append(Paragraph('Resumo por Situação (Com permutas)', sec_s))
     sit_header = [[
         th('SITUAÇÃO'), th('VALOR TABELA'), th('% VALOR'),
