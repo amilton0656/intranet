@@ -1,0 +1,74 @@
+{% extends 'intranet/intranet_base.html' %}
+{% block content %}
+<div class="container py-5">
+  <h4 class="mb-4 text-secondary fw-normal">Financeiro</h4>
+  <div class="row g-4">
+
+    <!-- Bliss Living -->
+    <div class="col-12 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header fw-semibold fs-5 border-0" style="background:#f8f4ee;">
+          Bliss Living
+        </div>
+        <div class="card-body d-flex flex-column gap-2 pt-3">
+          <a href="{% url 'bliss_unidades_full' %}" class="fin-link">
+            <span class="fin-link__icon">&#9656;</span> Relatório
+          </a>
+          <a href="{% url 'bliss_resumo' %}" class="fin-link">
+            <span class="fin-link__icon">&#9656;</span> Resumo
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cota 365 -->
+    <div class="col-12 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header fw-semibold fs-5 border-0" style="background:#eef4f8;">
+          Cota 365
+        </div>
+        <div class="card-body d-flex flex-column gap-2 pt-3">
+          <a href="{% url 'cota365:unidades' %}" class="fin-link">
+            <span class="fin-link__icon">&#9656;</span> Unidades
+          </a>
+          <a href="{% url 'cota365:vendas' %}" class="fin-link">
+            <span class="fin-link__icon">&#9656;</span> Unidades Vendidas
+          </a>
+          <a href="{% url 'cota365:fluxo' %}" class="fin-link">
+            <span class="fin-link__icon">&#9656;</span> Fluxo Mensal
+          </a>
+          <a href="{% url 'cota365:parcelas' %}" class="fin-link">
+            <span class="fin-link__icon">&#9656;</span> Parcelas
+          </a>
+          <a href="{% url 'cota365:comissoes_cadastro' %}" class="fin-link">
+            <span class="fin-link__icon">&#9656;</span> Comissões
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+  .fin-link {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    color: #333;
+    text-decoration: none;
+    padding: .45rem .6rem;
+    border-radius: .375rem;
+    transition: background .15s, color .15s;
+    font-size: .95rem;
+  }
+  .fin-link:hover {
+    background: #f0f0f0;
+    color: #000;
+  }
+  .fin-link__icon {
+    color: #bbb;
+    font-size: .7rem;
+  }
+</style>
+{% endblock %}

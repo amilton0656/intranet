@@ -21,6 +21,14 @@ def intranet_home(request):
 
 
 @login_required
+def financeiro_home(request):
+    if not request.user.groups.filter(name__in=['admin', 'financeiro']).exists():
+        messages.error(request, 'Acesso restrito ao grupo Financeiro.')
+        return redirect('intranet_home')
+    return render(request, 'intranet/financeiro_home.html')
+
+
+@login_required
 def upload_pdfs(request):
     if not request.user.groups.filter(name='admin').exists():
         messages.error(request, 'Acesso restrito ao grupo Admin.')

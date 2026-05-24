@@ -93,6 +93,12 @@
                 
 
 
+                {% if show_financeiro_menu %}
+                <li class="nav-item">
+                    <a class="nav-link me-4" href="{% url 'financeiro_home' %}">Financeiro</a>
+                </li>
+                {% endif %}
+
                 {% if show_gerencial_menu %}
 
                 <li class="nav-item dropdown">
