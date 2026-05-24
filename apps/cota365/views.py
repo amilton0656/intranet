@@ -1,14 +1,21 @@
 import csv
+import hashlib
 import io
 import json
+import logging
 import re
 from datetime import datetime, date
+
+logger = logging.getLogger(__name__)
 from collections import defaultdict, OrderedDict
 
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import F, Sum, Count, Q
+from django.db.models.functions import ExtractYear, ExtractMonth
 
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -50,6 +57,33 @@ def _parse_date(s):
     return None
 
 
+def _require_float(s, campo, linha, erros):
+    """Como _parse_float, mas registra erro se a string não é vazia e falha no parse."""
+    if not s or s.strip() in ('', '-', '—'):
+        return 0.0
+    cleaned = s.strip().replace('.', '').replace(',', '.')
+    try:
+        return float(cleaned)
+    except ValueError:
+        erros.append(f'Linha {linha}: "{campo}" com valor inválido → {s!r}')
+        return 0.0
+
+
+def _require_date(s, campo, linha, erros):
+    """Como _parse_date, mas registra erro se a string não é vazia e falha no parse."""
+    result = _parse_date(s)
+    if s and s.strip() and result is None:
+        erros.append(f'Linha {linha}: "{campo}" com data inválida → {s!r}')
+    return result
+
+
+def _erros_msg(erros):
+    msg = f'{len(erros)} erro(s) de parse encontrado(s):\n' + '\n'.join(erros[:10])
+    if len(erros) > 10:
+        msg += f'\n...e mais {len(erros) - 10} erro(s).'
+    return msg
+
+
 def _fmt_brl(value):
     if value == 0:
         return 'R$ 0,00'
@@ -86,6 +120,21 @@ def _fmt_m2(value):
         return '0,00 m²'
     formatted = f'{value:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
     return f'{formatted} m²'
+
+
+def _file_sha256(file_obj):
+    """Calcula SHA-256 do arquivo e devolve o ponteiro ao início."""
+    file_obj.seek(0)
+    digest = hashlib.sha256(file_obj.read()).hexdigest()
+    file_obj.seek(0)
+    return digest
+
+
+def _xlsx_val(val):
+    """Previne injeção de fórmula Excel: strings iniciadas com = + - @ são prefixadas com '."""
+    if isinstance(val, str) and val and val[0] in ('=', '+', '-', '@', '\t', '\r'):
+        return "'" + val
+    return val
 
 
 def _add_months(dt, n):
@@ -557,15 +606,16 @@ def _col(*names):
 
 
 @transaction.atomic
-def _import_tabela(file_obj, nome):
+def _import_tabela(file_obj, nome, sha256=''):
     f = _open_csv(file_obj)
     objs = []
+    erros = []
     get_unidade  = _col('UNIDADE')
     get_tipo     = _col('TIPOLOGIA')
     get_sit      = _col('SITUAÇÃO', 'SITUACAO', 'Situação', 'Situacao')
     get_area     = _col('ÁREA PRIVATIVA', 'AREA PRIVATIVA', 'Área Privativa', 'Area Privativa')
     get_valor    = _col('VALOR TOTAL', 'Valor Total')
-    for r in csv.DictReader(f, delimiter=';'):
+    for linha, r in enumerate(csv.DictReader(f, delimiter=';'), start=2):
         u = get_unidade(r).strip()
         if not u:
             continue
@@ -574,19 +624,21 @@ def _import_tabela(file_obj, nome):
             tipologia      = get_tipo(r).strip(),
             situacao       = get_sit(r).strip(),
             area_privativa = _parse_tabela_m2(get_area(r)),
-            valor_total    = _parse_tabela_brl(get_valor(r)),
+            valor_total    = _require_float(get_valor(r).replace('R$', ''), 'VALOR TOTAL', linha, erros),
         ))
     if not objs:
         raise ValueError('Nenhuma linha válida encontrada. Verifique o delimitador (;) e o cabeçalho.')
+    if erros:
+        raise ValueError(_erros_msg(erros))
     Tabela.objects.all().delete()
     Tabela.objects.bulk_create(objs)
-    ImportLog.objects.create(tipo='tabela', total_registros=len(objs), nome_arquivo=nome)
+    ImportLog.objects.create(tipo='tabela', total_registros=len(objs), nome_arquivo=nome, sha256=sha256)
     vgv = sum(o.valor_total for o in objs)
     return len(objs), {'VGV total': _fmt_brl(vgv)}
 
 
 @transaction.atomic
-def _import_permutas(file_obj, nome):
+def _import_permutas(file_obj, nome, sha256=''):
     f = _open_csv(file_obj)
     unidades = []
     for row in csv.reader(f):
@@ -597,12 +649,12 @@ def _import_permutas(file_obj, nome):
         raise ValueError('Arquivo vazio ou sem unidades válidas.')
     Permuta.objects.all().delete()
     Permuta.objects.bulk_create([Permuta(unidade=u) for u in unidades])
-    ImportLog.objects.create(tipo='permutas', total_registros=len(unidades), nome_arquivo=nome)
+    ImportLog.objects.create(tipo='permutas', total_registros=len(unidades), nome_arquivo=nome, sha256=sha256)
     return len(unidades), {}
 
 
 @transaction.atomic
-def _import_vinculos(file_obj, nome):
+def _import_vinculos(file_obj, nome, sha256=''):
     f = _open_csv(file_obj)
     objs = []
     for r in csv.DictReader(f, delimiter=';'):
@@ -617,12 +669,12 @@ def _import_vinculos(file_obj, nome):
         raise ValueError('Nenhuma linha válida encontrada.')
     Vinculo.objects.all().delete()
     Vinculo.objects.bulk_create(objs)
-    ImportLog.objects.create(tipo='vinculo', total_registros=len(objs), nome_arquivo=nome)
+    ImportLog.objects.create(tipo='vinculo', total_registros=len(objs), nome_arquivo=nome, sha256=sha256)
     return len(objs), {}
 
 
 @transaction.atomic
-def _import_vendas(file_obj, nome):
+def _import_vendas(file_obj, nome, sha256=''):
     f = _open_csv(file_obj)
     objs = []
     get_sit     = _col('Situação', 'Situacao', 'SITUAÇÃO')
@@ -659,29 +711,31 @@ def _import_vendas(file_obj, nome):
         raise ValueError('Nenhuma reserva válida encontrada.')
     Venda.objects.all().delete()
     Venda.objects.bulk_create(objs)
-    ImportLog.objects.create(tipo='vendas', total_registros=len(objs), nome_arquivo=nome)
+    ImportLog.objects.create(tipo='vendas', total_registros=len(objs), nome_arquivo=nome, sha256=sha256)
     return len(objs), {}
 
 
 @transaction.atomic
-def _import_fluxo(file_obj, nome):
+def _import_fluxo(file_obj, nome, sha256=''):
     f = _open_csv(file_obj)
     get_empr  = _col('Empreendimento', 'EMPREENDIMENTO')
     get_imob  = _col('Imobiliária', 'Imobiliaria', 'Imob. Coordenação', 'IMOBILIÁRIA')
     get_corr  = _col('Corretor', 'CORRETOR')
     get_ult   = _col('Última parcela', 'Ultima parcela', 'ÚLTIMA PARCELA')
     contratos = []
-    for row in csv.DictReader(f, delimiter=';'):
-        primeira = _parse_date(row.get('Primeira parcela', ''))
+    erros = []
+    for linha, row in enumerate(csv.DictReader(f, delimiter=';'), start=2):
+        primeira_raw = row.get('Primeira parcela', '')
+        primeira = _require_date(primeira_raw, 'Primeira parcela', linha, erros)
         if not primeira:
             continue
-        ultima_dt = _parse_date(get_ult(row))
+        ultima_dt = _require_date(get_ult(row), 'Última parcela', linha, erros)
         c = FluxoContrato(
             id_contrato      = row.get('Id.', '').strip(),
             cliente          = row.get('Cliente', '').strip(),
             unidade          = row.get('Unidade', '').strip(),
             empreendimento   = get_empr(row).strip(),
-            vgv              = _parse_float(row.get('VGV', '0')),
+            vgv              = _require_float(row.get('VGV', ''), 'VGV', linha, erros),
             pv               = _parse_float(row.get('PV', '0')),
             primeira_parcela = date(primeira.year, primeira.month, primeira.day),
             ultima_parcela   = date(ultima_dt.year, ultima_dt.month, ultima_dt.day)
@@ -693,6 +747,8 @@ def _import_fluxo(file_obj, nome):
         contratos.append((c, monthly_raw))
     if not contratos:
         raise ValueError('Nenhum contrato com data de primeira parcela encontrado.')
+    if erros:
+        raise ValueError(_erros_msg(erros))
     FluxoContrato.objects.all().delete()
     saved = FluxoContrato.objects.bulk_create([c for c, _ in contratos])
     parcelas_bulk = []
@@ -701,13 +757,13 @@ def _import_fluxo(file_obj, nome):
             if val:
                 parcelas_bulk.append(FluxoParcela(contrato=contrato_obj, mes_idx=i, valor=val))
     FluxoParcela.objects.bulk_create(parcelas_bulk)
-    ImportLog.objects.create(tipo='fluxo', total_registros=len(saved), nome_arquivo=nome)
+    ImportLog.objects.create(tipo='fluxo', total_registros=len(saved), nome_arquivo=nome, sha256=sha256)
     vgv = sum(c.vgv for c, _ in contratos)
     return len(saved), {'VGV total': _fmt_brl(vgv), 'Parcelas': len(parcelas_bulk)}
 
 
 @transaction.atomic
-def _import_unidades(file_obj, nome):
+def _import_unidades(file_obj, nome, sha256=''):
     f = _open_csv(file_obj)
     get_ap  = _col('Area Privativa', 'Área Privativa', 'ÁREA PRIVATIVA', 'AREA PRIVATIVA')
     get_apa = _col('Area Priv. Acessoria', 'Área Priv. Acessoria', 'Area Priv Acessoria')
@@ -731,17 +787,20 @@ def _import_unidades(file_obj, nome):
         raise ValueError('Nenhuma unidade válida encontrada.')
     Unidade.objects.all().delete()
     Unidade.objects.bulk_create(objs)
-    ImportLog.objects.create(tipo='unidades', total_registros=len(objs), nome_arquivo=nome)
+    ImportLog.objects.create(tipo='unidades', total_registros=len(objs), nome_arquivo=nome, sha256=sha256)
     area = sum(o.area_privativa for o in objs)
     return len(objs), {'Área privativa total': _fmt_m2(area)}
 
 
-def _import_comissoes(f, nome):
-    def _brl(s):
+def _import_comissoes(f, nome, sha256=''):
+    def _brl(s, campo, linha, erros):
         s = str(s).strip().strip('"').replace('.', '').replace(',', '.')
+        if not s:
+            return 0.0
         try:
             return float(s)
         except ValueError:
+            erros.append(f'Linha {linha}: "{campo}" com valor inválido → {s!r}')
             return 0.0
 
     def _col(row, *keys):
@@ -761,32 +820,41 @@ def _import_comissoes(f, nome):
 
     reader = csv.DictReader(raw.splitlines(), delimiter=';')
 
+    # --- Fase 1: parse sem tocar no banco ---
+    erros = []
+    parsed = []
+    for linha, row in enumerate(reader, start=2):
+        num = _col(row, 'Número', 'NÃºmero', 'Numero')
+        if not num or not num.isdigit():
+            continue
+
+        beneficiario  = _col(row, 'Beneficiário', 'BeneficiÃ¡rio')
+        tipo_comissao = _col(row, 'Tipo da comissão', 'Tipo da comissÃ£o')
+
+        dados = {
+            'reserva':              _col(row, 'Reserva'),
+            'corretor':             _col(row, 'Corretor'),
+            'imobiliaria':          _col(row, 'Imobiliária', 'ImobiliÃ¡ria'),
+            'unidade':              _col(row, 'Unidade'),
+            'cliente':              _col(row, 'Cliente'),
+            'valor_contrato':       _brl(_col(row, 'Valor do contrato'), 'Valor do contrato', linha, erros),
+            'valor_comissao_pagar': _brl(_col(row, 'Valor Comissão a pagar', 'Valor ComissÃ£o a pagar'), 'Valor Comissão a pagar', linha, erros),
+            'valor_comissao':       _brl(_col(row, 'Valor da Comissão do Beneficiário', 'Valor da ComissÃ£o do BeneficiÃ¡rio'), 'Valor da Comissão', linha, erros),
+            'pct_comissao':         _brl(_col(row, 'Porcentagem da Comissão do Beneficiário', 'Porcentagem da ComissÃ£o do BeneficiÃ¡rio'), 'Porcentagem da Comissão', linha, erros),
+        }
+        parsed.append((num, beneficiario, tipo_comissao, dados))
+
+    if not parsed:
+        raise ValueError('Nenhuma comissão válida encontrada.')
+    if erros:
+        raise ValueError(_erros_msg(erros))
+
+    # --- Fase 2: persistência ---
     csv_keys = set()
     count = 0
     with transaction.atomic():
-        for row in reader:
-            num = _col(row, 'Número', 'NÃºmero', 'Numero')
-            if not num or not num.isdigit():
-                continue
-
-            beneficiario  = _col(row, 'Beneficiário', 'BeneficiÃ¡rio')
-            tipo_comissao = _col(row, 'Tipo da comissão', 'Tipo da comissÃ£o')
+        for num, beneficiario, tipo_comissao, dados in parsed:
             csv_keys.add((num, beneficiario, tipo_comissao))
-
-            dados = {
-                'reserva':              _col(row, 'Reserva'),
-                'corretor':             _col(row, 'Corretor'),
-                'imobiliaria':          _col(row, 'Imobiliária', 'ImobiliÃ¡ria'),
-                'unidade':              _col(row, 'Unidade'),
-                'cliente':              _col(row, 'Cliente'),
-                'valor_contrato':       _brl(_col(row, 'Valor do contrato')),
-                'valor_comissao_pagar': _brl(_col(row, 'Valor Comissão a pagar', 'Valor ComissÃ£o a pagar')),
-                'valor_comissao':       _brl(_col(row, 'Valor da Comissão do Beneficiário',
-                                                   'Valor da ComissÃ£o do BeneficiÃ¡rio')),
-                'pct_comissao':         _brl(_col(row, 'Porcentagem da Comissão do Beneficiário',
-                                                  'Porcentagem da ComissÃ£o do BeneficiÃ¡rio')),
-            }
-
             try:
                 obj = Comissao.objects.get(
                     numero=num, beneficiario=beneficiario, tipo_comissao=tipo_comissao)
@@ -813,6 +881,8 @@ def _import_comissoes(f, nome):
         ]
         if pks_deletar:
             Comissao.objects.filter(pk__in=pks_deletar).delete()
+
+        ImportLog.objects.create(tipo='comissoes', total_registros=count, nome_arquivo=nome, sha256=sha256)
 
     total = sum(c.valor_comissao for c in Comissao.objects.all())
     return count, {'Valor total comissões': _fmt_brl(total)}
@@ -874,55 +944,61 @@ def _read_csv_text(file_obj):
 
 
 @transaction.atomic
-def _import_a_receber(file_obj, nome):
+def _import_a_receber(file_obj, nome, sha256=''):
     reader = csv.DictReader(io.StringIO(_read_csv_text(file_obj)), delimiter=';')
     objs = []
-    for row in reader:
+    erros = []
+    for linha, row in enumerate(reader, start=2):
         titulo = (row.get('nuTitulo') or '').strip()
         if not titulo:
             continue
-        vencimento = _parse_date(row.get('dtVencto') or '')
+        vencimento = _require_date(row.get('dtVencto') or '', 'dtVencto', linha, erros)
         objs.append(Parcela(
             titulo=titulo,
             parcela=(row.get('nuParcelaApresentacao') or '').strip(),
             tipo=(row.get('cdTipoCondicao') or '').strip(),
             vencimento=vencimento.date() if vencimento else None,
             data_pagamento=None,
-            valor=_parse_float(row.get('vlOriginal') or ''),
+            valor=_require_float(row.get('vlOriginal') or '', 'vlOriginal', linha, erros),
             cliente=(row.get('nmCliente') or '').strip(),
         ))
     if not objs:
         raise ValueError('Nenhuma linha válida encontrada.')
+    if erros:
+        raise ValueError(_erros_msg(erros))
     Parcela.objects.filter(data_pagamento__isnull=True).delete()
     Parcela.objects.bulk_create(objs)
-    ImportLog.objects.create(tipo='a_receber', total_registros=len(objs), nome_arquivo=nome)
+    ImportLog.objects.create(tipo='a_receber', total_registros=len(objs), nome_arquivo=nome, sha256=sha256)
     return len(objs), {'Total': _fmt_brl(sum(o.valor for o in objs))}
 
 
 @transaction.atomic
-def _import_recebidas(file_obj, nome):
+def _import_recebidas(file_obj, nome, sha256=''):
     reader = csv.DictReader(io.StringIO(_read_csv_text(file_obj)), delimiter=';')
     objs = []
-    for row in reader:
+    erros = []
+    for linha, row in enumerate(reader, start=2):
         titulo = (row.get('NumeroDoTitulo') or '').strip()
         if not titulo:
             continue
-        vencimento     = _parse_date(row.get('DataDeVencimento') or '')
-        data_pagamento = _parse_date(row.get('DataDaBaixa') or '')
+        vencimento     = _require_date(row.get('DataDeVencimento') or '', 'DataDeVencimento', linha, erros)
+        data_pagamento = _require_date(row.get('DataDaBaixa') or '', 'DataDaBaixa', linha, erros)
         objs.append(Parcela(
             titulo=titulo,
             parcela=(row.get('NumeroDaParcela') or '').strip(),
             tipo=(row.get('CodigoDoTipoDeCondicao') or '').strip(),
             vencimento=vencimento.date() if vencimento else None,
             data_pagamento=data_pagamento.date() if data_pagamento else None,
-            valor=_parse_float(row.get('ValorDaBaixa') or ''),
+            valor=_require_float(row.get('ValorDaBaixa') or '', 'ValorDaBaixa', linha, erros),
             cliente=(row.get('NomeDoCliente') or '').strip(),
         ))
     if not objs:
         raise ValueError('Nenhuma linha válida encontrada.')
+    if erros:
+        raise ValueError(_erros_msg(erros))
     Parcela.objects.filter(data_pagamento__isnull=False).delete()
     Parcela.objects.bulk_create(objs)
-    ImportLog.objects.create(tipo='recebidas', total_registros=len(objs), nome_arquivo=nome)
+    ImportLog.objects.create(tipo='recebidas', total_registros=len(objs), nome_arquivo=nome, sha256=sha256)
     return len(objs), {'Total': _fmt_brl(sum(o.valor for o in objs))}
 
 
@@ -1017,10 +1093,27 @@ def comissoes_cadastro(request):
             'total_json':         _fmt_brl(total_comissao),
         })
 
-    lista.sort(key=lambda x: x['unidade'])
+    sort     = request.GET.get('sort', 'unidade')
+    sort_dir = request.GET.get('dir', 'asc')
+    _SORT_KEYS = {
+        'unidade':     lambda x: (x['unidade'] or '').lower(),
+        'reserva':     lambda x: (x['reserva'] or '').lower(),
+        'cliente':     lambda x: (x['cliente'] or '').lower(),
+        'imobiliaria': lambda x: (x['imobiliaria'] or '').lower(),
+    }
+    lista.sort(key=_SORT_KEYS.get(sort, _SORT_KEYS['unidade']), reverse=(sort_dir == 'desc'))
+
     return render(request, 'cota365/comissoes_cadastro.html', {
-        'lista':   lista,
-        'total_n': len(lista),
+        'lista':      lista,
+        'total_n':    len(lista),
+        'sort':       sort,
+        'sort_dir':   sort_dir,
+        'sort_colums': [
+            ('unidade',     'Unidade'),
+            ('reserva',     'Reserva'),
+            ('cliente',     'Cliente'),
+            ('imobiliaria', 'Imobiliária'),
+        ],
     })
 
 
@@ -1170,6 +1263,9 @@ def export_cadastro_pdf(request):
 
 
 def comissoes(request):
+    sort     = request.GET.get('sort', 'unidade')
+    sort_dir = request.GET.get('dir', 'asc')
+
     qs = list(Comissao.objects.all())
 
     # KPIs — valor_contrato é o mesmo para todos os beneficiários da mesma reserva
@@ -1226,17 +1322,42 @@ def comissoes(request):
         'pct_comissao':       f"{c.pct_comissao:.2f}%".replace('.', ','),
         'valor_comissao_fmt': _fmt_brl(c.valor_comissao),
         'valor_pagar_fmt':    _fmt_brl(c.valor_comissao_pagar),
-    } for c in sorted(qs, key=lambda x: (x.unidade, x.beneficiario.lower()))]
+    } for c in qs]
+
+    _SORT_KEYS = {
+        'unidade':     lambda x: (x['unidade'] or '').lower(),
+        'reserva':     lambda x: (x['reserva'] or '').lower(),
+        'cliente':     lambda x: (x['cliente'] or '').lower(),
+        'imobiliaria': lambda x: (x['imobiliaria'] or '').lower(),
+    }
+    lista.sort(key=_SORT_KEYS.get(sort, _SORT_KEYS['unidade']), reverse=(sort_dir == 'desc'))
+
+    paginator_lista = Paginator(lista, 50)
+    page_lista      = paginator_lista.get_page(request.GET.get('page', 1))
+
+    params = request.GET.copy()
+    params.pop('page', None)
+    query_string = params.urlencode()
 
     context = {
         'total_n':            total_vendas,
-        'total_linhas':       len(qs),
+        'total_linhas':       len(lista),
         'total_contrato_fmt': _fmt_brl(total_contrato),
         'total_comissao_fmt': _fmt_brl(total_comissao),
         'total_pagar_fmt':    _fmt_brl(total_pagar),
         'resumo_imob':        resumo_imob,
         'resumo_benef':       resumo_benef,
-        'lista':              lista,
+        'lista':              page_lista,
+        'page_lista':         page_lista,
+        'sort':               sort,
+        'sort_dir':           sort_dir,
+        'query_string':       query_string,
+        'sort_colums': [
+            ('unidade',     'Unidade'),
+            ('reserva',     'Reserva'),
+            ('cliente',     'Cliente'),
+            ('imobiliaria', 'Imobiliária'),
+        ],
     }
     return render(request, 'cota365/comissoes.html', context)
 
@@ -1252,13 +1373,17 @@ def importar(request):
             messages.error(request, 'Nenhum arquivo selecionado.')
             return redirect('cota365:importar')
         try:
-            n, stats = _IMPORTERS[tipo](arquivo, arquivo.name)
+            sha256 = _file_sha256(arquivo)
+            n, stats = _IMPORTERS[tipo](arquivo, arquivo.name, sha256)
             extras = '  |  '.join(f'{k}: {v}' for k, v in stats.items())
             msg = f'{_LABELS[tipo]} importado — {n} registros.'
             if extras:
                 msg += f'  ({extras})'
             messages.success(request, msg)
+            logger.info('cota365 import ok | tipo=%s arquivo=%s sha256=%s registros=%d',
+                        tipo, arquivo.name, sha256, n)
         except Exception as e:
+            logger.exception('cota365 import erro | tipo=%s arquivo=%s', tipo, arquivo.name)
             messages.error(request, f'Erro ao importar {_LABELS[tipo]}: {e}')
         return redirect('cota365:importar')
 
@@ -1306,16 +1431,20 @@ def index(request):
 
 def dashboard(request):
     # ── Fluxo mensal via Parcela ──────────────────────────────────────────────
-    monthly_rec  = defaultdict(float)
-    monthly_pend = defaultdict(float)
-    for p in Parcela.objects.all():
-        if not p.vencimento:
-            continue
-        key = (p.vencimento.year, p.vencimento.month)
-        if p.data_pagamento:
-            monthly_rec[key]  += p.valor
-        else:
-            monthly_pend[key] += p.valor
+    monthly_rec  = {}
+    monthly_pend = {}
+    for r in (Parcela.objects
+              .filter(vencimento__isnull=False)
+              .annotate(ano=ExtractYear('vencimento'), mes=ExtractMonth('vencimento'))
+              .values('ano', 'mes')
+              .annotate(
+                  rec=Sum('valor', filter=Q(data_pagamento__isnull=False)),
+                  pend=Sum('valor', filter=Q(data_pagamento__isnull=True)),
+              )
+              .order_by('ano', 'mes')):
+        key = (r['ano'], r['mes'])
+        monthly_rec[key]  = r['rec']  or 0.0
+        monthly_pend[key] = r['pend'] or 0.0
 
     all_keys    = sorted(set(monthly_rec) | set(monthly_pend))
     total_fluxo = sum(monthly_rec[k] + monthly_pend[k] for k in all_keys)
@@ -1799,6 +1928,9 @@ def export_unidades(request):
 
 
 def vendas(request):
+    sort     = request.GET.get('sort', 'cliente')
+    sort_dir = request.GET.get('dir', 'asc')
+
     vendas_rows = _load_vendas()
     fluxo_rows  = _load_fluxo()
     fluxo_by_id = {r['id']: r for r in fluxo_rows}
@@ -1807,28 +1939,41 @@ def vendas(request):
     contracts = []
     total_geral = 0.0
     for v in vendas_rows:
-        f = fluxo_by_id.get(v['numero'], {})
+        f    = fluxo_by_id.get(v['numero'], {})
         valor = f.get('vgv', 0) or f.get('pv', 0)
-        status = 'VENDIDO' if 'Vend' in v['situacao'] else v['situacao'].upper()
-        vinc = vinculos.get(v['unidade'], {})
+        vinc  = vinculos.get(v['unidade'], {})
         contracts.append({
-            'numero':        f"#{v['numero']}",
-            'cliente':       v['cliente'],
-            'empreendimento': f.get('empreendimento', 'Cota 365'),
-            'unidade':       v['unidade'],
-            'status':        status,
-            'valor':         valor,
-            'valor_fmt':     _fmt_brl(valor),
-            'garagens':      vinc.get('garagens', ''),
-            'hb':            vinc.get('hb', ''),
+            'numero':    f"#{v['numero']}",
+            'cliente':   v['cliente'],
+            'unidade':   v['unidade'],
+            'valor':     valor,
+            'valor_fmt': _fmt_brl(valor),
+            'garagens':  vinc.get('garagens', ''),
+            'hb':        vinc.get('hb', ''),
         })
         total_geral += valor
 
-    contracts.sort(key=lambda x: x['cliente'])
+    _SORT_KEYS = {
+        'numero':   lambda x: int(x['numero'].lstrip('#')) if x['numero'].lstrip('#').isdigit() else 0,
+        'cliente':  lambda x: x['cliente'].lower(),
+        'unidade':  lambda x: x['unidade'],
+        'garagens': lambda x: x['garagens'],
+        'hb':       lambda x: x['hb'],
+    }
+    contracts.sort(key=_SORT_KEYS.get(sort, _SORT_KEYS['cliente']), reverse=(sort_dir == 'desc'))
     context = {
         'contracts':   contracts,
         'total_geral': _fmt_brl(total_geral),
         'n_contratos': len(contracts),
+        'sort':        sort,
+        'sort_dir':    sort_dir,
+        'colums': [
+            ('numero',   'Nº'),
+            ('cliente',  'CLIENTE'),
+            ('unidade',  'UNIDADE'),
+            ('garagens', 'GARAGENS'),
+            ('hb',       'HB'),
+        ],
     }
     return render(request, 'cota365/vendas.html', context)
 
@@ -1838,19 +1983,29 @@ def fluxo_mensal(request):
     TIPO_LABELS = {'AT': 'Ato', 'PM': 'Mensais', 'RA': 'Ref. Anuais',
                    'PE': 'Permuta', 'CH': 'Chaves'}
 
-    monthly       = defaultdict(lambda: defaultdict(float))
-    monthly_rec   = defaultdict(float)
-    monthly_pend  = defaultdict(float)
+    _base = Parcela.objects.filter(vencimento__isnull=False)
 
-    for p in Parcela.objects.all():
-        if not p.vencimento:
-            continue
-        key = (p.vencimento.year, p.vencimento.month)
-        monthly[key][p.tipo] += p.valor
-        if p.data_pagamento:
-            monthly_rec[key] += p.valor
-        else:
-            monthly_pend[key] += p.valor
+    monthly = defaultdict(lambda: defaultdict(float))
+    for r in (_base
+              .annotate(ano=ExtractYear('vencimento'), mes=ExtractMonth('vencimento'))
+              .values('ano', 'mes', 'tipo')
+              .annotate(total=Sum('valor'))
+              .order_by('ano', 'mes')):
+        monthly[(r['ano'], r['mes'])][r['tipo']] = r['total'] or 0.0
+
+    monthly_rec  = {}
+    monthly_pend = {}
+    for r in (_base
+              .annotate(ano=ExtractYear('vencimento'), mes=ExtractMonth('vencimento'))
+              .values('ano', 'mes')
+              .annotate(
+                  rec=Sum('valor', filter=Q(data_pagamento__isnull=False)),
+                  pend=Sum('valor', filter=Q(data_pagamento__isnull=True)),
+              )
+              .order_by('ano', 'mes')):
+        key = (r['ano'], r['mes'])
+        monthly_rec[key]  = r['rec']  or 0.0
+        monthly_pend[key] = r['pend'] or 0.0
 
     totals        = defaultdict(float)
     total_rec     = 0.0
@@ -1864,8 +2019,8 @@ def fluxo_mensal(request):
         pe = td.get('PE', 0); ch = td.get('CH', 0); fi = td.get('FI', 0)
         poupanca  = at + pm + ra + pe + ch
         row_total = poupanca + fi
-        rec   = monthly_rec[key]
-        pend  = monthly_pend[key]
+        rec   = monthly_rec.get(key, 0.0)
+        pend  = monthly_pend.get(key, 0.0)
         for t, v in (('AT', at), ('PM', pm), ('RA', ra), ('PE', pe), ('CH', ch), ('FI', fi)):
             totals[t] += v
         totals['poupanca'] += poupanca
@@ -1916,6 +2071,8 @@ def parcelas_view(request):
     tipo_filtro   = request.GET.get('tipo', '')
     status_filtro = request.GET.get('status', '')
     q             = request.GET.get('q', '').strip()
+    sort          = request.GET.get('sort', 'vencimento')
+    sort_dir      = request.GET.get('dir', 'asc')
 
     qs = Parcela.objects.all()
     if tipo_filtro:
@@ -1929,13 +2086,29 @@ def parcelas_view(request):
         if tipo_filtro:
             qs = qs.filter(tipo=tipo_filtro)
 
-    parcelas = list(qs.order_by('vencimento', 'titulo'))
-
-    total_geral   = sum(p.valor for p in parcelas)
-    total_pago    = sum(p.valor for p in parcelas if p.data_pagamento)
-    total_pendente = sum(p.valor for p in parcelas if not p.data_pagamento)
-    n_pagas       = sum(1 for p in parcelas if p.data_pagamento)
-    n_pendentes   = sum(1 for p in parcelas if not p.data_pagamento)
+    _agg = qs.aggregate(
+        total_geral=Sum('valor'),
+        total_pago=Sum('valor', filter=Q(data_pagamento__isnull=False)),
+        total_pendente=Sum('valor', filter=Q(data_pagamento__isnull=True)),
+        n_pagas=Count('id', filter=Q(data_pagamento__isnull=False)),
+        n_pendentes=Count('id', filter=Q(data_pagamento__isnull=True)),
+    )
+    total_geral    = _agg['total_geral']    or 0.0
+    total_pago     = _agg['total_pago']     or 0.0
+    total_pendente = _agg['total_pendente'] or 0.0
+    n_pagas        = _agg['n_pagas']        or 0
+    n_pendentes    = _agg['n_pendentes']    or 0
+    _ORM_FIELD = {
+        'titulo':     'titulo',
+        'tipo':       'tipo',
+        'vencimento': 'vencimento',
+        'pagamento':  'data_pagamento',
+        'cliente':    'cliente',
+    }
+    _field = _ORM_FIELD.get(sort, 'vencimento')
+    _order = F(_field).desc(nulls_last=True) if sort_dir == 'desc' else F(_field).asc(nulls_last=True)
+    paginator = Paginator(qs.order_by(_order), 50)
+    page_obj  = paginator.get_page(request.GET.get('page', 1))
 
     def fmt_date(d):
         return d.strftime('%d/%m/%Y') if d else ''
@@ -1951,11 +2124,16 @@ def parcelas_view(request):
             'cliente':        p.cliente,
             'pago':           bool(p.data_pagamento),
         }
-        for p in parcelas
+        for p in page_obj
     ]
+
+    qd = request.GET.copy()
+    qd.pop('page', None)
 
     context = {
         'rows':           rows,
+        'page_obj':       page_obj,
+        'query_string':   qd.urlencode(),
         'tipos':          TIPOS,
         'tipo_filtro':    tipo_filtro,
         'status_filtro':  status_filtro,
@@ -1965,7 +2143,9 @@ def parcelas_view(request):
         'total_pendente': _fmt_brl(total_pendente),
         'n_pagas':        n_pagas,
         'n_pendentes':    n_pendentes,
-        'n_total':        len(parcelas),
+        'n_total':        paginator.count,
+        'sort':           sort,
+        'sort_dir':       sort_dir,
     }
     return render(request, 'cota365/parcelas.html', context)
 
@@ -2009,18 +2189,29 @@ def export_vendas(request):
 def export_fluxo(request):
     fmt = request.GET.get('format', 'xlsx')
 
-    monthly      = defaultdict(lambda: defaultdict(float))
-    monthly_rec  = defaultdict(float)
-    monthly_pend = defaultdict(float)
-    for p in Parcela.objects.all():
-        if not p.vencimento:
-            continue
-        key = (p.vencimento.year, p.vencimento.month)
-        monthly[key][p.tipo] += p.valor
-        if p.data_pagamento:
-            monthly_rec[key]  += p.valor
-        else:
-            monthly_pend[key] += p.valor
+    _base = Parcela.objects.filter(vencimento__isnull=False)
+
+    monthly = defaultdict(lambda: defaultdict(float))
+    for r in (_base
+              .annotate(ano=ExtractYear('vencimento'), mes=ExtractMonth('vencimento'))
+              .values('ano', 'mes', 'tipo')
+              .annotate(total=Sum('valor'))
+              .order_by('ano', 'mes')):
+        monthly[(r['ano'], r['mes'])][r['tipo']] = r['total'] or 0.0
+
+    monthly_rec  = {}
+    monthly_pend = {}
+    for r in (_base
+              .annotate(ano=ExtractYear('vencimento'), mes=ExtractMonth('vencimento'))
+              .values('ano', 'mes')
+              .annotate(
+                  rec=Sum('valor', filter=Q(data_pagamento__isnull=False)),
+                  pend=Sum('valor', filter=Q(data_pagamento__isnull=True)),
+              )
+              .order_by('ano', 'mes')):
+        key = (r['ano'], r['mes'])
+        monthly_rec[key]  = r['rec']  or 0.0
+        monthly_pend[key] = r['pend'] or 0.0
 
     totals     = defaultdict(float)
     total_rec  = 0.0
@@ -2033,8 +2224,8 @@ def export_fluxo(request):
         pe = td.get('PE', 0); ch = td.get('CH', 0); fi = td.get('FI', 0)
         poupanca  = at + pm + ra + pe + ch
         row_total = poupanca + fi
-        rec   = monthly_rec[key]
-        pend  = monthly_pend[key]
+        rec   = monthly_rec.get(key, 0.0)
+        pend  = monthly_pend.get(key, 0.0)
         for t, v in (('AT', at), ('PM', pm), ('RA', ra), ('PE', pe),
                      ('CH', ch), ('FI', fi), ('poupanca', poupanca)):
             totals[t] += v
@@ -2103,7 +2294,7 @@ def _export_unidades_xlsx(headers, rows, price_cols):
         r = 4 + i
         fill = _ALT_FILL if i % 2 == 0 else PatternFill()
         for col, val in enumerate(row, 1):
-            cell = ws.cell(row=r, column=col, value=val)
+            cell = ws.cell(row=r, column=col, value=_xlsx_val(val))
             cell.border = _thin_border()
             if col - 1 in price_cols and val not in ('', 0, None):
                 cell.number_format = '"R$ "#,##0.00'
@@ -2222,7 +2413,7 @@ def _export_vendas_xlsx(contracts, total_geral):
         data = [c['numero'], c['cliente'], c['empreendimento'], c['unidade'],
                 c['garagens'], c['hb'], c['status'], c['valor']]
         for col, val in enumerate(data, 1):
-            cell = ws.cell(row=row, column=col, value=val)
+            cell = ws.cell(row=row, column=col, value=_xlsx_val(val))
             cell.border = _thin_border()
             if col not in (7, 8): cell.fill = fill
             if col == 8:
@@ -2281,7 +2472,7 @@ def _export_fluxo_xlsx(rows, total_geral):
         acumulado += r['total']
         fill = _ALT_FILL if i % 2 == 0 else PatternFill()
         for col, val in enumerate([r['mes'], r['total'], acumulado], 1):
-            cell = ws.cell(row=row, column=col, value=val)
+            cell = ws.cell(row=row, column=col, value=_xlsx_val(val))
             cell.border = _thin_border()
             cell.fill = fill
             if col > 1:
@@ -2563,7 +2754,7 @@ def export_areas_comparativo(request):
     for i, t in enumerate(Tabela.objects.order_by('unidade'), 2):
         row = [t.unidade, t.tipologia, t.situacao, t.area_privativa, t.valor_total]
         for c, val in enumerate(row, 1):
-            cell = ws_tab.cell(row=i, column=c, value=val)
+            cell = ws_tab.cell(row=i, column=c, value=_xlsx_val(val))
             cell.border = BORDER
             if c in (4, 5):
                 cell.number_format = '#,##0.00'
@@ -2590,7 +2781,7 @@ def export_areas_comparativo(request):
         row = [u.unidade, u.tipo, u.complemento_tipo, u.area_privativa,
                u.area_priv_acessoria, u.area_comum, total_priv, u.fracao_ideal]
         for c, val in enumerate(row, 1):
-            cell = ws_uni.cell(row=i, column=c, value=val)
+            cell = ws_uni.cell(row=i, column=c, value=_xlsx_val(val))
             cell.border = BORDER
             if c in (4, 5, 6, 7):
                 cell.number_format = '#,##0.00'
@@ -2652,7 +2843,7 @@ def export_areas_comparativo(request):
 
         row_vals = [key, sit_tab, ap_tab, ap_uni, apa_uni, tp_uni, diff, status]
         for c, val in enumerate(row_vals, 1):
-            cell = ws_cmp.cell(row=i, column=c, value=val)
+            cell = ws_cmp.cell(row=i, column=c, value=_xlsx_val(val))
             cell.border = BORDER
             cell.fill   = fill
             if c in (3, 4, 5, 6, 7) and val is not None:
@@ -2733,7 +2924,7 @@ def export_comissoes_excel(request):
             c.valor_contrato, c.pct_comissao, c.valor_comissao, c.valor_comissao_pagar,
         ]
         for col, val in enumerate(row, 1):
-            cell = ws.cell(row=i, column=col, value=val)
+            cell = ws.cell(row=i, column=col, value=_xlsx_val(val))
             cell.border = BORDER
             if col in (9, 11, 12):
                 cell.number_format = '#,##0.00'
@@ -2762,7 +2953,7 @@ def export_comissoes_excel(request):
         imob_reservas[k].add(c.reserva)
     for i, (k, v) in enumerate(sorted(imob_map.items(), key=lambda x: x[0].lower()), 2):
         for col, val in enumerate([k, len(imob_reservas[k]), v['comissao'], v['pagar']], 1):
-            cell = ws2.cell(row=i, column=col, value=val)
+            cell = ws2.cell(row=i, column=col, value=_xlsx_val(val))
             cell.border = BORDER
             if col in (3, 4):
                 cell.number_format = '#,##0.00'
@@ -2780,7 +2971,7 @@ def export_comissoes_excel(request):
         benef_map[k]['pagar']    += c.valor_comissao_pagar
     for i, (k, v) in enumerate(sorted(benef_map.items(), key=lambda x: x[0].lower()), 2):
         for col, val in enumerate([k, v['n'], v['comissao'], v['pagar']], 1):
-            cell = ws3.cell(row=i, column=col, value=val)
+            cell = ws3.cell(row=i, column=col, value=_xlsx_val(val))
             cell.border = BORDER
             if col in (3, 4):
                 cell.number_format = '#,##0.00'

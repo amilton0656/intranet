@@ -11,10 +11,11 @@ class ImportLog(models.Model):
         ('permutas', 'Permutas'),
         ('series',   'Séries de Contratos'),
     ]
-    tipo             = models.CharField(max_length=20, choices=TIPOS)
+    tipo             = models.CharField(max_length=20, choices=TIPOS, db_index=True)
     importado_em     = models.DateTimeField(auto_now_add=True)
     total_registros  = models.IntegerField(default=0)
     nome_arquivo     = models.CharField(max_length=255, blank=True)
+    sha256           = models.CharField(max_length=64, blank=True, default='')
 
     class Meta:
         ordering = ['-importado_em']
@@ -118,8 +119,8 @@ class Parcela(models.Model):
     titulo         = models.CharField(max_length=20)
     parcela        = models.CharField(max_length=30, blank=True)
     tipo           = models.CharField(max_length=10, blank=True)
-    vencimento     = models.DateField(null=True, blank=True)
-    data_pagamento = models.DateField(null=True, blank=True)
+    vencimento     = models.DateField(null=True, blank=True, db_index=True)
+    data_pagamento = models.DateField(null=True, blank=True, db_index=True)
     valor          = models.FloatField(default=0)
     cliente        = models.CharField(max_length=255, blank=True)
 
@@ -134,13 +135,13 @@ class Comissao(models.Model):
     numero               = models.CharField(max_length=20)
     reserva              = models.CharField(max_length=20, blank=True)
     corretor             = models.CharField(max_length=255, blank=True)
-    imobiliaria          = models.CharField(max_length=255, blank=True)
+    imobiliaria          = models.CharField(max_length=255, blank=True, db_index=True)
     unidade              = models.CharField(max_length=50, blank=True)
     cliente              = models.CharField(max_length=255, blank=True)
     valor_contrato       = models.FloatField(default=0)
     tipo_comissao        = models.CharField(max_length=100, blank=True)
     valor_comissao_pagar = models.FloatField(default=0)
-    beneficiario         = models.CharField(max_length=255, blank=True)
+    beneficiario         = models.CharField(max_length=255, blank=True, db_index=True)
     valor_comissao       = models.FloatField(default=0)
     pct_comissao         = models.FloatField(default=0)
     data_prevista        = models.DateField(null=True, blank=True)

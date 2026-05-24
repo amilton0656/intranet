@@ -158,3 +158,40 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ]
 }
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'intranet.log',
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+    },
+    'loggers': {
+        'apps': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}

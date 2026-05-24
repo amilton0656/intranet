@@ -8,7 +8,7 @@
 <!-- Page header -->
 <div class="page-header d-flex justify-content-between align-items-start">
   <div>
-    <h1>Cota 365</h1>
+    <h1>Cota 365 — Unidades Vendidas</h1>
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{% url 'cota365:index' %}" class="text-decoration-none">Início</a></li>
@@ -52,16 +52,26 @@
     </div>
 
     <div class="table-responsive">
-      <table class="table table-hover mb-0">
+      <table class="table table-hover mb-0 vendas-table">
         <thead>
           <tr>
-            <th>Nº</th>
-            <th>CLIENTE</th>
-            <th>EMPREENDIMENTO</th>
-            <th>UNIDADE</th>
-            <th>GARAGENS</th>
-            <th>HB</th>
-            <th class="text-center">STATUS</th>
+            {% for col, label in colums %}
+            <th>
+              <a href="?sort={{ col }}&dir={% if sort == col and sort_dir == 'asc' %}desc{% else %}asc{% endif %}"
+                 class="sort-link{% if sort == col %} sort-active{% endif %}">
+                {{ label }}
+                {% if sort == col %}
+                  {% if sort_dir == 'asc' %}
+                    <i class="bi bi-caret-up-fill sort-icon"></i>
+                  {% else %}
+                    <i class="bi bi-caret-down-fill sort-icon"></i>
+                  {% endif %}
+                {% else %}
+                  <i class="bi bi-caret-up sort-icon sort-icon-idle"></i>
+                {% endif %}
+              </a>
+            </th>
+            {% endfor %}
             <th class="text-end">TOTAL CONTRATO</th>
           </tr>
         </thead>
@@ -70,13 +80,9 @@
           <tr>
             <td class="contract-num">{{ c.numero }}</td>
             <td><strong>{{ c.cliente }}</strong></td>
-            <td>{{ c.empreendimento }}</td>
             <td>{{ c.unidade }}</td>
             <td>{{ c.garagens }}</td>
             <td>{{ c.hb }}</td>
-            <td class="text-center">
-              <span class="badge-vendido">{{ c.status }}</span>
-            </td>
             <td class="amount">{{ c.valor_fmt }}</td>
           </tr>
           {% empty %}
@@ -85,8 +91,8 @@
         </tbody>
         <tfoot>
           <tr>
-            <td colspan="7" class="text-end">TOTAL GERAL</td>
-            <td class="text-end">{{ total_geral }}</td>
+            <td colspan="5" class="text-end fw-bold">TOTAL GERAL</td>
+            <td class="amount fw-bold">{{ total_geral }}</td>
           </tr>
         </tfoot>
       </table>
@@ -94,4 +100,23 @@
   </div>
 
 </div>
+
+<style>
+  .vendas-table { font-size: 0.85rem; }
+  .vendas-table th, .vendas-table td { padding: 0.45rem 0.85rem; }
+
+  .sort-link {
+    color: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .sort-link:hover { color: var(--accent, #4361ee); }
+  .sort-active { color: var(--accent, #4361ee); }
+  .sort-icon { font-size: 0.7rem; }
+  .sort-icon-idle { opacity: 0.3; }
+</style>
+
 {% endblock %}
