@@ -12,8 +12,13 @@
         href="{% url 'bliss_unidades_full' %}">Relatório</a>
     <a class="bliss-menu__item{% if current == 'bliss_resumo' %} is-active{% endif %}"
         href="{% url 'bliss_resumo' %}">Resumo</a>
-    <a class="bliss-menu__item{% if current == 'atualizar_situacoes' %} is-active{% endif %}"
-        href="{% url 'atualizar_situacoes' %}">Atualizar Situações</a>
+    <form method="post" action="{% url 'atualizar_situacoes' %}" class="d-inline"
+          onsubmit="return confirm('Aplicar atualizações de situação hardcodadas?')">
+      {% csrf_token %}
+      <button type="submit" class="bliss-menu__item border-0 bg-transparent p-0 cursor-pointer">
+        Atualizar Situações
+      </button>
+    </form>
     <a class="bliss-menu__item{% if current == 'atualizacao_mensal' %} is-active{% endif %}"
         href="{% url 'atualizacao_mensal' %}">Atualização Mensal</a>
     {% else %}
