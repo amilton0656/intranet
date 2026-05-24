@@ -115,9 +115,14 @@ class Uteis:
         indices3 = self.fetch_indices_data(3, data)
         indices4 = self.fetch_indices_data(4, data)
 
+        val1 = self.format_currency_brl(indices1[0]['valor']) if indices1 else "-"
+        val2 = self.format_percentage(indices2[0]['valor']) if indices2 else "-"
+        val3 = self.format_currency_brl(indices3[0]['valor']) if indices3 else "-"
+        val4 = self.format_percentage(indices4[0]['valor']) if indices4 else "-"
+
         return {
-            "cubres": f"Residencial: {self.format_currency_brl(indices1[0]['valor'])} - {self.format_percentage(indices2[0]['valor'])}",
-            "cubcom": f"Comercial: {self.format_currency_brl(indices3[0]['valor'])} - {self.format_percentage(indices4[0]['valor'])}",
+            "cubres": f"Residencial: {val1} - {val2}",
+            "cubcom": f"Comercial: {val3} - {val4}",
             "mes": self.mes_atual_extenso(),
         }
 
