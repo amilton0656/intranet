@@ -1668,7 +1668,7 @@ def export_dashboard(request):
     _dw = (W - 2*cm) / 4
     desc_table = Table([
         [th(''), th('VALOR TABELA'), th('VALOR CONTRATO'), th('DESCONTO'), th('% DESCONTO')],
-        [td('Vendidos'), tdrb(_fmt_brl(total_vendido)), tdrb(_fmt_brl(total_fluxo)), tdrb(_fmt_brl(desconto_val)), tdrb(desconto_pct)],
+        [td('Vendido'), tdrb(_fmt_brl(total_vendido)), tdrb(_fmt_brl(total_fluxo)), tdrb(_fmt_brl(desconto_val)), tdrb(desconto_pct)],
     ], colWidths=[2*cm, _dw, _dw, _dw, _dw])
     desc_table.setStyle(TableStyle([
         ('BACKGROUND',    (0, 0), (-1, 0), colors.HexColor('#1a1a2e')),
@@ -1708,7 +1708,7 @@ def export_dashboard(request):
     ]
     story.append(tbl(liq_header + liq_rows,
                      [3*cm, 3.5*cm, 1.8*cm, 3*cm, 1.8*cm, 1.8*cm, 1.8*cm], total_last=True))
-    story.append(Spacer(1, 6))
+    story.append(PageBreak())
 
     story.append(Paragraph('Resumo por Tipo', sec_s))
     tip_header = [[th('QTDE'), th('TIPO'), th('M² PRIV.'), th('VALOR TABELA'), th('R$/M²')]]
@@ -1722,7 +1722,7 @@ def export_dashboard(request):
         ps('PM', fontSize=8, textColor=NAVY, fontName='Helvetica-Bold', spaceBefore=4, spaceAfter=6),
     ))
 
-    story.append(PageBreak())
+    story.append(Spacer(1, 6))
     story.append(Paragraph('Resumo por Tipo (Estoque)', sec_s))
     est_header = [[th('QTDE'), th('TIPO'), th('M² PRIV.'), th('VALOR TABELA'), th('R$/M²')]]
     est_rows = [
