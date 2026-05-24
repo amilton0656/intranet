@@ -53,6 +53,16 @@
     </div>
   </div>
 
+  <!-- Exportação -->
+  <div class="d-flex justify-content-end mb-3 gap-2">
+    <a href="{% url 'cota365:export_parcelas' %}?{{ query_string }}&format=xlsx" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-file-earmark-excel me-1"></i>Excel
+    </a>
+    <a href="{% url 'cota365:export_parcelas' %}?{{ query_string }}&format=pdf" class="btn btn-outline-danger btn-sm">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
+  </div>
+
   <!-- Filtros -->
   <form method="get" class="d-flex flex-wrap gap-2 mb-3 align-items-center">
     <input type="text" name="q" value="{{ q }}" placeholder="Buscar cliente ou título…"

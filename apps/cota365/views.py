@@ -2154,6 +2154,167 @@ def parcelas_view(request):
 # Exports
 # ---------------------------------------------------------------------------
 
+def export_parcelas(request):
+    fmt           = request.GET.get('format', 'xlsx')
+    tipo_filtro   = request.GET.get('tipo', '')
+    status_filtro = request.GET.get('status', '')
+    q             = request.GET.get('q', '').strip()
+    sort          = request.GET.get('sort', 'vencimento')
+    sort_dir      = request.GET.get('dir', 'asc')
+
+    qs = Parcela.objects.all()
+    if tipo_filtro:
+        qs = qs.filter(tipo=tipo_filtro)
+    if status_filtro == 'pago':
+        qs = qs.exclude(data_pagamento=None)
+    elif status_filtro == 'pendente':
+        qs = qs.filter(data_pagamento=None)
+    if q:
+        qs = qs.filter(cliente__icontains=q) | Parcela.objects.filter(titulo__icontains=q)
+        if tipo_filtro:
+            qs = qs.filter(tipo=tipo_filtro)
+
+    _ORM_FIELD = {'titulo': 'titulo', 'tipo': 'tipo', 'vencimento': 'vencimento',
+                  'pagamento': 'data_pagamento', 'cliente': 'cliente'}
+    _field = _ORM_FIELD.get(sort, 'vencimento')
+    _order = F(_field).desc(nulls_last=True) if sort_dir == 'desc' else F(_field).asc(nulls_last=True)
+    qs = qs.order_by(_order)
+
+    _agg = qs.aggregate(
+        total_geral=Sum('valor'),
+        total_pago=Sum('valor', filter=Q(data_pagamento__isnull=False)),
+        total_pendente=Sum('valor', filter=Q(data_pagamento__isnull=True)),
+    )
+
+    def fmt_date(d):
+        return d.strftime('%d/%m/%Y') if d else ''
+
+    rows = [{'titulo': p.titulo, 'parcela': p.parcela, 'tipo': p.tipo,
+             'vencimento': fmt_date(p.vencimento), 'data_pagamento': fmt_date(p.data_pagamento),
+             'valor': p.valor or 0.0, 'cliente': p.cliente,
+             'pago': bool(p.data_pagamento)} for p in qs]
+
+    total_geral    = _agg['total_geral']    or 0.0
+    total_pago     = _agg['total_pago']     or 0.0
+    total_pendente = _agg['total_pendente'] or 0.0
+
+    if fmt == 'pdf':
+        return _export_parcelas_pdf(rows, total_geral, total_pago, total_pendente)
+    return _export_parcelas_xlsx(rows, total_geral, total_pago, total_pendente)
+
+
+def _export_parcelas_xlsx(rows, total_geral, total_pago, total_pendente):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Parcelas'
+
+    ws.merge_cells('A1:H1')
+    ws['A1'] = 'Cota 365 — Parcelas'
+    ws['A1'].font = Font(bold=True, size=14)
+    ws['A1'].alignment = Alignment(horizontal='center')
+
+    ws.merge_cells('A2:H2')
+    ws['A2'] = (f'Total: {_fmt_brl(total_geral)}   |   '
+                f'Pagas: {_fmt_brl(total_pago)}   |   '
+                f'Pendentes: {_fmt_brl(total_pendente)}')
+    ws['A2'].font = Font(bold=True)
+    ws['A2'].alignment = Alignment(horizontal='center')
+
+    headers = ['TÍTULO', 'PARCELA', 'TIPO', 'VENCIMENTO', 'PAGAMENTO', 'VALOR', 'CLIENTE', 'STATUS']
+    widths  = [10, 10, 8, 14, 14, 18, 35, 12]
+    for col, (h, w) in enumerate(zip(headers, widths), 1):
+        cell = ws.cell(row=4, column=col, value=h)
+        cell.fill = _HEADER_FILL
+        cell.font = _HEADER_FONT
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = _thin_border()
+        ws.column_dimensions[get_column_letter(col)].width = w
+
+    pago_fill    = PatternFill('solid', fgColor='F0FFF4')
+    pendente_fill = PatternFill('solid', fgColor='FFFEF8')
+
+    for i, r in enumerate(rows):
+        row  = 5 + i
+        fill = pago_fill if r['pago'] else pendente_fill
+        vals = [f"#{r['titulo']}", r['parcela'], r['tipo'], r['vencimento'],
+                r['data_pagamento'], r['valor'], r['cliente'],
+                'Paga' if r['pago'] else 'Pendente']
+        for col, val in enumerate(vals, 1):
+            cell = ws.cell(row=row, column=col, value=val)
+            cell.border = _thin_border()
+            cell.fill = fill
+            if col == 6:
+                cell.number_format = '"R$ "#,##0.00'
+                cell.alignment = Alignment(horizontal='right')
+
+    total_row = 5 + len(rows)
+    ws.cell(row=total_row, column=1, value=f'Total ({len(rows)} parcelas)').font = _BOLD
+    ws.cell(row=total_row, column=1).fill = _TOTAL_FILL
+    for col in range(2, 6):
+        ws.cell(row=total_row, column=col).fill = _TOTAL_FILL
+    c = ws.cell(row=total_row, column=6, value=total_geral)
+    c.number_format = '"R$ "#,##0.00'
+    c.font = _BOLD
+    c.fill = _TOTAL_FILL
+    c.alignment = Alignment(horizontal='right')
+    for col in range(7, 9):
+        ws.cell(row=total_row, column=col).fill = _TOTAL_FILL
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    resp = HttpResponse(buf, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    resp['Content-Disposition'] = 'attachment; filename="parcelas.xlsx"'
+    return resp
+
+
+def _export_parcelas_pdf(rows, total_geral, total_pago, total_pendente):
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=landscape(A4),
+                            leftMargin=1.5*cm, rightMargin=1.5*cm,
+                            topMargin=1.5*cm, bottomMargin=1.5*cm)
+    styles = getSampleStyleSheet()
+    story = [
+        Paragraph('Cota 365 — Parcelas',
+                  ParagraphStyle('title', parent=styles['Heading1'], fontSize=14, spaceAfter=4)),
+        Paragraph(f'Total: {_fmt_brl(total_geral)}   |   Pagas: {_fmt_brl(total_pago)}   |   Pendentes: {_fmt_brl(total_pendente)}',
+                  ParagraphStyle('sub', parent=styles['Normal'], fontSize=9, spaceAfter=12)),
+    ]
+
+    header = ['TÍTULO', 'PARCELA', 'TIPO', 'VENCIMENTO', 'PAGAMENTO', 'VALOR', 'CLIENTE', 'STATUS']
+    data   = [header]
+    for r in rows:
+        data.append([f"#{r['titulo']}", r['parcela'], r['tipo'], r['vencimento'],
+                     r['data_pagamento'], _fmt_brl(r['valor']), r['cliente'],
+                     'Paga' if r['pago'] else 'Pendente'])
+    data.append(['', '', '', '', f'TOTAL ({len(rows)})', _fmt_brl(total_geral), '', ''])
+
+    t = Table(data,
+              colWidths=[1.5*cm, 1.5*cm, 1.5*cm, 2.5*cm, 2.5*cm, 3*cm, 7*cm, 2*cm],
+              repeatRows=1)
+    t.setStyle(TableStyle([
+        ('BACKGROUND',    (0, 0), (-1, 0), colors.HexColor('#1a1a2e')),
+        ('TEXTCOLOR',     (0, 0), (-1, 0), colors.white),
+        ('FONTNAME',      (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE',      (0, 0), (-1, -1), 7),
+        ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN',         (6, 1), (6, -2), 'LEFT'),
+        ('ALIGN',         (5, 1), (5, -1), 'RIGHT'),
+        ('ROWBACKGROUNDS',(0, 1), (-1, -2), [colors.HexColor('#F0FFF4'), colors.HexColor('#FFFEF8')]),
+        ('BACKGROUND',    (0, -1), (-1, -1), colors.HexColor('#e9ecef')),
+        ('FONTNAME',      (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('GRID',          (0, 0), (-1, -1), 0.5, colors.HexColor('#dee2e6')),
+        ('TOPPADDING',    (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
+    story.append(t)
+    doc.build(story)
+    buf.seek(0)
+    resp = HttpResponse(buf, content_type='application/pdf')
+    resp['Content-Disposition'] = 'attachment; filename="parcelas.pdf"'
+    return resp
+
+
 def export_vendas(request):
     fmt = request.GET.get('format', 'xlsx')
     vendas_rows = _load_vendas()
@@ -2245,7 +2406,7 @@ def export_fluxo(request):
 
     if fmt == 'pdf':
         return _export_fluxo_pdf(rows, totals, grand_total)
-    return _export_fluxo_xlsx(rows, grand_total)
+    return _export_fluxo_xlsx(rows, totals, grand_total)
 
 
 # -- Excel helpers -----------------------------------------------------------
@@ -2441,23 +2602,25 @@ def _export_vendas_xlsx(contracts, total_geral):
     return resp
 
 
-def _export_fluxo_xlsx(rows, total_geral):
+def _export_fluxo_xlsx(rows, totals, total_geral):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = 'Fluxo Mensal'
 
-    ws.merge_cells('A1:C1')
+    n_cols = 11
+    ws.merge_cells(f'A1:{get_column_letter(n_cols)}1')
     ws['A1'] = 'Cota 365 — Fluxo Mensal de Receitas'
     ws['A1'].font = Font(bold=True, size=14)
     ws['A1'].alignment = Alignment(horizontal='center')
 
-    ws.merge_cells('A2:C2')
+    ws.merge_cells(f'A2:{get_column_letter(n_cols)}2')
     ws['A2'] = f'Total Geral: {_fmt_brl(total_geral)}'
     ws['A2'].alignment = Alignment(horizontal='center')
     ws['A2'].font = Font(bold=True)
 
-    headers = ['MÊS', 'TOTAL MÊS', 'ACUMULADO']
-    widths  = [16, 24, 24]
+    headers = ['MÊS', 'ATO', 'MENSAIS', 'REF. ANUAIS', 'PERMUTA',
+               'CHAVES', 'POUPANÇA', 'FINANCIAMENTO', 'TOTAL', 'RECEBIDO', 'A RECEBER']
+    widths  = [12, 16, 16, 16, 16, 16, 16, 18, 18, 18, 18]
     for col, (h, w) in enumerate(zip(headers, widths), 1):
         cell = ws.cell(row=4, column=col, value=h)
         cell.fill = _HEADER_FILL
@@ -2466,12 +2629,12 @@ def _export_fluxo_xlsx(rows, total_geral):
         cell.border = _thin_border()
         ws.column_dimensions[get_column_letter(col)].width = w
 
-    acumulado = 0.0
+    fields = ['mes', 'at', 'pm', 'ra', 'pe', 'ch', 'poupanca', 'fi', 'total', 'recebido', 'a_receber']
     for i, r in enumerate(rows):
         row = 5 + i
-        acumulado += r['total']
         fill = _ALT_FILL if i % 2 == 0 else PatternFill()
-        for col, val in enumerate([r['mes'], r['total'], acumulado], 1):
+        for col, key in enumerate(fields, 1):
+            val = r[key]
             cell = ws.cell(row=row, column=col, value=_xlsx_val(val))
             cell.border = _thin_border()
             cell.fill = fill
@@ -2480,12 +2643,68 @@ def _export_fluxo_xlsx(rows, total_geral):
                 cell.alignment = Alignment(horizontal='right')
 
     total_row = 5 + len(rows)
-    ws.cell(row=total_row, column=1, value='Total por Série').font = _BOLD
+    total_vals = [totals.get('AT', 0), totals.get('PM', 0), totals.get('RA', 0),
+                  totals.get('PE', 0), totals.get('CH', 0), totals.get('poupanca', 0),
+                  totals.get('FI', 0), totals.get('total', 0),
+                  totals.get('recebido', 0), totals.get('a_receber', 0)]
+    ws.cell(row=total_row, column=1, value='TOTAL').font = _BOLD
     ws.cell(row=total_row, column=1).fill = _TOTAL_FILL
-    ws.cell(row=total_row, column=2, value=total_geral).number_format = '"R$ "#,##0.00'
-    ws.cell(row=total_row, column=2).font = _BOLD
-    ws.cell(row=total_row, column=2).fill = _TOTAL_FILL
-    ws.cell(row=total_row, column=2).alignment = Alignment(horizontal='right')
+    for col, val in enumerate(total_vals, 2):
+        cell = ws.cell(row=total_row, column=col, value=val)
+        cell.number_format = '"R$ "#,##0.00'
+        cell.font = _BOLD
+        cell.fill = _TOTAL_FILL
+        cell.alignment = Alignment(horizontal='right')
+        cell.border = _thin_border()
+
+    # Resumo por tipo
+    grand = totals.get('total', 0) or 1
+
+    def _pct(v):
+        return round(v / grand * 100, 2)
+
+    summary_items = [
+        ('Ato',           totals.get('AT', 0)),
+        ('Mensais',       totals.get('PM', 0)),
+        ('Ref. Anuais',   totals.get('RA', 0)),
+        ('Permuta',       totals.get('PE', 0)),
+        ('Chaves',        totals.get('CH', 0)),
+        ('Poupança',      totals.get('poupanca', 0)),
+        ('Financiamento', totals.get('FI', 0)),
+        ('Total',         totals.get('total', 0)),
+        ('Recebido',      totals.get('recebido', 0)),
+        ('A receber',     totals.get('a_receber', 0)),
+    ]
+
+    summary_start = total_row + 2
+    for col, h in enumerate(['TIPO', 'TOTAL', '%'], 1):
+        cell = ws.cell(row=summary_start, column=col, value=h)
+        cell.fill = _HEADER_FILL
+        cell.font = _HEADER_FONT
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = _thin_border()
+    ws.column_dimensions['A'].width = 18
+    ws.column_dimensions['B'].width = 20
+    ws.column_dimensions['C'].width = 10
+
+    for i, (tipo, val) in enumerate(summary_items):
+        row = summary_start + 1 + i
+        fill = _TOTAL_FILL if tipo in ('Poupança', 'Financiamento', 'Total') else (
+               _ALT_FILL if i % 2 == 0 else PatternFill())
+        bold = tipo in ('Poupança', 'Financiamento', 'Total')
+        c1 = ws.cell(row=row, column=1, value=tipo)
+        c1.border = _thin_border(); c1.fill = fill
+        if bold: c1.font = _BOLD
+        c2 = ws.cell(row=row, column=2, value=val)
+        c2.number_format = '"R$ "#,##0.00'
+        c2.alignment = Alignment(horizontal='right')
+        c2.border = _thin_border(); c2.fill = fill
+        if bold: c2.font = _BOLD
+        c3 = ws.cell(row=row, column=3, value=_pct(val))
+        c3.number_format = '0.00"%"'
+        c3.alignment = Alignment(horizontal='right')
+        c3.border = _thin_border(); c3.fill = fill
+        if bold: c3.font = _BOLD
 
     buf = io.BytesIO()
     wb.save(buf)
