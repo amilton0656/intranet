@@ -2020,17 +2020,19 @@ def fluxo_mensal(request):
 
     monthly_rec  = {}
     monthly_pend = {}
-    for r in (_base
+    for r in (Parcela.objects.filter(data_pagamento__isnull=False)
+              .annotate(ano=ExtractYear('data_pagamento'), mes=ExtractMonth('data_pagamento'))
+              .values('ano', 'mes')
+              .annotate(rec=Sum('valor'))
+              .order_by('ano', 'mes')):
+        monthly_rec[(r['ano'], r['mes'])] = r['rec'] or 0.0
+
+    for r in (_base.filter(data_pagamento__isnull=True)
               .annotate(ano=ExtractYear('vencimento'), mes=ExtractMonth('vencimento'))
               .values('ano', 'mes')
-              .annotate(
-                  rec=Sum('valor', filter=Q(data_pagamento__isnull=False)),
-                  pend=Sum('valor', filter=Q(data_pagamento__isnull=True)),
-              )
+              .annotate(pend=Sum('valor'))
               .order_by('ano', 'mes')):
-        key = (r['ano'], r['mes'])
-        monthly_rec[key]  = r['rec']  or 0.0
-        monthly_pend[key] = r['pend'] or 0.0
+        monthly_pend[(r['ano'], r['mes'])] = r['pend'] or 0.0
 
     totals        = defaultdict(float)
     total_rec     = 0.0
@@ -2387,17 +2389,19 @@ def export_fluxo(request):
 
     monthly_rec  = {}
     monthly_pend = {}
-    for r in (_base
+    for r in (Parcela.objects.filter(data_pagamento__isnull=False)
+              .annotate(ano=ExtractYear('data_pagamento'), mes=ExtractMonth('data_pagamento'))
+              .values('ano', 'mes')
+              .annotate(rec=Sum('valor'))
+              .order_by('ano', 'mes')):
+        monthly_rec[(r['ano'], r['mes'])] = r['rec'] or 0.0
+
+    for r in (_base.filter(data_pagamento__isnull=True)
               .annotate(ano=ExtractYear('vencimento'), mes=ExtractMonth('vencimento'))
               .values('ano', 'mes')
-              .annotate(
-                  rec=Sum('valor', filter=Q(data_pagamento__isnull=False)),
-                  pend=Sum('valor', filter=Q(data_pagamento__isnull=True)),
-              )
+              .annotate(pend=Sum('valor'))
               .order_by('ano', 'mes')):
-        key = (r['ano'], r['mes'])
-        monthly_rec[key]  = r['rec']  or 0.0
-        monthly_pend[key] = r['pend'] or 0.0
+        monthly_pend[(r['ano'], r['mes'])] = r['pend'] or 0.0
 
     totals     = defaultdict(float)
     total_rec  = 0.0
