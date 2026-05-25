@@ -1008,8 +1008,10 @@ _IMPORTERS = {
     'permutas':   _import_permutas,
     'vinculo':    _import_vinculos,
     'vendas':     _import_vendas,
+    'fluxo':      _import_fluxo,
     'unidades':   _import_unidades,
     'comissoes':  _import_comissoes,
+    'series':     _import_series,
     'a_receber':  _import_a_receber,
     'recebidas':  _import_recebidas,
 }
@@ -1019,8 +1021,10 @@ _LABELS = {
     'permutas':   'Permutas',
     'vinculo':    'Vínculos',
     'vendas':     'Vendas',
+    'fluxo':      'Fluxo de Caixa',
     'unidades':   'Unidades',
     'comissoes':  'Comissões',
+    'series':     'Séries de Contratos',
     'a_receber':  'Parcelas a Receber',
     'recebidas':  'Parcelas Recebidas',
 }
