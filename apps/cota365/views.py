@@ -1530,14 +1530,14 @@ def export_dashboard(request):
     total_recebido  = 0.0
     total_a_receber = 0.0
     for p in Parcela.objects.all():
-        if p.vencimento:
-            key = (p.vencimento.year, p.vencimento.month)
-            if p.data_pagamento:
-                exp_monthly_rec[key]  += p.valor
-                total_recebido        += p.valor
-            else:
-                exp_monthly_pend[key] += p.valor
-                total_a_receber       += p.valor
+        if p.data_pagamento:
+            key_rec = (p.data_pagamento.year, p.data_pagamento.month)
+            exp_monthly_rec[key_rec] += p.valor
+            total_recebido           += p.valor
+        elif p.vencimento:
+            key_pend = (p.vencimento.year, p.vencimento.month)
+            exp_monthly_pend[key_pend] += p.valor
+            total_a_receber            += p.valor
         tipo_totals[p.tipo] += p.valor
         if p.tipo == 'FI':
             fi_total += p.valor
