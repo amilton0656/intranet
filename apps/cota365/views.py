@@ -944,6 +944,41 @@ def _read_csv_text(file_obj):
     return raw.decode('latin-1', errors='replace')
 
 
+def _reconcile_parcelas():
+    """
+    Baixa parcial: quando a mesma chave (titulo+parcela+tipo+vencimento) aparece em
+    a_receber e recebidas, o saldo pendente = valor_original - soma_recebida.
+    Incluir vencimento na chave evita matches falsos em contratos renegociados,
+    onde a numeração de parcelas é reiniciada mas as datas diferem.
+    """
+    from collections import defaultdict
+    paid_by_key = defaultdict(float)
+    for p in Parcela.objects.filter(data_pagamento__isnull=False).values('titulo', 'parcela', 'tipo', 'vencimento', 'valor'):
+        paid_by_key[(p['titulo'], p['parcela'], p['tipo'], p['vencimento'])] += p['valor']
+
+    if not paid_by_key:
+        return
+
+    to_update = []
+    to_delete = []
+    for p in Parcela.objects.filter(data_pagamento__isnull=True):
+        key = (p.titulo, p.parcela, p.tipo, p.vencimento)
+        paid = paid_by_key.get(key, 0.0)
+        if paid <= 0:
+            continue
+        remaining = round(p.valor_original - paid, 2)
+        if remaining <= 0:
+            to_delete.append(p.pk)
+        else:
+            p.valor = remaining
+            to_update.append(p)
+
+    if to_delete:
+        Parcela.objects.filter(pk__in=to_delete).delete()
+    if to_update:
+        Parcela.objects.bulk_update(to_update, ['valor'])
+
+
 @transaction.atomic
 def _import_a_receber(file_obj, nome, sha256=''):
     reader = csv.DictReader(io.StringIO(_read_csv_text(file_obj)), delimiter=';')
@@ -954,13 +989,15 @@ def _import_a_receber(file_obj, nome, sha256=''):
         if not titulo:
             continue
         vencimento = _require_date(row.get('dtVencto') or '', 'dtVencto', linha, erros)
+        v = _require_float(row.get('vlOriginal') or '', 'vlOriginal', linha, erros)
         objs.append(Parcela(
             titulo=titulo,
             parcela=(row.get('nuParcelaApresentacao') or '').strip(),
             tipo=(row.get('cdTipoCondicao') or '').strip(),
             vencimento=vencimento.date() if vencimento else None,
             data_pagamento=None,
-            valor=_require_float(row.get('vlOriginal') or '', 'vlOriginal', linha, erros),
+            valor=v,
+            valor_original=v,
             cliente=(row.get('nmCliente') or '').strip(),
         ))
     if not objs:
@@ -969,6 +1006,7 @@ def _import_a_receber(file_obj, nome, sha256=''):
         raise ValueError(_erros_msg(erros))
     Parcela.objects.filter(data_pagamento__isnull=True).delete()
     Parcela.objects.bulk_create(objs)
+    _reconcile_parcelas()
     ImportLog.objects.create(tipo='a_receber', total_registros=len(objs), nome_arquivo=nome, sha256=sha256)
     return len(objs), {'Total': _fmt_brl(sum(o.valor for o in objs))}
 
@@ -991,6 +1029,7 @@ def _import_recebidas(file_obj, nome, sha256=''):
             vencimento=vencimento.date() if vencimento else None,
             data_pagamento=data_pagamento.date() if data_pagamento else None,
             valor=_require_float(row.get('ValorDaBaixa') or '', 'ValorDaBaixa', linha, erros),
+            valor_original=0,
             cliente=(row.get('NomeDoCliente') or '').strip(),
         ))
     if not objs:
@@ -999,6 +1038,7 @@ def _import_recebidas(file_obj, nome, sha256=''):
         raise ValueError(_erros_msg(erros))
     Parcela.objects.filter(data_pagamento__isnull=False).delete()
     Parcela.objects.bulk_create(objs)
+    _reconcile_parcelas()
     ImportLog.objects.create(tipo='recebidas', total_registros=len(objs), nome_arquivo=nome, sha256=sha256)
     return len(objs), {'Total': _fmt_brl(sum(o.valor for o in objs))}
 

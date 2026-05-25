@@ -116,13 +116,14 @@ class SerieContrato(models.Model):
 
 
 class Parcela(models.Model):
-    titulo         = models.CharField(max_length=20)
-    parcela        = models.CharField(max_length=30, blank=True)
-    tipo           = models.CharField(max_length=10, blank=True)
-    vencimento     = models.DateField(null=True, blank=True, db_index=True)
-    data_pagamento = models.DateField(null=True, blank=True, db_index=True)
-    valor          = models.FloatField(default=0)
-    cliente        = models.CharField(max_length=255, blank=True)
+    titulo          = models.CharField(max_length=20)
+    parcela         = models.CharField(max_length=30, blank=True)
+    tipo            = models.CharField(max_length=10, blank=True)
+    vencimento      = models.DateField(null=True, blank=True, db_index=True)
+    data_pagamento  = models.DateField(null=True, blank=True, db_index=True)
+    valor           = models.FloatField(default=0)
+    valor_original  = models.FloatField(default=0)
+    cliente         = models.CharField(max_length=255, blank=True)
 
     class Meta:
         ordering = ['vencimento', 'titulo']
