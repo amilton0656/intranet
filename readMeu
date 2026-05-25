@@ -9,4 +9,4 @@ pip install djangorestframework
 python manage.py collectstatic --noinput
 sudo systemctl restart gunicorn-intranet
 
-xxxxxxxxxxxx
+

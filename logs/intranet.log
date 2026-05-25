@@ -4,3 +4,10 @@
 2026-05-24 13:38:37,238 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 4067
 2026-05-24 20:27:13,297 WARNING django.request Not Found: /favicon.ico
 2026-05-24 20:27:13,298 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 4067
+2026-05-25 07:43:46,537 WARNING django.request Not Found: /favicon.ico
+2026-05-25 07:43:46,538 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 4067
+2026-05-25 07:48:41,280 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=13a8ad8fdee641d7bb3f8dade98db99823119ef7ade47fcd55f8caaa4b0e6584 registros=1273
+2026-05-25 07:48:52,137 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=65edeb6b9fef0093cd9d67e100f85d17ba6beff807fc6bec640a04602ae07d43 registros=42
+2026-05-25 07:55:53,020 INFO apps.cota365.views cota365 import ok | tipo=vinculo arquivo=vinculos.csv sha256=fee14bd84a6c4acfd9777bc052a0731d4f33a97547ea583c69ecdd121b743c76 registros=180
+2026-05-25 07:57:09,982 INFO apps.cota365.views cota365 import ok | tipo=tabela arquivo=vinculos.csv sha256=c61cb71827b8f87c87cc559966815e966a90e94c52c38b47853f219fc51bc1d7 registros=180
+2026-05-25 08:12:50,128 INFO apps.cota365.views cota365 import ok | tipo=vinculo arquivo=vinculos.csv sha256=c61cb71827b8f87c87cc559966815e966a90e94c52c38b47853f219fc51bc1d7 registros=180
