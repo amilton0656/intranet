@@ -42,6 +42,7 @@ urlpatterns = [
 
     # Relatório completo por empreendimento
     path('empreendimentos/<int:pk>/relatorio/', views.empreendimento_relatorio_pdf, name='empreendimento_relatorio_pdf'),
+    path('empreendimentos/<int:pk>/vinculos/pdf/', views.empreendimento_vinculos_pdf, name='empreendimento_vinculos_pdf'),
 
     # Excel / CSV
     path('empreendimentos/exportar-excel/',   views.empreendimento_export_excel, name='empreendimento_export_excel'),

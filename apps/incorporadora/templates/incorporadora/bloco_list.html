@@ -2,6 +2,15 @@
 {% block title %}Blocos — {{ empreendimento }} — Incorporadora{% endblock %}
 {% block nav_empreendimentos %}active{% endblock %}
 
+{% block extra_head %}
+<style>
+  .vinculos-table { font-size: 0.78rem; }
+  .vinculos-table th { font-size: 0.7rem; color: #888; font-weight: 600; border-bottom: 1px solid #dee2e6; }
+  .vinculos-table td { vertical-align: middle; padding: 3px 8px; }
+  .vinculos-row td { background: #f8f7fa; padding: 0 !important; border-top: none; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header d-flex align-items-center justify-content-between">
   <div>
@@ -41,21 +50,35 @@
     <table class="table table-hover mb-0">
       <thead>
         <tr>
-          <th style="width:60px">#</th>
+          <th style="width:40px"></th>
           <th>Nome</th>
           <th>Unidades</th>
-          <th style="width:120px"></th>
+          <th style="width:80px"></th>
         </tr>
       </thead>
       <tbody>
-        {% for bloco in blocos %}
+        {% for item in blocos_data %}
+        {% with bloco=item.bloco vinculos=item.vinculos %}
         <tr>
-          <td class="text-muted">{{ bloco.pk }}</td>
-          <td class="fw-semibold">{{ bloco.nome }}</td>
-          <td>
-            <a href="{% url 'incorporadora:unidade_list' bloco_pk=bloco.pk %}" class="btn btn-outline-primary btn-sm py-0 px-2">
-              <i class="bi bi-door-open me-1"></i>Unidades
-            </a>
+          <td class="text-center">
+            {% if vinculos %}
+            <button class="btn btn-sm py-0 px-1 text-muted" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#vinculos-{{ bloco.pk }}"
+                    aria-expanded="false" title="Expandir vínculos">
+              <i class="bi bi-chevron-down"></i>
+            </button>
+            {% endif %}
+          </td>
+          <td class="fw-semibold align-middle">{{ bloco.nome }}</td>
+          <td class="align-middle">
+            <div class="d-flex gap-2">
+              <a href="{% url 'incorporadora:unidade_list' bloco_pk=bloco.pk %}" class="btn btn-outline-primary btn-sm py-0 px-2">
+                <i class="bi bi-door-open me-1"></i>Unidades
+              </a>
+              <a href="{% url 'incorporadora:vinculo_list' bloco_pk=bloco.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2">
+                <i class="bi bi-link-45deg me-1"></i>Vínculos
+              </a>
+            </div>
           </td>
           <td>
             <div class="d-flex gap-1">
@@ -68,6 +91,49 @@
             </div>
           </td>
         </tr>
+        {% if vinculos %}
+        <tr class="vinculos-row">
+          <td colspan="4">
+            <div class="collapse" id="vinculos-{{ bloco.pk }}">
+              <div class="px-4 py-2">
+                <table class="table vinculos-table mb-0">
+                  <thead>
+                    <tr>
+                      <th style="width:15%">Unidade</th>
+                      <th style="width:35%">Garagens</th>
+                      <th style="width:35%">Hobby Boxes</th>
+                      <th style="width:15%">Outros</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in vinculos %}
+                    <tr>
+                      <td class="fw-semibold">{{ row.unidade.numero_display }}</td>
+                      <td>
+                        {% for g in row.garagens %}
+                          <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle me-1">{{ g }}</span>
+                        {% empty %}&mdash;{% endfor %}
+                      </td>
+                      <td>
+                        {% for h in row.hbs %}
+                          <span class="badge bg-info-subtle text-info border border-info-subtle me-1">{{ h }}</span>
+                        {% empty %}&mdash;{% endfor %}
+                      </td>
+                      <td>
+                        {% for o in row.outros %}
+                          <span class="badge bg-light text-dark border me-1">{{ o }}</span>
+                        {% empty %}{% endfor %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% endif %}
+        {% endwith %}
         {% empty %}
         <tr>
           <td colspan="4" class="text-center text-muted py-4">

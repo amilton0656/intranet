@@ -90,11 +90,52 @@ def empreendimento_delete(request, pk):
 
 # ── Bloco ─────────────────────────────────────────────────────────────────────
 
+def _build_vinculos_rows(bloco):
+    def _split_aliases(u):
+        if not u.numeros_adicionais:
+            return [], []
+        parts = [a.strip() for a in u.numeros_adicionais.split(',') if a.strip()]
+        hb     = [a for a in parts if a.upper().startswith('HB')]
+        outros = [a for a in parts if not a.upper().startswith('HB')]
+        return outros, hb
+
+    def _display(numero, aliases):
+        return f'{numero} ({" · ".join(aliases)})' if aliases else numero
+
+    principais = (
+        bloco.unidades
+        .filter(tipo__in=['apartamento', 'sala', 'loja'])
+        .prefetch_related('vinculadas')
+        .order_by('ordem', 'numero')
+    )
+    rows = []
+    for u in principais:
+        vinculadas = list(u.vinculadas.all())
+        garagens, hbs, outros = [], [], []
+        for v in vinculadas:
+            outros_aliases, hb_aliases = _split_aliases(v)
+            if v.tipo == 'garagem':
+                garagens.append(_display(v.numero, outros_aliases) + ('*' if hb_aliases else ''))
+                hbs.extend(hb_aliases)
+            elif v.tipo == 'hobby_box':
+                hbs.append(_display(v.numero, outros_aliases))
+            else:
+                outros.append(_display(v.numero, outros_aliases + hb_aliases))
+        if vinculadas:
+            rows.append({'unidade': u, 'garagens': garagens, 'hbs': hbs, 'outros': outros})
+    return rows
+
+
 @login_required
 def bloco_list(request, empreendimento_pk):
     empreendimento = get_object_or_404(Empreendimento, pk=empreendimento_pk)
-    blocos = empreendimento.blocos.all()
-    return render(request, 'incorporadora/bloco_list.html', {'empreendimento': empreendimento, 'blocos': blocos})
+    blocos = empreendimento.blocos.prefetch_related('unidades__vinculadas').all()
+    blocos_data = [{'bloco': b, 'vinculos': _build_vinculos_rows(b)} for b in blocos]
+    return render(request, 'incorporadora/bloco_list.html', {
+        'empreendimento': empreendimento,
+        'blocos': blocos,
+        'blocos_data': blocos_data,
+    })
 
 
 @login_required
@@ -583,6 +624,130 @@ def empreendimento_relatorio_pdf(request, pk):
     doc.build(els)
     response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = f'inline; filename="relatorio_{pk}.pdf"'
+    return response
+
+
+@login_required
+def empreendimento_vinculos_pdf(request, pk):
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.enums import TA_LEFT
+
+    empreendimento = get_object_or_404(
+        Empreendimento.objects.select_related('empresa'), pk=pk
+    )
+    blocos = empreendimento.blocos.prefetch_related('unidades__vinculadas').order_by('nome')
+
+    C_HDR   = colors.HexColor('#A7A3AB')
+    C_ALT   = colors.HexColor('#f7f7f7')
+    C_BORDA = colors.HexColor('#e0e0e0')
+    C_WHITE = colors.white
+
+    def ps(name, font='Helvetica', size=8.5, color=colors.black, align=TA_LEFT, **kw):
+        return ParagraphStyle(name, fontName=font, fontSize=size, textColor=color, alignment=align, **kw)
+
+    sN  = ps('n')
+    sB  = ps('b',  font='Helvetica-Bold')
+    sH  = ps('h',  font='Helvetica-Bold', size=8, color=C_WHITE)
+
+    CW = [40*mm, 65*mm, 65*mm, 57*mm]  # Unidade | Garagens | HBs | Outros = 227mm
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
+                            leftMargin=15*mm, rightMargin=15*mm,
+                            topMargin=20*mm, bottomMargin=20*mm)
+    els = []
+
+    els.append(Paragraph(empreendimento.empresa.razao_social.upper(),
+                         ps('emp', font='Helvetica-Bold', size=10, color=C_HDR)))
+    els.append(Paragraph(f'Vínculos — {empreendimento.nome}',
+                         ps('tit', font='Helvetica-Bold', size=14, color=colors.HexColor('#1a1a2e'),
+                            spaceBefore=4)))
+    els.append(Paragraph(
+        f'{empreendimento.empresa} — {empreendimento.get_status_display()} — Gerado em {date.today().strftime("%d/%m/%Y")}',
+        ps('sub', size=8, color=colors.HexColor('#666666'), spaceBefore=5)))
+    els.append(HRFlowable(width='100%', thickness=2, color=C_HDR, spaceAfter=6*mm, spaceBefore=2*mm))
+
+    def _split_aliases(u):
+        if not u.numeros_adicionais:
+            return [], []
+        parts = [a.strip() for a in u.numeros_adicionais.split(',') if a.strip()]
+        hb     = [a for a in parts if a.upper().startswith('HB')]
+        outros = [a for a in parts if not a.upper().startswith('HB')]
+        return outros, hb
+
+    def _display(numero, aliases):
+        return f'{numero} ({" · ".join(aliases)})' if aliases else numero
+
+    for bloco in blocos:
+        principais = (
+            bloco.unidades
+            .filter(tipo__in=['apartamento', 'sala', 'loja'])
+            .prefetch_related('vinculadas')
+            .order_by('ordem', 'numero')
+        )
+        rows = []
+        for u in principais:
+            vinculadas = list(u.vinculadas.all())
+            garagens, hbs, outros = [], [], []
+            for v in vinculadas:
+                outros_aliases, hb_aliases = _split_aliases(v)
+                if v.tipo == 'garagem':
+                    garagens.append(_display(v.numero, outros_aliases) + ('*' if hb_aliases else ''))
+                    hbs.extend(hb_aliases)
+                elif v.tipo == 'hobby_box':
+                    hbs.append(_display(v.numero, outros_aliases))
+                else:
+                    outros.append(_display(v.numero, outros_aliases + hb_aliases))
+            if vinculadas:
+                rows.append((u, garagens, hbs, outros))
+
+        if not rows:
+            continue
+
+        els.append(Paragraph(f'Bloco: {bloco.nome}',
+                             ps('bn', font='Helvetica-Bold', size=9,
+                                color=colors.HexColor('#1a1a2e'), spaceBefore=6*mm, spaceAfter=2*mm)))
+
+        data = [[
+            Paragraph('Unidade', sH),
+            Paragraph('Garagens', sH),
+            Paragraph('Hobby Boxes', sH),
+            Paragraph('Outros', sH),
+        ]]
+        for i, (u, garagens, hbs, outros) in enumerate(rows):
+            row_style = ps(f'r{i}', size=8.5)
+            row_alt   = ps(f'ra{i}', size=8.5)
+            data.append([
+                Paragraph(u.numero_display, sB),
+                Paragraph('  '.join(garagens) if garagens else '—', sN),
+                Paragraph('  '.join(hbs)      if hbs      else '—', sN),
+                Paragraph('  '.join(outros)   if outros   else '', sN),
+            ])
+
+        nr = len(data)
+        ts = TableStyle([
+            ('BACKGROUND',     (0, 0),  (-1, 0),   C_HDR),
+            ('ROWBACKGROUNDS', (0, 1),  (-1, -1),  [C_WHITE, C_ALT]),
+            ('LINEBELOW',      (0, 1),  (-1, -1),  0.5, C_BORDA),
+            ('VALIGN',         (0, 0),  (-1, -1),  'MIDDLE'),
+            ('LEFTPADDING',    (0, 0),  (-1, -1),  4),
+            ('RIGHTPADDING',   (0, 0),  (-1, -1),  4),
+            ('TOPPADDING',     (0, 0),  (-1, -1),  3),
+            ('BOTTOMPADDING',  (0, 0),  (-1, -1),  3),
+        ])
+        t = Table(data, colWidths=CW, repeatRows=1)
+        t.setStyle(ts)
+        els.append(t)
+        els.append(Spacer(1, 4*mm))
+
+    doc.build(els)
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="vinculos_{pk}.pdf"'
     return response
 
 
