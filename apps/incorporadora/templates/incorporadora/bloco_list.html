@@ -17,6 +17,9 @@
     <a href="{% url 'incorporadora:bloco_list_pdf' empreendimento_pk=empreendimento.pk %}" class="btn btn-outline-secondary btn-sm" target="_blank">
       <i class="bi bi-file-pdf me-1"></i>PDF
     </a>
+    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalImportUnidades">
+      <i class="bi bi-upload me-1"></i>Importar Unidades
+    </button>
     <a href="{% url 'incorporadora:bloco_create' empreendimento_pk=empreendimento.pk %}" class="btn btn-primary btn-sm">
       <i class="bi bi-plus-lg me-1"></i>Novo Bloco
     </a>
@@ -74,6 +77,50 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
+</div>
+
+<!-- Modal Importar Unidades via CSV -->
+<div class="modal fade" id="modalImportUnidades" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'incorporadora:unidade_import_empreendimento_csv' empreendimento_pk=empreendimento.pk %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Importar Unidades via CSV</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Empreendimento: <strong>{{ empreendimento }}</strong>
+          </p>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Arquivo CSV</label>
+            <input type="file" name="arquivo" class="form-control" accept=".csv" required>
+          </div>
+          <div class="alert alert-light border small mb-0">
+            <p class="fw-semibold mb-1">Colunas esperadas (separadas por <code>;</code>):</p>
+            <code class="d-block mb-2" style="font-size:0.75rem;">
+              ordem; bloco; numero; numeros_adicionais; tipo; tipologia; localizacao;<br>
+              area_privativa; area_privativa_acessoria; area_comum;<br>
+              fracao_ideal; valor_tabela; status;<br>
+              descricao1; descricao2; descricao3
+            </code>
+            <p class="mb-1">O campo <strong>bloco</strong> deve corresponder ao nome exato do bloco neste empreendimento.</p>
+            <p class="mb-0 text-muted">Unidades existentes (mesmo bloco + número) serão atualizadas.</p>
+          </div>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <a href="{% url 'incorporadora:unidade_csv_template_empreendimento' empreendimento_pk=empreendimento.pk %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-download me-1"></i>Baixar template
+          </a>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-upload me-1"></i>Importar</button>
+          </div>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

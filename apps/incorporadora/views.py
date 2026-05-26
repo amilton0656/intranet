@@ -273,18 +273,18 @@ def empreendimento_csv_template(request):
     response.write('﻿')  # BOM para Excel reconhecer UTF-8
     writer = csv_mod.writer(response, delimiter=';')
     writer.writerow([
-        'bloco', 'numero', 'tipo', 'tipologia', 'localizacao',
+        'ordem', 'bloco', 'numero', 'numeros_adicionais', 'tipo', 'tipologia', 'localizacao',
         'area_privativa', 'area_privativa_acessoria', 'area_comum',
         'fracao_ideal', 'valor_tabela', 'status',
         'descricao1', 'descricao2', 'descricao3',
     ])
     writer.writerow([
-        'Torre A', '101', 'apartamento', '3D', '10º andar',
+        '1', 'Torre A', '101', '', 'apartamento', '3D', '10º andar',
         '89.50', '0', '12.30', '0.001200', '650000.00', 'disponivel',
         '', '', '',
     ])
     writer.writerow([
-        'Subsolo', 'G-01', 'garagem', 'coberta', 'Subsolo',
+        '2', 'Subsolo', 'G01', 'M03,HB60', 'garagem', 'coberta', 'Subsolo',
         '12.00', '0', '0', '0.000120', '45000.00', 'disponivel',
         '', '', '',
     ])
@@ -361,6 +361,11 @@ def empreendimento_import_csv(request):
         status_raw = row.get('status', 'disponivel').lower()
         status = status_map.get(status_raw, 'disponivel')
 
+        try:
+            ordem = int(row.get('ordem', '0') or '0')
+        except ValueError:
+            ordem = 0
+
         area_priv  = to_decimal(row.get('area_privativa', '0'),           'area_privativa',           i, erros)
         area_acess = to_decimal(row.get('area_privativa_acessoria', '0'), 'area_privativa_acessoria', i, erros)
         area_comum = to_decimal(row.get('area_comum', '0'),               'area_comum',               i, erros)
@@ -374,18 +379,20 @@ def empreendimento_import_csv(request):
             bloco=blocos_cache[bloco_nome],
             numero=numero,
             defaults={
+                'ordem':                    ordem,
+                'numeros_adicionais':       row.get('numeros_adicionais', ''),
                 'tipo':                     tipo,
                 'tipologia':                row.get('tipologia', ''),
                 'localizacao':              row.get('localizacao', ''),
-                'descricao1':               row.get('descricao1', ''),
-                'descricao2':               row.get('descricao2', ''),
-                'descricao3':               row.get('descricao3', ''),
                 'area_privativa':           area_priv,
                 'area_privativa_acessoria': area_acess,
                 'area_comum':               area_comum,
                 'fracao_ideal':             fracao,
                 'valor_tabela':             valor,
                 'status':                   status,
+                'descricao1':               row.get('descricao1', ''),
+                'descricao2':               row.get('descricao2', ''),
+                'descricao3':               row.get('descricao3', ''),
             }
         )
         criados += 1
@@ -814,6 +821,151 @@ def unidade_csv_template(request, bloco_pk):
         '', '', '',
     ])
     return response
+
+
+@login_required
+def unidade_csv_template_empreendimento(request, empreendimento_pk):
+    import csv as csv_mod
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="template_unidades_empreendimento.csv"'
+    response.write('﻿')
+    writer = csv_mod.writer(response, delimiter=';')
+    writer.writerow([
+        'ordem', 'bloco', 'numero', 'numeros_adicionais', 'tipo', 'tipologia', 'localizacao',
+        'area_privativa', 'area_privativa_acessoria', 'area_comum',
+        'fracao_ideal', 'valor_tabela', 'status',
+        'descricao1', 'descricao2', 'descricao3',
+    ])
+    writer.writerow([
+        '1', 'Único', '101', '', 'apartamento', '3D', '10º andar',
+        '89.50', '0', '12.30', '0.001200', '650000.00', 'disponivel',
+        '', '', '',
+    ])
+    writer.writerow([
+        '2', 'Único', 'G01', 'M03,HB60', 'garagem', 'coberta', 'Subsolo',
+        '12.00', '0', '0', '0.000120', '45000.00', 'disponivel',
+        '', '', '',
+    ])
+    return response
+
+
+@login_required
+def unidade_import_empreendimento_csv(request, empreendimento_pk):
+    import csv as csv_mod, io
+    from decimal import Decimal, InvalidOperation
+
+    empreendimento = get_object_or_404(Empreendimento.objects.prefetch_related('blocos'), pk=empreendimento_pk)
+
+    if request.method != 'POST':
+        return redirect('incorporadora:bloco_list', empreendimento_pk=empreendimento_pk)
+
+    csv_file = request.FILES.get('arquivo')
+    if not csv_file:
+        messages.error(request, 'Selecione um arquivo CSV.')
+        return redirect('incorporadora:bloco_list', empreendimento_pk=empreendimento_pk)
+
+    tipo_map = {v.lower(): k for k, v in Unidade.TIPO_CHOICES}
+    tipo_map.update({k: k for k, v in Unidade.TIPO_CHOICES})
+    status_map = {v.lower(): k for k, v in Unidade.STATUS_CHOICES}
+    status_map.update({k: k for k, v in Unidade.STATUS_CHOICES})
+
+    def to_decimal(val, field, linha, erros):
+        val = str(val).strip().replace(',', '.')
+        try:
+            return Decimal(val) if val else Decimal('0')
+        except InvalidOperation:
+            erros.append(f'Linha {linha}: campo "{field}" inválido ({val!r}).')
+            return None
+
+    try:
+        decoded = csv_file.read().decode('utf-8-sig')
+    except UnicodeDecodeError:
+        csv_file.seek(0)
+        decoded = csv_file.read().decode('latin-1')
+
+    reader = csv_mod.DictReader(io.StringIO(decoded), delimiter=';')
+    rows = [{k.strip().lower(): (v or '').strip() for k, v in row.items()} for row in reader]
+
+    blocos_cache = {b.nome: b for b in empreendimento.blocos.all()}
+
+    erros = []
+    criados = 0
+
+    for i, row in enumerate(rows, 2):
+        if not any(row.values()):
+            continue
+
+        bloco_nome = row.get('bloco', '').strip()
+        if not bloco_nome:
+            erros.append(f'Linha {i}: coluna "bloco" obrigatória.')
+            continue
+        bloco = blocos_cache.get(bloco_nome)
+        if not bloco:
+            erros.append(f'Linha {i}: bloco "{bloco_nome}" não encontrado neste empreendimento.')
+            continue
+
+        numero = row.get('numero', '').strip()
+        if not numero:
+            erros.append(f'Linha {i}: coluna "numero" obrigatória.')
+            continue
+
+        tipo_raw = row.get('tipo', 'apartamento').lower()
+        tipo = tipo_map.get(tipo_raw)
+        if not tipo:
+            erros.append(f'Linha {i}: tipo "{tipo_raw}" inválido. Use: {", ".join(k for k,_ in Unidade.TIPO_CHOICES)}.')
+            continue
+
+        status_raw = row.get('status', 'disponivel').lower()
+        status = status_map.get(status_raw, 'disponivel')
+
+        try:
+            ordem = int(row.get('ordem', '0') or '0')
+        except ValueError:
+            ordem = 0
+
+        area_priv  = to_decimal(row.get('area_privativa', '0'),           'area_privativa',           i, erros)
+        area_acess = to_decimal(row.get('area_privativa_acessoria', '0'), 'area_privativa_acessoria', i, erros)
+        area_com   = to_decimal(row.get('area_comum', '0'),               'area_comum',               i, erros)
+        fracao     = to_decimal(row.get('fracao_ideal', '0'),             'fracao_ideal',             i, erros)
+        valor      = to_decimal(row.get('valor_tabela', '0'),             'valor_tabela',             i, erros)
+
+        if None in (area_priv, area_acess, area_com, fracao, valor):
+            continue
+
+        Unidade.objects.update_or_create(
+            bloco=bloco,
+            numero=numero,
+            defaults={
+                'ordem':                    ordem,
+                'numeros_adicionais':       row.get('numeros_adicionais', ''),
+                'tipo':                     tipo,
+                'tipologia':                row.get('tipologia', ''),
+                'localizacao':              row.get('localizacao', ''),
+                'area_privativa':           area_priv,
+                'area_privativa_acessoria': area_acess,
+                'area_comum':               area_com,
+                'fracao_ideal':             fracao,
+                'valor_tabela':             valor,
+                'status':                   status,
+                'descricao1':               row.get('descricao1', ''),
+                'descricao2':               row.get('descricao2', ''),
+                'descricao3':               row.get('descricao3', ''),
+            }
+        )
+        criados += 1
+
+    if erros:
+        for e in erros[:10]:
+            messages.warning(request, e)
+        if len(erros) > 10:
+            messages.warning(request, f'... e mais {len(erros) - 10} erro(s) não exibidos.')
+
+    if criados:
+        messages.success(request, f'{criados} unidade(s) importada(s)/atualizadas em "{empreendimento.nome}".')
+    elif not erros:
+        messages.warning(request, 'Nenhuma unidade encontrada no arquivo.')
+
+    return redirect('incorporadora:bloco_list', empreendimento_pk=empreendimento_pk)
 
 
 @login_required
