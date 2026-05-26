@@ -10,3 +10,9 @@ python manage.py collectstatic --noinput
 sudo systemctl restart gunicorn-intranet
 
 
+python manage.py shell -c "
+from django.contrib.auth.models import Group
+for nome in ['admin','manager','financeiro','incorporadora']:
+    g, created = Group.objects.get_or_create(name=nome)
+    print(('Criado' if created else 'Já existe') + ': ' + nome)
+"
