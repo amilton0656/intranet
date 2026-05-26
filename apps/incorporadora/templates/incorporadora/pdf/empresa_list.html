@@ -1,0 +1,32 @@
+{% extends "incorporadora/pdf/base.html" %}
+{% block header_content %}
+<h1>Empresas</h1>
+<p class="sub">Incorporadora &mdash; Gerado em {{ data }}</p>
+{% endblock %}
+
+{% block content %}
+<table>
+  <thead>
+    <tr>
+      <th style="width:7%">#</th>
+      <th style="width:65%">Razão Social</th>
+      <th style="width:20%">CNPJ</th>
+      <th style="width:8%">Ativo</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for emp in empresas %}
+    <tr {% if forloop.counter|divisibleby:2 %}class="alt"{% endif %}>
+      <td class="muted">{{ emp.pk }}</td>
+      <td><strong>{{ emp.razao_social }}</strong></td>
+      <td>{{ emp.cnpj }}</td>
+      <td>{% if emp.ativo %}Sim{% else %}Não{% endif %}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">Nenhuma empresa cadastrada.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="footer">Total: {{ empresas|length }} registro(s)</div>
+{% endblock %}

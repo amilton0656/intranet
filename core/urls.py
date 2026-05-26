@@ -22,5 +22,6 @@ urlpatterns = [
     path('bliss/', include('apps.bliss.urls')),
     path('indices/', include('apps.indices.urls', namespace='indices')),
     path('cota365/', include('apps.cota365.urls', namespace='cota365')),
+    path('incorporadora/', include('apps.incorporadora.urls', namespace='incorporadora')),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]

@@ -1,0 +1,210 @@
+{% extends "incorporadora/base.html" %}
+{% block title %}Unidades — {{ bloco }} — Incorporadora{% endblock %}
+{% block nav_empreendimentos %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  .data-table table { font-size: 0.78rem; }
+  .data-table thead th { font-size: 0.7rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-door-open me-2"></i>Unidades — {{ bloco.empreendimento }} / {{ bloco.nome }}</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'incorporadora:empreendimento_list' %}">Empreendimentos</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'incorporadora:bloco_list' empreendimento_pk=bloco.empreendimento.pk %}">{{ bloco.empreendimento }}</a></li>
+        <li class="breadcrumb-item active">{{ bloco.nome }}</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'incorporadora:vinculo_list' bloco_pk=bloco.pk %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-link-45deg me-1"></i>Vínculos
+    </a>
+    <a href="{% url 'incorporadora:unidade_list_pdf' bloco_pk=bloco.pk %}" class="btn btn-outline-secondary btn-sm" target="_blank">
+      <i class="bi bi-file-pdf me-1"></i>PDF
+    </a>
+    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalImportCsv">
+      <i class="bi bi-upload me-1"></i>Importar CSV
+    </button>
+    <a href="{% url 'incorporadora:unidade_export_excel' bloco_pk=bloco.pk %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-file-earmark-excel me-1"></i>Excel
+    </a>
+    <a href="{% url 'incorporadora:unidade_create' bloco_pk=bloco.pk %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>Nova Unidade
+    </a>
+  </div>
+</div>
+
+<div class="main-content">
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+        <i class="bi bi-{% if msg.tags == 'error' %}exclamation-triangle-fill{% else %}check-circle-fill{% endif %}"></i>
+        <span>{{ msg }}</span>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="get" class="mb-3">
+    <div class="bg-white border rounded p-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-2">
+          <label class="form-label fw-semibold mb-1" style="font-size:0.75rem;">Número</label>
+          <input type="text" name="numero" class="form-control form-control-sm" value="{{ filtros.numero }}" placeholder="Buscar...">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold mb-1" style="font-size:0.75rem;">Tipo</label>
+          <select name="tipo" class="form-select form-select-sm">
+            <option value="">Todos</option>
+            {% for key, label in tipo_choices %}
+            <option value="{{ key }}" {% if filtros.tipo == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold mb-1" style="font-size:0.75rem;">Tipologia</label>
+          <input type="text" name="tipologia" class="form-control form-control-sm" value="{{ filtros.tipologia }}" placeholder="Buscar...">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold mb-1" style="font-size:0.75rem;">Localização</label>
+          <input type="text" name="localizacao" class="form-control form-control-sm" value="{{ filtros.localizacao }}" placeholder="Buscar...">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold mb-1" style="font-size:0.75rem;">Status</label>
+          <select name="status" class="form-select form-select-sm">
+            <option value="">Todos</option>
+            {% for key, label in status_choices %}
+            <option value="{{ key }}" {% if filtros.status == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm w-100">
+            <i class="bi bi-search me-1"></i>Filtrar
+          </button>
+          {% if filtros_ativos %}
+          <a href="{% url 'incorporadora:unidade_list' bloco_pk=bloco.pk %}" class="btn btn-outline-secondary btn-sm" title="Limpar filtros">
+            <i class="bi bi-x-lg"></i>
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div class="data-table">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Tipo</th>
+          <th>Tipologia</th>
+          <th>Localização</th>
+          <th class="text-end">Área Priv. (m²)</th>
+          <th class="text-end">Área Priv. Acess. (m²)</th>
+          <th class="text-end">Área Comum (m²)</th>
+          <th class="text-end">Fração Ideal</th>
+          <th class="text-end">Valor Tabela (R$)</th>
+          <th>Status</th>
+          <th style="width:70px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in unidades %}
+        <tr>
+          <td class="fw-semibold">
+            {{ u.numero }}
+            {% if u.numeros_adicionais %}<div class="text-muted" style="font-size:0.72rem;">{{ u.numeros_adicionais }}</div>{% endif %}
+          </td>
+          <td>{{ u.get_tipo_display }}</td>
+          <td>{{ u.tipologia }}</td>
+          <td>{{ u.localizacao }}</td>
+          <td class="text-end">{{ u.area_privativa }}</td>
+          <td class="text-end">{{ u.area_privativa_acessoria }}</td>
+          <td class="text-end">{{ u.area_comum }}</td>
+          <td class="text-end">{{ u.fracao_ideal }}</td>
+          <td class="text-end">R$ {{ u.valor_tabela|floatformat:2 }}</td>
+          <td>
+            {% if u.status == 'disponivel' %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Disponível</span>
+            {% elif u.status == 'reservado' %}
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Reservado</span>
+            {% elif u.status == 'vendido' %}
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Vendido</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Permuta</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{% url 'incorporadora:unidade_edit' u.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{% url 'incorporadora:unidade_delete' u.pk %}" class="btn btn-outline-danger btn-sm py-0 px-2">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="11" class="text-center text-muted py-4">
+            <i class="bi bi-inbox me-2"></i>Nenhuma unidade cadastrada.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Importar CSV -->
+<div class="modal fade" id="modalImportCsv" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'incorporadora:unidade_import_csv' bloco_pk=bloco.pk %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Importar Unidades via CSV</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Bloco destino: <strong>{{ bloco.empreendimento }} / {{ bloco.nome }}</strong>
+          </p>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Arquivo CSV</label>
+            <input type="file" name="arquivo" class="form-control" accept=".csv" required>
+          </div>
+          <div class="alert alert-light border small mb-0">
+            <p class="fw-semibold mb-1">Colunas esperadas (separadas por <code>;</code>):</p>
+            <code class="d-block mb-2" style="font-size:0.75rem;">
+              ordem; numero; tipo; tipologia; localizacao;<br>
+              area_privativa; area_privativa_acessoria; area_comum;<br>
+              fracao_ideal; valor_tabela; status;<br>
+              descricao1; descricao2; descricao3
+            </code>
+            <p class="mb-1">Valores válidos para <strong>tipo</strong>: <code>apartamento</code>, <code>garagem</code>, <code>hobby_box</code>, <code>sala</code>, <code>loja</code></p>
+            <p class="mb-0">Valores válidos para <strong>status</strong>: <code>disponivel</code>, <code>reservado</code>, <code>vendido</code>, <code>permuta</code></p>
+          </div>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <a href="{% url 'incorporadora:unidade_csv_template' bloco_pk=bloco.pk %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-download me-1"></i>Baixar template
+          </a>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-upload me-1"></i>Importar</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

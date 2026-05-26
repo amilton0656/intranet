@@ -1,0 +1,32 @@
+{% extends "incorporadora/pdf/base.html" %}
+{% block header_content %}
+<h1>Empreendimentos</h1>
+<p class="sub">Incorporadora &mdash; Gerado em {{ data }}</p>
+{% endblock %}
+
+{% block content %}
+<table>
+  <thead>
+    <tr>
+      <th style="width:40pt">#</th>
+      <th>Nome</th>
+      <th>Empresa</th>
+      <th style="width:80pt">Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for emp in empreendimentos %}
+    <tr {% if forloop.counter|divisibleby:2 %}class="alt"{% endif %}>
+      <td class="muted">{{ emp.pk }}</td>
+      <td><strong>{{ emp.nome }}</strong></td>
+      <td>{{ emp.empresa }}</td>
+      <td>{{ emp.get_status_display }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">Nenhum empreendimento cadastrado.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="footer">Total: {{ empreendimentos|length }} registro(s)</div>
+{% endblock %}

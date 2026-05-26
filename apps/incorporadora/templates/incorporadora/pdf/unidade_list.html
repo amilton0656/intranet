@@ -1,0 +1,74 @@
+{% extends "incorporadora/pdf/base.html" %}
+{% block page_size %}A4 landscape{% endblock %}
+
+{% block header_content %}
+<h1>Unidades</h1>
+<p class="sub">Incorporadora &mdash; Gerado em {{ data }}</p>
+{% endblock %}
+
+{% block content %}
+<table style="width:100%; margin-bottom:12pt; border:none;">
+  <tr>
+    <td style="width:100pt; font-size:8pt; color:#888; border:none; padding:2pt 0;">Empreendimento</td>
+    <td style="font-size:9pt; font-weight:bold; border:none; padding:2pt 0;">{{ bloco.empreendimento.nome }}</td>
+  </tr>
+  <tr>
+    <td style="width:100pt; font-size:8pt; color:#888; border:none; padding:2pt 0;">Empresa</td>
+    <td style="font-size:9pt; border:none; padding:2pt 0;">{{ bloco.empreendimento.empresa }}</td>
+  </tr>
+  <tr>
+    <td style="width:100pt; font-size:8pt; color:#888; border:none; padding:2pt 0;">Bloco</td>
+    <td style="font-size:9pt; border:none; padding:2pt 0;">{{ bloco.nome }}</td>
+  </tr>
+</table>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:6%">Nº</th>
+      <th style="width:9%">Tipo</th>
+      <th style="width:13%">Tipologia</th>
+      <th style="width:9%">Localização</th>
+      <th class="right" style="width:9%">Área Priv. (m²)</th>
+      <th class="right" style="width:10%">Área Priv. Acess. (m²)</th>
+      <th class="right" style="width:9%">Área Comum (m²)</th>
+      <th class="right" style="width:9%">Fração Ideal</th>
+      <th class="right" style="width:11%">Valor Tabela (R$)</th>
+      <th style="width:8%">Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in unidades %}
+    <tr {% if forloop.counter|divisibleby:2 %}class="alt"{% endif %}>
+      <td><strong>{{ u.numero_display }}</strong></td>
+      <td>{{ u.get_tipo_display }}</td>
+      <td>{{ u.tipologia }}</td>
+      <td>{{ u.localizacao }}</td>
+      <td class="right">{{ u.area_privativa }}</td>
+      <td class="right">{{ u.area_privativa_acessoria }}</td>
+      <td class="right">{{ u.area_comum }}</td>
+      <td class="right">{{ u.fracao_ideal }}</td>
+      <td class="right">{{ u.valor_tabela|floatformat:2 }}</td>
+      <td>{{ u.get_status_display }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="10">Nenhuma unidade cadastrada.</td></tr>
+    {% endfor %}
+  </tbody>
+  {% if unidades %}
+  <tfoot>
+    <tr style="border-top: 1.5pt solid #A7A3AB;">
+      <td colspan="4" style="font-size:8pt; font-weight:bold; padding:5pt 6pt;">Total ({{ unidades|length }} unidades)</td>
+      <td style="font-weight:bold; padding:5pt 6pt; text-align:right;">{{ totais.area_privativa|floatformat:2 }}</td>
+      <td style="font-weight:bold; padding:5pt 6pt; text-align:right;">{{ totais.area_privativa_acessoria|floatformat:2 }}</td>
+      <td style="font-weight:bold; padding:5pt 6pt; text-align:right;">{{ totais.area_comum|floatformat:2 }}</td>
+      <td style="font-weight:bold; padding:5pt 6pt; text-align:right;">{{ totais.fracao_ideal|floatformat:6 }}</td>
+      <td style="font-weight:bold; padding:5pt 6pt; text-align:right;">{{ totais.valor_tabela|floatformat:2 }}</td>
+      <td></td>
+    </tr>
+  </tfoot>
+  {% endif %}
+</table>
+
+<div class="footer">Total: {{ unidades|length }} unidade(s)</div>
+{% endblock %}

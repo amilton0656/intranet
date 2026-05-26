@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'apps.indices',
     'apps.bliss',
     'apps.cota365',
+    'apps.incorporadora',
 ]
 
 MIDDLEWARE = [

@@ -1,0 +1,87 @@
+{% extends "incorporadora/base.html" %}
+{% block title %}{{ titulo }} — Incorporadora{% endblock %}
+{% block nav_empresas %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  .form-card {
+    background: #fff;
+    border: 1px solid #e2e6ea;
+    border-radius: 10px;
+    max-width: 540px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-building me-2"></i>{{ titulo }}</h1>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'incorporadora:empresa_list' %}">Empresas</a></li>
+      <li class="breadcrumb-item active">{{ titulo }}</li>
+    </ol>
+  </nav>
+</div>
+
+<div class="main-content">
+  <div class="form-card p-4">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Razão Social</label>
+        {{ form.razao_social }}
+        {% if form.razao_social.errors %}
+          <div class="text-danger small mt-1">{{ form.razao_social.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">CNPJ</label>
+        {{ form.cnpj }}
+        {% if form.cnpj.errors %}
+          <div class="text-danger small mt-1">{{ form.cnpj.errors.0 }}</div>
+        {% endif %}
+        <div class="form-text">Formato: XX.XXX.XXX/XXXX-XX</div>
+      </div>
+
+      <div class="mb-4">
+        <div class="form-check">
+          {{ form.ativo }}
+          <label class="form-check-label" for="{{ form.ativo.id_for_label }}">Ativa</label>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-sm px-4">
+          <i class="bi bi-check-lg me-1"></i>Salvar
+        </button>
+        <a href="{% url 'incorporadora:empresa_list' %}" class="btn btn-outline-secondary btn-sm px-4">
+          Cancelar
+        </a>
+        {% if empresa %}
+        <a href="{% url 'incorporadora:empresa_delete' empresa.pk %}"
+           class="btn btn-outline-danger btn-sm px-3 ms-auto">
+          <i class="bi bi-trash me-1"></i>Excluir
+        </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+/* Máscara automática de CNPJ */
+document.getElementById('id_cnpj').addEventListener('input', function () {
+  let v = this.value.replace(/\D/g, '').slice(0, 14);
+  if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, '$1.$2.$3/$4-$5');
+  else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})/, '$1.$2.$3/$4');
+  else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{0,3})/, '$1.$2.$3');
+  else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,3})/, '$1.$2');
+  this.value = v;
+});
+</script>
+{% endblock %}
+{% endblock %}

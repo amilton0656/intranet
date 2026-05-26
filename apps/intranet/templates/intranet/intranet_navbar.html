@@ -159,6 +159,10 @@
                             <a class="dropdown-item" href="{{ link.url }}">{{link.name }}</a>
                         </li>
                         {% endfor %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Incorporadora</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'incorporadora:empresa_list' %}">Empresas</a></li>
+                        <li><a class="dropdown-item" href="{% url 'incorporadora:empreendimento_list' %}">Empreendimentos</a></li>
                     </ul>
                 </li>
                 {% endif %}

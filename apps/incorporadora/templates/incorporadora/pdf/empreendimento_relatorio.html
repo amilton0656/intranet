@@ -1,0 +1,84 @@
+{% extends "incorporadora/pdf/base.html" %}
+{% block page_size %}A4 landscape{% endblock %}
+
+{% block header_content %}
+<h1>Relatório de Unidades — {{ empreendimento.nome }}</h1>
+<p class="sub">{{ empreendimento.empresa }} &mdash; {{ empreendimento.get_status_display }} &mdash; Gerado em {{ data }}</p>
+{% endblock %}
+
+{% block content %}
+{% for item in blocos_data %}
+
+<table style="width:100%; border:none; margin: 10pt 0 3pt 0;">
+  <tr>
+    <td style="font-size:9pt; font-weight:bold; color:#1a1a2e; border:none; padding:0;">Bloco: {{ item.bloco.nome }}</td>
+    <td style="font-size:8pt; color:#888; text-align:right; border:none; padding:0;">{{ item.unidades|length }} unidade(s)</td>
+  </tr>
+</table>
+
+<table style="width:100%; margin-bottom:16pt;">
+  <thead>
+    <tr>
+      <th><div style="width:8mm;">Nº</div></th>
+      <th><div style="width:19mm;">Tipo</div></th>
+      <th><div style="width:78mm;">Tipologia</div></th>
+      <th><div style="width:33mm;">Localização</div></th>
+      <th class="right"><div style="width:18mm;">Área Priv. (m²)</div></th>
+      <th class="right"><div style="width:23mm;">Área Priv. Acess. (m²)</div></th>
+      <th class="right"><div style="width:18mm;">Área Comum (m²)</div></th>
+      <th class="right"><div style="width:18mm;">Fração Ideal</div></th>
+      <th class="right"><div style="width:32mm;">Valor Tabela (R$)</div></th>
+      <th><div style="width:20mm;">Status</div></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in item.unidades %}
+    <tr {% if forloop.counter|divisibleby:2 %}class="alt"{% endif %}>
+      <td><strong>{{ u.numero_display }}</strong></td>
+      <td>{{ u.get_tipo_display }}</td>
+      <td>{{ u.tipologia }}</td>
+      <td>{{ u.localizacao }}</td>
+      <td class="right">{{ u.area_privativa }}</td>
+      <td class="right">{{ u.area_privativa_acessoria }}</td>
+      <td class="right">{{ u.area_comum }}</td>
+      <td class="right">{{ u.fracao_ideal }}</td>
+      <td class="right">{{ u.valor_tabela|floatformat:2 }}</td>
+      <td>{{ u.get_status_display }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="10" class="muted">Nenhuma unidade neste bloco.</td></tr>
+    {% endfor %}
+  </tbody>
+  {% if item.unidades %}
+  <tfoot>
+    <tr style="border-top:1pt solid #A7A3AB;">
+      <td colspan="4" style="font-size:7.5pt; font-weight:bold; padding:4pt 6pt; background:#f0eff2;">Subtotal — {{ item.bloco.nome }}</td>
+      <td style="font-weight:bold; padding:4pt 6pt; text-align:right; background:#f0eff2;">{{ item.totais.area_privativa|floatformat:2 }}</td>
+      <td style="font-weight:bold; padding:4pt 6pt; text-align:right; background:#f0eff2;">{{ item.totais.area_privativa_acessoria|floatformat:2 }}</td>
+      <td style="font-weight:bold; padding:4pt 6pt; text-align:right; background:#f0eff2;">{{ item.totais.area_comum|floatformat:2 }}</td>
+      <td style="font-weight:bold; padding:4pt 6pt; text-align:right; background:#f0eff2;">{{ item.totais.fracao_ideal|floatformat:6 }}</td>
+      <td style="font-weight:bold; padding:4pt 6pt; text-align:right; background:#f0eff2;">{{ item.totais.valor_tabela|floatformat:2 }}</td>
+      <td style="background:#f0eff2;"></td>
+    </tr>
+  </tfoot>
+  {% endif %}
+</table>
+
+{% endfor %}
+
+{% if total_unidades %}
+<table style="width:100%; margin-top:4pt;">
+  <tfoot>
+    <tr style="border-top:2pt solid #A7A3AB;">
+      <td colspan="4" style="font-size:8.5pt; font-weight:bold; padding:5pt 6pt; background:#A7A3AB; color:#fff;">TOTAL GERAL — {{ total_unidades }} unidade(s)</td>
+      <td style="font-weight:bold; padding:5pt 6pt; text-align:right; background:#A7A3AB; color:#fff;">{{ totais_geral.area_privativa|floatformat:2 }}</td>
+      <td style="font-weight:bold; padding:5pt 6pt; text-align:right; background:#A7A3AB; color:#fff;">{{ totais_geral.area_privativa_acessoria|floatformat:2 }}</td>
+      <td style="font-weight:bold; padding:5pt 6pt; text-align:right; background:#A7A3AB; color:#fff;">{{ totais_geral.area_comum|floatformat:2 }}</td>
+      <td style="font-weight:bold; padding:5pt 6pt; text-align:right; background:#A7A3AB; color:#fff;">{{ totais_geral.fracao_ideal|floatformat:6 }}</td>
+      <td style="font-weight:bold; padding:5pt 6pt; text-align:right; background:#A7A3AB; color:#fff;">{{ totais_geral.valor_tabela|floatformat:2 }}</td>
+      <td style="background:#A7A3AB;"></td>
+    </tr>
+  </tfoot>
+</table>
+{% endif %}
+{% endblock %}

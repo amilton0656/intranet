@@ -1,0 +1,131 @@
+{% extends "incorporadora/base.html" %}
+{% block title %}Vínculos — {{ bloco }} — Incorporadora{% endblock %}
+{% block nav_empreendimentos %}active{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-link-45deg me-2"></i>Vínculos — {{ bloco.empreendimento }} / {{ bloco.nome }}</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'incorporadora:empreendimento_list' %}">Empreendimentos</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'incorporadora:bloco_list' empreendimento_pk=bloco.empreendimento.pk %}">{{ bloco.empreendimento }}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'incorporadora:unidade_list' bloco_pk=bloco.pk %}">{{ bloco.nome }}</a></li>
+        <li class="breadcrumb-item active">Vínculos</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalImportVinculo">
+      <i class="bi bi-upload me-1"></i>Importar CSV
+    </button>
+  </div>
+</div>
+
+<div class="main-content">
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}{{ msg.tags }}{% endif %} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+        <i class="bi bi-{% if msg.tags == 'error' %}exclamation-triangle-fill{% else %}check-circle-fill{% endif %}"></i>
+        <span>{{ msg }}</span>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="data-table">
+    <table class="table table-hover mb-0" style="font-size:0.85rem;">
+      <thead>
+        <tr>
+          <th style="width:15%">Unidade</th>
+          <th style="width:35%">Garagens</th>
+          <th style="width:35%">Hobby Boxes</th>
+          <th style="width:15%">Outros</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="fw-semibold">{{ row.unidade.numero_display }}</td>
+          <td>
+            {% for g in row.garagens %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle me-1">{{ g }}</span>
+            {% empty %}&mdash;{% endfor %}
+          </td>
+          <td>
+            {% for h in row.hbs %}
+              <span class="badge bg-info-subtle text-info border border-info-subtle me-1">{{ h }}</span>
+            {% empty %}&mdash;{% endfor %}
+          </td>
+          <td>
+            {% for o in row.outros %}
+              <span class="badge bg-light text-dark border me-1">{{ o }}</span>
+            {% empty %}{% endfor %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="text-center text-muted py-4">
+            <i class="bi bi-link me-2"></i>Nenhum vínculo cadastrado.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if sem_vinculo %}
+  <div class="mt-4">
+    <h6 class="text-muted fw-semibold" style="font-size:0.8rem; text-transform:uppercase;">
+      <i class="bi bi-exclamation-circle me-1"></i>Garagens / Hobby Boxes sem vínculo
+    </h6>
+    <div class="d-flex flex-wrap gap-2">
+      {% for u in sem_vinculo %}
+        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+          {{ u.get_tipo_display }}: {{ u.numero_display }}
+        </span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Modal Importar CSV -->
+<div class="modal fade" id="modalImportVinculo" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'incorporadora:vinculo_import_csv' bloco_pk=bloco.pk %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Importar Vínculos via CSV</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Bloco: <strong>{{ bloco.empreendimento }} / {{ bloco.nome }}</strong>
+          </p>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Arquivo CSV</label>
+            <input type="file" name="arquivo" class="form-control" accept=".csv" required>
+          </div>
+          <div class="alert alert-light border small mb-0">
+            <p class="fw-semibold mb-1">Formato (separado por <code>;</code>):</p>
+            <code class="d-block mb-2">unidade;vinculada</code>
+            <p class="mb-1">Onde <strong>unidade</strong> é o número do apartamento/sala/loja e <strong>vinculada</strong> é o número da garagem ou hobby box.</p>
+            <p class="mb-0 text-muted">Todas as unidades devem já existir no cadastro deste bloco.</p>
+          </div>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <a href="{% url 'incorporadora:vinculo_csv_template' bloco_pk=bloco.pk %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-download me-1"></i>Baixar template
+          </a>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-upload me-1"></i>Importar</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

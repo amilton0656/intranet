@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: {% block page_size %}A4{% endblock %};
+    margin: 2cm 1.5cm 2cm 1.5cm;
+  }
+  body {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 9pt;
+    color: #222;
+  }
+  .header {
+    border-bottom: 2pt solid #A7A3AB;
+    margin-bottom: 14pt;
+    padding-bottom: 6pt;
+  }
+  .header .empresa-nome {
+    font-size: 10pt;
+    font-weight: bold;
+    color: #A7A3AB;
+    margin: 0 0 4pt 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .header h1 {
+    font-size: 14pt;
+    margin: 0 0 2pt 0;
+    color: #1a1a2e;
+  }
+  .header .sub {
+    font-size: 8pt;
+    color: #666;
+    margin: 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4pt;
+  }
+  thead th {
+    background-color: #A7A3AB;
+    color: #fff;
+    font-size: 8pt;
+    font-weight: bold;
+    padding: 5pt 6pt;
+    text-align: left;
+  }
+  thead th.right { text-align: right; }
+  tbody td {
+    font-size: 8.5pt;
+    padding: 4pt 6pt;
+    border-bottom: 0.5pt solid #e0e0e0;
+    vertical-align: middle;
+  }
+  tbody td.right { text-align: right; }
+  tbody td.muted { color: #888; }
+  tbody tr.alt td { background-color: #f7f7f7; }
+  tfoot td {
+    background-color: #f0eff2;
+    font-size: 8.5pt;
+    vertical-align: middle;
+  }
+  .footer {
+    margin-top: 14pt;
+    font-size: 7.5pt;
+    color: #999;
+    text-align: right;
+  }
+</style>
+</head>
+<body>
+{% block header %}
+<div class="header">
+  {% if empresa_nome %}<p class="empresa-nome">{{ empresa_nome }}</p>{% endif %}
+  {% block header_content %}{% endblock %}
+</div>
+{% endblock %}
+{% block content %}{% endblock %}
+</body>
+</html>

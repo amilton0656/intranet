@@ -1,0 +1,132 @@
+{% extends "incorporadora/base.html" %}
+{% block title %}{{ titulo }} — Incorporadora{% endblock %}
+{% block nav_empreendimentos %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-door-open me-2"></i>{{ titulo }}</h1>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'incorporadora:empreendimento_list' %}">Empreendimentos</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'incorporadora:bloco_list' empreendimento_pk=bloco.empreendimento.pk %}">{{ bloco.empreendimento }}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'incorporadora:unidade_list' bloco_pk=bloco.pk %}">{{ bloco.nome }}</a></li>
+      <li class="breadcrumb-item active">{{ titulo }}</li>
+    </ol>
+  </nav>
+</div>
+
+<div class="main-content">
+  <div class="form-card p-4" style="max-width:680px;">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Bloco</label>
+          {{ form.bloco }}
+        </div>
+        <div class="col-md-1">
+          <label class="form-label fw-semibold">Ordem</label>
+          {{ form.ordem }}
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Número</label>
+          {{ form.numero }}
+          {% if form.numero.errors %}<div class="text-danger small mt-1">{{ form.numero.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Números Adicionais</label>
+          {{ form.numeros_adicionais }}
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Status</label>
+          {{ form.status }}
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Tipo</label>
+          {{ form.tipo }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Tipologia</label>
+          {{ form.tipologia }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Localização</label>
+          {{ form.localizacao }}
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Área Privativa (m²)</label>
+          {{ form.area_privativa }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Área Priv. Acessória (m²)</label>
+          {{ form.area_privativa_acessoria }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Área Comum (m²)</label>
+          {{ form.area_comum }}
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Fração Ideal</label>
+          {{ form.fracao_ideal }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Valor Tabela (R$)</label>
+          {{ form.valor_tabela }}
+        </div>
+      </div>
+
+      <div class="mb-3" id="row-vinculo" style="display:none;">
+        <label class="form-label fw-semibold">Vinculada à unidade</label>
+        {{ form.unidade_principal }}
+        <div class="form-text">Selecione o apartamento/sala/loja ao qual esta unidade pertence.</div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold text-muted" style="font-size:0.8rem;">DESCRIÇÕES (uso livre)</label>
+        <div class="d-flex flex-column gap-2">
+          {{ form.descricao1 }}
+          {{ form.descricao2 }}
+          {{ form.descricao3 }}
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-primary btn-sm px-4"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+        <a href="{% url 'incorporadora:unidade_list' bloco_pk=bloco.pk %}" class="btn btn-outline-secondary btn-sm px-4">Cancelar</a>
+        {% if obj %}
+        <a href="{% url 'incorporadora:unidade_delete' obj.pk %}" class="btn btn-outline-danger btn-sm px-3 ms-auto">
+          <i class="bi bi-trash me-1"></i>Excluir
+        </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+(function () {
+  const tiposVinculaveis = ['garagem', 'hobby_box'];
+  const tipoSelect = document.getElementById('id_tipo');
+  const rowVinculo = document.getElementById('row-vinculo');
+
+  function toggleVinculo() {
+    rowVinculo.style.display = tiposVinculaveis.includes(tipoSelect.value) ? '' : 'none';
+  }
+
+  tipoSelect.addEventListener('change', toggleVinculo);
+  toggleVinculo();
+})();
+</script>
+{% endblock %}
+{% endblock %}

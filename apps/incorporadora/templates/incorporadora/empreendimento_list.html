@@ -1,0 +1,155 @@
+{% extends "incorporadora/base.html" %}
+{% block title %}Empreendimentos — Incorporadora{% endblock %}
+{% block nav_empreendimentos %}active{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-buildings me-2"></i>Empreendimentos</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item active">Empreendimentos</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'incorporadora:empreendimento_list_pdf' %}" class="btn btn-outline-secondary btn-sm" target="_blank">
+      <i class="bi bi-file-pdf me-1"></i>PDF
+    </a>
+    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalImportCsv">
+      <i class="bi bi-upload me-1"></i>Importar CSV
+    </button>
+    <a href="{% url 'incorporadora:empreendimento_export_excel' %}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-file-earmark-excel me-1"></i>Excel
+    </a>
+    <a href="{% url 'incorporadora:empreendimento_create' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>Novo Empreendimento
+    </a>
+  </div>
+</div>
+
+<div class="main-content">
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if msg.tags == 'error' %}danger{% elif msg.tags == 'warning' %}warning{% else %}success{% endif %} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+        <i class="bi bi-{% if msg.tags == 'error' %}exclamation-triangle-fill{% elif msg.tags == 'warning' %}exclamation-triangle-fill{% else %}check-circle-fill{% endif %}"></i>
+        <span>{{ msg }}</span>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="data-table">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th style="width:60px">#</th>
+          <th>Nome</th>
+          <th>Empresa</th>
+          <th>Status</th>
+          <th>Blocos</th>
+          <th style="width:120px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for emp in empreendimentos %}
+        <tr>
+          <td class="text-muted">{{ emp.pk }}</td>
+          <td class="fw-semibold">{{ emp.nome }}</td>
+          <td>{{ emp.empresa }}</td>
+          <td>
+            {% if emp.status == 'planejamento' %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Planejamento</span>
+            {% elif emp.status == 'em_construcao' %}
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Em Construção</span>
+            {% else %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Entregue</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{% url 'incorporadora:bloco_list' empreendimento_pk=emp.pk %}" class="btn btn-outline-primary btn-sm py-0 px-2">
+                <i class="bi bi-grid me-1"></i>Blocos
+              </a>
+              <a href="{% url 'incorporadora:empreendimento_relatorio_pdf' pk=emp.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2" target="_blank" title="Relatório PDF">
+                <i class="bi bi-file-pdf"></i>
+              </a>
+            </div>
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{% url 'incorporadora:empreendimento_edit' emp.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{% url 'incorporadora:empreendimento_delete' emp.pk %}" class="btn btn-outline-danger btn-sm py-0 px-2">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">
+            <i class="bi bi-inbox me-2"></i>Nenhum empreendimento cadastrado.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Importar CSV -->
+<div class="modal fade" id="modalImportCsv" tabindex="-1" aria-labelledby="modalImportCsvLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalImportCsvLabel">
+          <i class="bi bi-upload me-2"></i>Importar Unidades via CSV
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'incorporadora:empreendimento_import_csv' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Empreendimento</label>
+            <select name="empreendimento" class="form-select" required>
+              <option value="">— Selecione —</option>
+              {% for emp in empreendimentos %}
+              <option value="{{ emp.pk }}">{{ emp.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Arquivo CSV</label>
+            <input type="file" name="arquivo" class="form-control" accept=".csv" required>
+          </div>
+          <div class="alert alert-light border small mb-0 p-2">
+            <p class="mb-1 fw-semibold">Colunas esperadas no CSV:</p>
+            <code class="d-block mb-2" style="font-size:0.75rem;">
+              bloco, numero, tipo, tipologia, localizacao, area_privativa,
+              area_privativa_acessoria, area_comum, fracao_ideal, valor_tabela,
+              status, descricao1, descricao2, descricao3
+            </code>
+            <p class="mb-1 text-muted" style="font-size:0.75rem;">
+              Tipos válidos: <strong>apartamento, garagem, hobby_box, sala, loja</strong><br>
+              Status válidos: <strong>disponivel, reservado, vendido, permuta</strong><br>
+              Registros existentes (mesmo bloco + número) serão <strong>atualizados</strong>.
+            </p>
+            <a href="{% url 'incorporadora:empreendimento_csv_template' %}" class="btn btn-outline-secondary btn-sm mt-1 py-0">
+              <i class="bi bi-download me-1"></i>Baixar template CSV
+            </a>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-upload me-1"></i>Importar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
