@@ -147,6 +147,19 @@
                 </li>
                 {% endif %}
 
+                {% if show_incorporadora_menu %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle me-4" href="#" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        Incorporadora
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'incorporadora:empreendimento_list' %}">Empreendimentos</a></li>
+                        <li><a class="dropdown-item" href="{% url 'incorporadora:empresa_list' %}">Empresas</a></li>
+                    </ul>
+                </li>
+                {% endif %}
+
                 {% if show_admin_menu %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
@@ -160,9 +173,7 @@
                         </li>
                         {% endfor %}
                         <li><hr class="dropdown-divider"></li>
-                        <li><h6 class="dropdown-header">Incorporadora</h6></li>
-                        <li><a class="dropdown-item" href="{% url 'incorporadora:empresa_list' %}">Empresas</a></li>
-                        <li><a class="dropdown-item" href="{% url 'incorporadora:empreendimento_list' %}">Empreendimentos</a></li>
+                        <li><a class="dropdown-item" href="{% url 'usuario_list' %}"><i class="bi bi-people me-2"></i>Usuários</a></li>
                     </ul>
                 </li>
                 {% endif %}

@@ -1,0 +1,87 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Usuários — Intranet</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="{% static 'intranet/css/navbar.css' %}">
+  <style>
+    body { background: #f4f3f6; }
+    .page-header { padding: 1.5rem 2rem 0.5rem; }
+    .main-content { padding: 1rem 2rem 2rem; }
+    .data-table { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.07); overflow: hidden; }
+    .data-table table { font-size: 0.85rem; }
+    .data-table thead th { font-size: 0.72rem; text-transform: uppercase; color: #888; background: #f8f7fa; border-bottom: 2px solid #e9e9ef; padding: 10px 14px; }
+    .data-table tbody td { padding: 10px 14px; vertical-align: middle; }
+  </style>
+</head>
+<body>
+{% include 'intranet/intranet_navbar.html' %}
+
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h4 class="mb-0"><i class="bi bi-people me-2"></i>Usuários</h4>
+    <small class="text-muted">Gerenciamento de acessos por grupo</small>
+  </div>
+</div>
+
+<div class="main-content">
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
+        {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="data-table">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Usuário</th>
+          <th>Nome</th>
+          {% for slug, label, _ in grupos_disponiveis %}
+          <th class="text-center">{{ label }}</th>
+          {% endfor %}
+          <th style="width:60px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+        {% with grupos=u.groups.all|dictsort:"name" %}
+        <tr>
+          <td class="fw-semibold">{{ u.username }}</td>
+          <td>{{ u.get_full_name|default:"—" }}</td>
+          {% for slug, label, _ in grupos_disponiveis %}
+          <td class="text-center">
+            {% for g in u.groups.all %}{% if g.name == slug %}<i class="bi bi-check-circle-fill text-success"></i>{% endif %}{% endfor %}
+          </td>
+          {% endfor %}
+          <td>
+            <a href="{% url 'usuario_edit' u.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2">
+              <i class="bi bi-pencil"></i>
+            </a>
+          </td>
+        </tr>
+        {% endwith %}
+        {% empty %}
+        <tr><td colspan="99" class="text-center text-muted py-4">Nenhum usuário cadastrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mt-3">
+    <small class="text-muted">
+      {% for slug, label, desc in grupos_disponiveis %}
+      <span class="me-4"><strong>{{ label }}</strong>: {{ desc }}</span>
+      {% endfor %}
+    </small>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

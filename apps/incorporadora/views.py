@@ -654,10 +654,10 @@ def empreendimento_vinculos_pdf(request, pk):
     sB  = ps('b',  font='Helvetica-Bold')
     sH  = ps('h',  font='Helvetica-Bold', size=8, color=C_WHITE)
 
-    CW = [40*mm, 65*mm, 65*mm, 57*mm]  # Unidade | Garagens | HBs | Outros = 227mm
+    CW = [30*mm, 55*mm, 55*mm, 40*mm]  # Unidade | Garagens | HBs | Outros = 180mm
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
                             leftMargin=15*mm, rightMargin=15*mm,
                             topMargin=20*mm, bottomMargin=20*mm)
     els = []
@@ -816,11 +816,10 @@ def vinculo_csv_template(request, bloco_pk):
     response['Content-Disposition'] = 'attachment; filename="template_vinculos.csv"'
     response.write('﻿')
     writer = csv_mod.writer(response, delimiter=';')
-    writer.writerow(['unidade', 'vinculada'])
-    writer.writerow(['201', 'G57'])
-    writer.writerow(['201', 'HB65'])
-    writer.writerow(['202', 'G18'])
-    writer.writerow(['202', 'HB13'])
+    writer.writerow(['unidade', 'vinculada', 'numeros_adicionais'])
+    writer.writerow(['201', 'G57', 'M03,HB60'])
+    writer.writerow(['202', 'G18', ''])
+    writer.writerow(['202', 'HB13', ''])
     return response
 
 
@@ -860,6 +859,11 @@ def vinculo_import_csv(request, bloco_pk):
                     return u
         return None
 
+    # limpa todos os vínculos e aliases do bloco antes de reimportar
+    bloco.unidades.filter(
+        tipo__in=['garagem', 'hobby_box']
+    ).update(unidade_principal=None, numeros_adicionais='')
+
     erros = []
     vinculados = 0
 
@@ -869,9 +873,22 @@ def vinculo_import_csv(request, bloco_pk):
 
         num_principal = row.get('unidade', '').strip()
         num_vinculada = row.get('vinculada', '').strip()
+        numeros_adicionais = row.get('numeros_adicionais', '').strip()
 
-        if not num_principal or not num_vinculada:
-            erros.append(f'Linha {i}: colunas "unidade" e "vinculada" são obrigatórias.')
+        if not num_principal:
+            erros.append(f'Linha {i}: coluna "unidade" é obrigatória.')
+            continue
+
+        # sem vinculada mas com numeros_adicionais: apenas atualiza o campo na unidade
+        if not num_vinculada:
+            if numeros_adicionais:
+                unidade = buscar_unidade(num_principal)
+                if not unidade:
+                    erros.append(f'Linha {i}: unidade "{num_principal}" não encontrada no bloco.')
+                    continue
+                unidade.numeros_adicionais = numeros_adicionais
+                unidade.save(update_fields=['numeros_adicionais'])
+                vinculados += 1
             continue
 
         principal = buscar_unidade(num_principal)
@@ -888,8 +905,12 @@ def vinculo_import_csv(request, bloco_pk):
             erros.append(f'Linha {i}: uma unidade não pode ser vinculada a si mesma.')
             continue
 
+        update_fields = ['unidade_principal']
         vinculada.unidade_principal = principal
-        vinculada.save(update_fields=['unidade_principal'])
+        if numeros_adicionais:
+            vinculada.numeros_adicionais = numeros_adicionais
+            update_fields.append('numeros_adicionais')
+        vinculada.save(update_fields=update_fields)
         vinculados += 1
 
     if erros:

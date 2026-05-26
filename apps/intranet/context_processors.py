@@ -151,11 +151,14 @@ def navbar_links(request):
 
     show_financeiro_menu = False
 
+    show_incorporadora_menu = False
+
     if user and user.is_authenticated:
         group_names = set(user.groups.values_list("name", flat=True))
         show_gerencial_menu = bool(group_names & {"admin", "manager"})
         show_admin_menu = "admin" in group_names
         show_financeiro_menu = bool(group_names & {"admin", "financeiro"})
+        show_incorporadora_menu = bool(group_names & {"admin", "incorporadora"})
 
     return {
         "empreendimento_links": EMPREENDEDIMENTO_LINKS,
@@ -170,4 +173,5 @@ def navbar_links(request):
         "show_gerencial_menu": show_gerencial_menu,
         "show_admin_menu": show_admin_menu,
         "show_financeiro_menu": show_financeiro_menu,
+        "show_incorporadora_menu": show_incorporadora_menu,
     }

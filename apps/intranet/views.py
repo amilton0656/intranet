@@ -1,9 +1,17 @@
 import os
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User, Group
 from django.contrib import messages
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from uteis import Uteis
+
+GRUPOS_DISPONIVEIS = [
+    ('admin',        'Admin',        'Acesso total — todos os menus'),
+    ('manager',      'Gerencial',    'Tabelas de Vendas e Gerencial'),
+    ('financeiro',   'Financeiro',   'Menu Financeiro (Bliss / Cota 365)'),
+    ('incorporadora','Incorporadora','App Incorporadora'),
+]
 
 
 @login_required
@@ -79,3 +87,43 @@ def upload_pdfs(request):
     )
 
     return render(request, 'intranet/intranet_uploads.html', {'pdfs': pdfs})
+
+
+def _apenas_admin(request):
+    return request.user.is_authenticated and request.user.groups.filter(name='admin').exists()
+
+
+@login_required
+def usuario_list(request):
+    if not _apenas_admin(request):
+        messages.error(request, 'Acesso restrito ao grupo Admin.')
+        return redirect('intranet_home')
+    usuarios = User.objects.prefetch_related('groups').order_by('first_name', 'username')
+    return render(request, 'intranet/usuario_list.html', {
+        'usuarios': usuarios,
+        'grupos_disponiveis': GRUPOS_DISPONIVEIS,
+    })
+
+
+@login_required
+def usuario_edit(request, pk):
+    if not _apenas_admin(request):
+        messages.error(request, 'Acesso restrito ao grupo Admin.')
+        return redirect('intranet_home')
+    usuario = get_object_or_404(User, pk=pk)
+    if request.method == 'POST':
+        novos_grupos = request.POST.getlist('grupos')
+        grupos_obj = []
+        for nome, _, _ in GRUPOS_DISPONIVEIS:
+            grupo, _ = Group.objects.get_or_create(name=nome)
+            if nome in novos_grupos:
+                grupos_obj.append(grupo)
+        usuario.groups.set(grupos_obj)
+        messages.success(request, f'Grupos de "{usuario.get_full_name() or usuario.username}" atualizados.')
+        return redirect('usuario_list')
+    grupos_atuais = set(usuario.groups.values_list('name', flat=True))
+    return render(request, 'intranet/usuario_form.html', {
+        'usuario': usuario,
+        'grupos_disponiveis': GRUPOS_DISPONIVEIS,
+        'grupos_atuais': grupos_atuais,
+    })
