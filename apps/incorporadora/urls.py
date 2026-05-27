@@ -49,6 +49,22 @@ urlpatterns = [
     path('empreendimentos/importar-csv/',     views.empreendimento_import_csv,   name='empreendimento_import_csv'),
     path('empreendimentos/template-csv/',     views.empreendimento_csv_template, name='empreendimento_csv_template'),
 
+    # Tabela de Vendas
+    path('empreendimentos/<int:empreendimento_pk>/tabelas/',       views.tabela_list,   name='tabela_list'),
+    path('empreendimentos/<int:empreendimento_pk>/tabelas/nova/',  views.tabela_create, name='tabela_create'),
+    path('tabelas/<int:pk>/',                                      views.tabela_detail, name='tabela_detail'),
+    path('tabelas/<int:pk>/editar/',                               views.tabela_edit,   name='tabela_edit'),
+    path('tabelas/<int:pk>/excluir/',                              views.tabela_delete, name='tabela_delete'),
+    path('tabelas/<int:pk>/template-csv/',                         views.tabela_item_csv_template, name='tabela_item_csv_template'),
+    path('tabelas/<int:pk>/importar-csv/',                         views.tabela_item_import_csv,   name='tabela_item_import_csv'),
+    path('tabelas/<int:pk>/pdf/',                                  views.tabela_pdf,               name='tabela_pdf'),
+    path('tabelas/<int:pk>/gerar-itens/',                          views.tabela_gerar_itens,        name='tabela_gerar_itens'),
+
+    # Séries de Pagamento
+    path('tabelas/<int:tabela_pk>/series/nova/', views.serie_create, name='serie_create'),
+    path('series/<int:pk>/editar/',              views.serie_edit,   name='serie_edit'),
+    path('series/<int:pk>/excluir/',             views.serie_delete, name='serie_delete'),
+
     # PDF exports
     path('empresas/pdf/',                                        views.empresa_list_pdf,       name='empresa_list_pdf'),
     path('empreendimentos/pdf/',                                 views.empreendimento_list_pdf, name='empreendimento_list_pdf'),

@@ -160,6 +160,14 @@
                 </li>
                 {% endif %}
 
+                {% if show_pessoas_menu %}
+                <li class="nav-item">
+                    <a class="nav-link me-4" href="{% url 'pessoas:pessoa_list' %}">
+                        <i class="bi bi-people me-1"></i>Pessoas
+                    </a>
+                </li>
+                {% endif %}
+
                 {% if show_admin_menu %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"

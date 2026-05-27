@@ -1,0 +1,244 @@
+{% extends "incorporadora/base.html" %}
+{% block title %}{{ tabela.nome }} — Incorporadora{% endblock %}
+{% block nav_empreendimentos %}active{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-table me-2"></i>{{ tabela.nome }}</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'incorporadora:empreendimento_list' %}">Empreendimentos</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'incorporadora:tabela_list' empreendimento_pk=tabela.empreendimento.pk %}">{{ tabela.empreendimento }}</a></li>
+        <li class="breadcrumb-item active">{{ tabela.nome }}</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'incorporadora:tabela_pdf' pk=tabela.pk %}" class="btn btn-outline-secondary btn-sm" target="_blank">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
+    <a href="{% url 'incorporadora:tabela_edit' pk=tabela.pk %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-pencil me-1"></i>Editar
+    </a>
+  </div>
+</div>
+
+<div class="main-content">
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if msg.tags == 'error' %}danger{% elif msg.tags == 'warning' %}warning{% else %}success{% endif %} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+        <i class="bi bi-{% if msg.tags == 'error' or msg.tags == 'warning' %}exclamation-triangle-fill{% else %}check-circle-fill{% endif %}"></i>
+        <span>{{ msg }}</span>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Cabeçalho da tabela -->
+  <div class="row g-3 mb-4">
+    <div class="col-auto">
+      <div class="bg-white border rounded p-3" style="min-width:160px;">
+        <div class="text-muted small">Modalidade</div>
+        <div class="fw-semibold">{{ tabela.get_modalidade_display }}</div>
+      </div>
+    </div>
+    <div class="col-auto">
+      <div class="bg-white border rounded p-3" style="min-width:160px;">
+        <div class="text-muted small">Data de Referência</div>
+        <div class="fw-semibold">{{ tabela.data_referencia|date:"m/Y" }}</div>
+      </div>
+    </div>
+    <div class="col-auto">
+      <div class="bg-white border rounded p-3" style="min-width:160px;">
+        <div class="text-muted small">CUB de Referência</div>
+        <div class="fw-semibold">R$ {{ tabela.cub_referencia }}</div>
+      </div>
+    </div>
+    {% if tabela.data_inicio or tabela.data_fim %}
+    <div class="col-auto">
+      <div class="bg-white border rounded p-3" style="min-width:180px;">
+        <div class="text-muted small">Vigência</div>
+        <div class="fw-semibold">
+          {{ tabela.data_inicio|date:"d/m/Y"|default:"—" }} → {{ tabela.data_fim|date:"d/m/Y"|default:"—" }}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    <div class="col-auto">
+      <div class="bg-white border rounded p-3" style="min-width:120px;">
+        <div class="text-muted small">Situação</div>
+        <div>
+          {% if tabela.ativa %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle">Ativa</span>
+          {% else %}
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Inativa</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Séries de Pagamento -->
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <h6 class="text-muted text-uppercase fw-semibold mb-0" style="font-size:0.72rem;letter-spacing:.05em;">Séries de Pagamento</h6>
+    <a href="{% url 'incorporadora:serie_create' tabela_pk=tabela.pk %}" class="btn btn-outline-primary btn-sm py-0">
+      <i class="bi bi-plus-lg me-1"></i>Nova Série
+    </a>
+  </div>
+  <div class="data-table mb-4">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th style="width:40px">Ord.</th>
+          <th>Tipo</th>
+          <th>Periodicidade</th>
+          <th>1º Vencimento</th>
+          <th>Qtd.</th>
+          <th class="text-end">% Valor</th>
+          <th>Índice</th>
+          <th style="width:80px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in series %}
+        <tr>
+          <td class="text-muted">{{ s.ordem }}</td>
+          <td class="fw-semibold">{{ s.get_tipo_display }}</td>
+          <td class="text-muted">{{ s.get_periodicidade_display }}</td>
+          <td class="text-muted">{{ s.primeiro_vencimento|date:"d/m/Y"|default:"—" }}</td>
+          <td>{{ s.quantidade }}x</td>
+          <td class="text-end">
+            {% if s.percentual %}
+              <span class="fw-semibold">{{ s.percentual }}%</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-muted">{{ s.get_indice_display }}</td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{% url 'incorporadora:serie_edit' pk=s.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{% url 'incorporadora:serie_delete' pk=s.pk %}" class="btn btn-outline-danger btn-sm py-0 px-2">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-3">
+            <i class="bi bi-inbox me-1"></i>Nenhuma série cadastrada.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Itens (Unidades) -->
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <h6 class="text-muted text-uppercase fw-semibold mb-0" style="font-size:0.72rem;letter-spacing:.05em;">Unidades</h6>
+    <div class="d-flex gap-2">
+      <form method="post" action="{% url 'incorporadora:tabela_gerar_itens' pk=tabela.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-secondary btn-sm py-0">
+          <i class="bi bi-magic me-1"></i>Gerar Unidades
+        </button>
+      </form>
+      <a href="{% url 'incorporadora:tabela_item_csv_template' pk=tabela.pk %}" class="btn btn-outline-secondary btn-sm py-0">
+        <i class="bi bi-download me-1"></i>Template CSV
+      </a>
+      <button type="button" class="btn btn-outline-primary btn-sm py-0" data-bs-toggle="modal" data-bs-target="#modalImportItens">
+        <i class="bi bi-upload me-1"></i>Importar CSV
+      </button>
+    </div>
+  </div>
+
+  <div class="data-table mb-2" style="overflow-x:auto;">
+    <table class="table table-hover mb-0" style="font-size:0.82rem;">
+      <thead>
+        <tr>
+          <th>Bloco</th>
+          <th>Unidade</th>
+          <th>Tipologia</th>
+          <th>Garagens</th>
+          <th class="text-end">Á. Priv.</th>
+          <th class="text-end">Á. Total</th>
+          <th class="text-end">Valor Venda</th>
+          {% for s in series %}
+          <th class="text-end">{{ s.label }}</th>
+          {% endfor %}
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in itens %}
+        <tr>
+          <td class="text-muted">{{ item.unidade.bloco.nome }}</td>
+          <td class="fw-semibold">{{ item.unidade.numero }}</td>
+          <td class="text-muted">{{ item.unidade.tipologia|default:"—" }}</td>
+          <td class="text-muted small">
+            {% for g in item.unidade.vinculadas.all %}
+              {{ g.numero }}{% if not forloop.last %}, {% endif %}
+            {% empty %}—{% endfor %}
+          </td>
+          <td class="text-end text-muted">{{ item.unidade.area_privativa }}</td>
+          <td class="text-end text-muted">{{ item.unidade.area_privativa|add:item.unidade.area_comum }}</td>
+          <td class="text-end fw-semibold">{{ item.valor_venda }}</td>
+          {% for s in series %}
+            {% with valor=None %}
+            <td class="text-end text-muted">
+              {% for v in item.valores.all %}{% if v.serie_id == s.pk %}{{ v.valor_parcela }}{% endif %}{% endfor %}
+            </td>
+            {% endwith %}
+          {% endfor %}
+          <td>
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+              {{ item.get_status_display }}
+            </span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{{ series|length|add:8 }}" class="text-center text-muted py-4">
+            <i class="bi bi-inbox me-2"></i>Nenhuma unidade importada.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="text-muted small mt-1">{{ itens|length }} unidade(s)</div>
+</div>
+
+<!-- Modal Importar Itens -->
+<div class="modal fade" id="modalImportItens" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'incorporadora:tabela_item_import_csv' pk=tabela.pk %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Importar Itens via CSV</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Colunas: <code>bloco; unidade; status; valor_venda; [tipo de cada série]</code><br>
+            Tipos de série válidos: <code>ato, parcela, reforco, chaves, financiamento, outro</code><br>
+            Status válidos: <code>disponivel, vendido, permuta, contrato, em_negociacao, reserva, proprio</code><br>
+            A importação atualiza registros existentes (upsert).
+          </p>
+          <input type="file" name="arquivo" accept=".csv" class="form-control form-control-sm" required>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary btn-sm">Importar</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

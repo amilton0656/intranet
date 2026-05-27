@@ -1,0 +1,92 @@
+{% extends "incorporadora/base.html" %}
+{% block title %}Tabelas de Vendas — {{ empreendimento }}{% endblock %}
+{% block nav_empreendimentos %}active{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-table me-2"></i>Tabelas de Vendas</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'incorporadora:empreendimento_list' %}">Empreendimentos</a></li>
+        <li class="breadcrumb-item active">{{ empreendimento }}</li>
+      </ol>
+    </nav>
+  </div>
+  <div>
+    <a href="{% url 'incorporadora:tabela_create' empreendimento_pk=empreendimento.pk %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>Nova Tabela
+    </a>
+  </div>
+</div>
+
+<div class="main-content">
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+        <i class="bi bi-{% if msg.tags == 'error' %}exclamation-triangle-fill{% else %}check-circle-fill{% endif %}"></i>
+        <span>{{ msg }}</span>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="data-table">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Modalidade</th>
+          <th>Data Ref.</th>
+          <th class="text-end">CUB Ref.</th>
+          <th>Séries</th>
+          <th>Itens</th>
+          <th>Situação</th>
+          <th style="width:100px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tabelas %}
+        <tr>
+          <td class="fw-semibold">
+            <a href="{% url 'incorporadora:tabela_detail' pk=t.pk %}">{{ t.nome }}</a>
+          </td>
+          <td>{{ t.get_modalidade_display }}</td>
+          <td>{{ t.data_referencia|date:"m/Y" }}</td>
+          <td class="text-end text-muted">{{ t.cub_referencia }}</td>
+          <td class="text-muted">{{ t.series.count }}</td>
+          <td class="text-muted">{{ t.itens.count }}</td>
+          <td>
+            {% if t.ativa %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Ativa</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Inativa</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{% url 'incorporadora:tabela_detail' pk=t.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2" title="Detalhe">
+                <i class="bi bi-list-ul"></i>
+              </a>
+              <a href="{% url 'incorporadora:tabela_edit' pk=t.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{% url 'incorporadora:tabela_delete' pk=t.pk %}" class="btn btn-outline-danger btn-sm py-0 px-2" title="Excluir">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="text-center text-muted py-4">
+            <i class="bi bi-inbox me-2"></i>Nenhuma tabela cadastrada.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="text-muted small mt-2">{{ tabelas|length }} tabela(s)</div>
+</div>
+{% endblock %}

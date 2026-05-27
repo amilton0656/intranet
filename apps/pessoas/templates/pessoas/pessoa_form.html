@@ -1,0 +1,158 @@
+{% extends "pessoas/base.html" %}
+{% block title %}{{ titulo }} — Pessoas{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-person me-2"></i>{{ titulo }}</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'pessoas:pessoa_list' %}">Pessoas</a></li>
+        <li class="breadcrumb-item active">{{ titulo }}</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<div class="main-content">
+  <div class="form-card p-4" style="max-width:760px;">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <!-- Identificação -->
+      <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size:0.72rem;letter-spacing:.05em;">Identificação</h6>
+      <div class="row g-3 mb-3">
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Tipo</label>
+          {{ form.tipo }}
+        </div>
+        <div class="col-md-9">
+          <label class="form-label fw-semibold">Nome / Razão Social</label>
+          {{ form.nome }}
+          {% if form.nome.errors %}<div class="text-danger small mt-1">{{ form.nome.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">CPF / CNPJ</label>
+          {{ form.cpf_cnpj }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">RG / Insc. Estadual</label>
+          {{ form.rg_ie }}
+        </div>
+      </div>
+
+      <!-- Contato -->
+      <h6 class="text-muted text-uppercase fw-semibold mb-3 mt-4" style="font-size:0.72rem;letter-spacing:.05em;">Contato</h6>
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">E-mail</label>
+          {{ form.email }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Telefone</label>
+          {{ form.telefone }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Celular</label>
+          {{ form.celular }}
+        </div>
+      </div>
+
+      <!-- Endereço -->
+      <h6 class="text-muted text-uppercase fw-semibold mb-3 mt-4" style="font-size:0.72rem;letter-spacing:.05em;">Endereço</h6>
+      <div class="row g-3 mb-3">
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">CEP</label>
+          {{ form.cep }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Logradouro</label>
+          {{ form.logradouro }}
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Número</label>
+          {{ form.numero }}
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Complemento</label>
+          {{ form.complemento }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Bairro</label>
+          {{ form.bairro }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Cidade</label>
+          {{ form.cidade }}
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Estado</label>
+          {{ form.estado }}
+        </div>
+      </div>
+
+      <!-- Papéis -->
+      <h6 class="text-muted text-uppercase fw-semibold mb-3 mt-4" style="font-size:0.72rem;letter-spacing:.05em;">Papéis</h6>
+      <div class="row g-2 mb-3">
+        <div class="col-auto">
+          <div class="form-check form-check-inline">
+            {{ form.is_cliente }}
+            <label class="form-check-label" for="{{ form.is_cliente.id_for_label }}">Cliente</label>
+          </div>
+        </div>
+        <div class="col-auto">
+          <div class="form-check form-check-inline">
+            {{ form.is_corretor }}
+            <label class="form-check-label" for="{{ form.is_corretor.id_for_label }}">Corretor</label>
+          </div>
+        </div>
+        <div class="col-auto">
+          <div class="form-check form-check-inline">
+            {{ form.is_imobiliaria }}
+            <label class="form-check-label" for="{{ form.is_imobiliaria.id_for_label }}">Imobiliária</label>
+          </div>
+        </div>
+        <div class="col-auto">
+          <div class="form-check form-check-inline">
+            {{ form.is_fornecedor }}
+            <label class="form-check-label" for="{{ form.is_fornecedor.id_for_label }}">Fornecedor</label>
+          </div>
+        </div>
+        <div class="col-auto">
+          <div class="form-check form-check-inline">
+            {{ form.is_outro }}
+            <label class="form-check-label" for="{{ form.is_outro.id_for_label }}">Outro</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Observações -->
+      <div class="mb-3 mt-4">
+        <label class="form-label fw-semibold">Observações</label>
+        {{ form.observacoes }}
+      </div>
+
+      <!-- Situação -->
+      <div class="mb-4">
+        <div class="form-check">
+          {{ form.ativo }}
+          <label class="form-check-label" for="{{ form.ativo.id_for_label }}">Ativo</label>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-sm px-4">
+          <i class="bi bi-check-lg me-1"></i>Salvar
+        </button>
+        <a href="{% url 'pessoas:pessoa_list' %}" class="btn btn-outline-secondary btn-sm px-4">Cancelar</a>
+        {% if obj %}
+        <a href="{% url 'pessoas:pessoa_delete' obj.pk %}"
+           class="btn btn-outline-danger btn-sm px-3 ms-auto">
+          <i class="bi bi-trash me-1"></i>Excluir
+        </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends "pessoas/base.html" %}
+{% load pessoas_extras %}
+{% block title %}Pessoas — Intranet{% endblock %}
+{% block nav_all %}active{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-people me-2"></i>Pessoas</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb"><li class="breadcrumb-item active">Pessoas</li></ol>
+    </nav>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'pessoas:pessoa_list_pdf' %}{% if filtros_ativos %}?nome={{ filtros.nome }}&papel={{ filtros.papel }}&tipo={{ filtros.tipo }}&ativo={{ filtros.ativo }}{% endif %}"
+       class="btn btn-outline-secondary btn-sm" target="_blank" title="Exportar PDF">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
+    <a href="{% url 'pessoas:pessoa_create' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>Nova Pessoa
+    </a>
+  </div>
+</div>
+
+<div class="main-content">
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+        <i class="bi bi-{% if msg.tags == 'error' %}exclamation-triangle-fill{% else %}check-circle-fill{% endif %}"></i>
+        <span>{{ msg }}</span>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="get" class="mb-3">
+    <div class="bg-white border rounded p-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label fw-semibold mb-1" style="font-size:0.75rem;">Nome</label>
+          <input type="text" name="nome" class="form-control form-control-sm" value="{{ filtros.nome }}" placeholder="Buscar...">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold mb-1" style="font-size:0.75rem;">Tipo</label>
+          <select name="tipo" class="form-select form-select-sm">
+            <option value="">Todos</option>
+            {% for key, label in tipo_choices %}
+            <option value="{{ key }}" {% if filtros.tipo == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold mb-1" style="font-size:0.75rem;">Papel</label>
+          <select name="papel" class="form-select form-select-sm">
+            <option value="">Todos</option>
+            <option value="cliente"     {% if filtros.papel == 'cliente' %}selected{% endif %}>Cliente</option>
+            <option value="corretor"    {% if filtros.papel == 'corretor' %}selected{% endif %}>Corretor</option>
+            <option value="imobiliaria" {% if filtros.papel == 'imobiliaria' %}selected{% endif %}>Imobiliária</option>
+            <option value="fornecedor"  {% if filtros.papel == 'fornecedor' %}selected{% endif %}>Fornecedor</option>
+            <option value="outro"       {% if filtros.papel == 'outro' %}selected{% endif %}>Outro</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold mb-1" style="font-size:0.75rem;">Situação</label>
+          <select name="ativo" class="form-select form-select-sm">
+            <option value="">Todos</option>
+            <option value="1" {% if filtros.ativo == '1' %}selected{% endif %}>Ativo</option>
+            <option value="0" {% if filtros.ativo == '0' %}selected{% endif %}>Inativo</option>
+          </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-search me-1"></i>Filtrar</button>
+          {% if filtros_ativos %}
+          <a href="{% url 'pessoas:pessoa_list' %}" class="btn btn-outline-secondary btn-sm" title="Limpar">
+            <i class="bi bi-x-lg"></i>
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div class="data-table">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Tipo</th>
+          <th>CPF / CNPJ</th>
+          <th>Contato</th>
+          <th>Papéis</th>
+          <th>Situação</th>
+          <th style="width:70px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pessoas %}
+        <tr>
+          <td class="fw-semibold">{{ p.nome }}</td>
+          <td>{{ p.get_tipo_display }}</td>
+          <td class="text-muted">{{ p.cpf_cnpj|fmt_cpf_cnpj }}</td>
+          <td>
+            {% if p.celular %}<div>{{ p.celular|fmt_fone }}</div>{% endif %}
+            {% if p.telefone and p.telefone != p.celular %}<div class="text-muted small">{{ p.telefone|fmt_fone }}</div>{% endif %}
+            {% if p.email %}<div class="text-muted small">{{ p.email }}</div>{% endif %}
+          </td>
+          <td>
+            {% for papel in p.papeis_display %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle me-1">{{ papel }}</span>
+            {% endfor %}
+          </td>
+          <td>
+            {% if p.ativo %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Ativo</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Inativo</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{% url 'pessoas:pessoa_edit' p.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{% url 'pessoas:pessoa_delete' p.pk %}" class="btn btn-outline-danger btn-sm py-0 px-2">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">
+            <i class="bi bi-inbox me-2"></i>Nenhuma pessoa cadastrada.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="text-muted small mt-2">{{ pessoas|length }} registro(s)</div>
+</div>
+{% endblock %}

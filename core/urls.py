@@ -23,5 +23,6 @@ urlpatterns = [
     path('indices/', include('apps.indices.urls', namespace='indices')),
     path('cota365/', include('apps.cota365.urls', namespace='cota365')),
     path('incorporadora/', include('apps.incorporadora.urls', namespace='incorporadora')),
+    path('pessoas/', include('apps.pessoas.urls', namespace='pessoas')),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]

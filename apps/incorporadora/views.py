@@ -5,8 +5,8 @@ from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 
-from .models import Empresa, Empreendimento, Bloco, Unidade
-from .forms import EmpresaForm, EmpreendimentoForm, BlocoForm, UnidadeForm
+from .models import Empresa, Empreendimento, Bloco, Unidade, TabelaVendas, SeriePagamento, ItemTabelaVendas, ValorSerie
+from .forms import EmpresaForm, EmpreendimentoForm, BlocoForm, UnidadeForm, TabelaVendasForm, SeriePagamentoForm
 from .utils import render_to_pdf
 
 
@@ -1414,4 +1414,511 @@ def unidade_list_pdf(request, bloco_pk):
     doc.build(els)
     response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = f'inline; filename="unidades_{bloco_pk}.pdf"'
+    return response
+
+
+# ── Tabela de Vendas ──────────────────────────────────────────────────────────
+
+@login_required
+def tabela_list(request, empreendimento_pk):
+    empreendimento = get_object_or_404(Empreendimento, pk=empreendimento_pk)
+    tabelas = TabelaVendas.objects.filter(empreendimento=empreendimento)
+    return render(request, 'incorporadora/tabela_list.html', {
+        'empreendimento': empreendimento,
+        'tabelas': tabelas,
+    })
+
+
+@login_required
+def tabela_create(request, empreendimento_pk):
+    empreendimento = get_object_or_404(Empreendimento, pk=empreendimento_pk)
+    form = TabelaVendasForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        tabela = form.save(commit=False)
+        tabela.empreendimento = empreendimento
+        tabela.save()
+        messages.success(request, 'Tabela criada com sucesso.')
+        return redirect('incorporadora:tabela_detail', pk=tabela.pk)
+    return render(request, 'incorporadora/tabela_form.html', {
+        'form': form,
+        'empreendimento': empreendimento,
+        'titulo': 'Nova Tabela de Vendas',
+    })
+
+
+@login_required
+def tabela_edit(request, pk):
+    tabela = get_object_or_404(TabelaVendas.objects.select_related('empreendimento'), pk=pk)
+    form = TabelaVendasForm(request.POST or None, instance=tabela)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Tabela atualizada com sucesso.')
+        return redirect('incorporadora:tabela_detail', pk=tabela.pk)
+    return render(request, 'incorporadora/tabela_form.html', {
+        'form': form,
+        'empreendimento': tabela.empreendimento,
+        'titulo': 'Editar Tabela de Vendas',
+        'obj': tabela,
+    })
+
+
+@login_required
+def tabela_delete(request, pk):
+    tabela = get_object_or_404(TabelaVendas.objects.select_related('empreendimento'), pk=pk)
+    if request.method == 'POST':
+        emp_pk = tabela.empreendimento.pk
+        tabela.delete()
+        messages.success(request, 'Tabela excluída.')
+        return redirect('incorporadora:tabela_list', empreendimento_pk=emp_pk)
+    return render(request, 'incorporadora/tabela_confirm_delete.html', {'obj': tabela})
+
+
+@login_required
+def tabela_detail(request, pk):
+    tabela = get_object_or_404(
+        TabelaVendas.objects.select_related('empreendimento__empresa').prefetch_related('series'),
+        pk=pk,
+    )
+    itens = (ItemTabelaVendas.objects
+             .filter(tabela=tabela)
+             .select_related('unidade__bloco')
+             .prefetch_related('valores__serie', 'unidade__vinculadas'))
+    series = list(tabela.series.all())
+    return render(request, 'incorporadora/tabela_detail.html', {
+        'tabela': tabela,
+        'series': series,
+        'itens': itens,
+    })
+
+
+# ── Séries de Pagamento ───────────────────────────────────────────────────────
+
+@login_required
+def serie_create(request, tabela_pk):
+    from decimal import Decimal
+    tabela = get_object_or_404(TabelaVendas, pk=tabela_pk)
+    form = SeriePagamentoForm(request.POST or None, tabela=tabela)
+    if request.method == 'POST' and form.is_valid():
+        serie = form.save(commit=False)
+        serie.tabela = tabela
+        serie.save()
+        messages.success(request, 'Série adicionada.')
+        return redirect('incorporadora:tabela_detail', pk=tabela.pk)
+    soma = sum(s.percentual for s in tabela.series.all() if s.percentual) or Decimal('0')
+    return render(request, 'incorporadora/serie_form.html', {
+        'form': form, 'tabela': tabela, 'titulo': 'Nova Série de Pagamento',
+        'pct_disponivel': f'{Decimal("100") - soma:.3f}',
+    })
+
+
+@login_required
+def serie_edit(request, pk):
+    from decimal import Decimal
+    serie = get_object_or_404(SeriePagamento.objects.select_related('tabela'), pk=pk)
+    form = SeriePagamentoForm(request.POST or None, instance=serie, tabela=serie.tabela)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Série atualizada.')
+        return redirect('incorporadora:tabela_detail', pk=serie.tabela.pk)
+    soma = sum(s.percentual for s in serie.tabela.series.exclude(pk=serie.pk) if s.percentual) or Decimal('0')
+    return render(request, 'incorporadora/serie_form.html', {
+        'form': form, 'tabela': serie.tabela, 'titulo': 'Editar Série', 'obj': serie,
+        'pct_disponivel': f'{Decimal("100") - soma:.3f}',
+    })
+
+
+@login_required
+def serie_delete(request, pk):
+    serie = get_object_or_404(SeriePagamento.objects.select_related('tabela'), pk=pk)
+    if request.method == 'POST':
+        tabela_pk = serie.tabela.pk
+        serie.delete()
+        messages.success(request, 'Série excluída.')
+        return redirect('incorporadora:tabela_detail', pk=tabela_pk)
+    return render(request, 'incorporadora/serie_confirm_delete.html', {'obj': serie})
+
+
+# ── Itens da Tabela (CSV) ─────────────────────────────────────────────────────
+
+@login_required
+def tabela_item_csv_template(request, pk):
+    tabela = get_object_or_404(TabelaVendas.objects.prefetch_related('series'), pk=pk)
+    series = list(tabela.series.all())
+    import csv
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="tabela_{pk}_template.csv"'
+    writer = csv.writer(response, delimiter=';')
+    header = ['bloco', 'unidade', 'status', 'valor_venda'] + [s.tipo for s in series]
+    writer.writerow(header)
+    writer.writerow(['Torre A', '101', 'disponivel', '350000.00'] + ['0.00'] * len(series))
+    return response
+
+
+@login_required
+def tabela_item_import_csv(request, pk):
+    import csv, io
+    tabela = get_object_or_404(TabelaVendas.objects.select_related('empreendimento').prefetch_related('series'), pk=pk)
+    series = {s.tipo: s for s in tabela.series.all()}
+
+    if request.method != 'POST':
+        return redirect('incorporadora:tabela_detail', pk=pk)
+
+    arquivo = request.FILES.get('arquivo')
+    if not arquivo:
+        messages.error(request, 'Nenhum arquivo enviado.')
+        return redirect('incorporadora:tabela_detail', pk=pk)
+
+    try:
+        texto = arquivo.read().decode('utf-8-sig')
+        reader = csv.DictReader(io.StringIO(texto), delimiter=';')
+        criados = atualizados = erros = 0
+
+        for i, row in enumerate(reader, start=2):
+            bloco_nome   = row.get('bloco', '').strip()
+            unidade_num  = row.get('unidade', '').strip()
+            status       = row.get('status', 'disponivel').strip()
+            valor_venda  = row.get('valor_venda', '0').strip().replace(',', '.')
+
+            if not bloco_nome or not unidade_num:
+                continue
+
+            try:
+                unidade = Unidade.objects.get(
+                    bloco__empreendimento=tabela.empreendimento,
+                    bloco__nome__iexact=bloco_nome,
+                    numero=unidade_num,
+                )
+            except Unidade.DoesNotExist:
+                messages.warning(request, f'Linha {i}: unidade {bloco_nome}/{unidade_num} não encontrada.')
+                erros += 1
+                continue
+
+            item, criado = ItemTabelaVendas.objects.update_or_create(
+                tabela=tabela, unidade=unidade,
+                defaults={'status': status, 'valor_venda': valor_venda},
+            )
+            if criado:
+                criados += 1
+            else:
+                atualizados += 1
+
+            # valores por série
+            for col_name, valor_str in row.items():
+                col_key = col_name.strip()
+                if col_key in series:
+                    ValorSerie.objects.update_or_create(
+                        item=item, serie=series[col_key],
+                        defaults={'valor_parcela': valor_str.strip().replace(',', '.') or '0'},
+                    )
+
+        messages.success(request, f'Importação concluída: {criados} criados, {atualizados} atualizados, {erros} erro(s).')
+    except Exception as e:
+        messages.error(request, f'Erro ao processar arquivo: {e}')
+
+    return redirect('incorporadora:tabela_detail', pk=pk)
+
+
+@login_required
+def tabela_gerar_itens(request, pk):
+    tabela = get_object_or_404(TabelaVendas.objects.select_related('empreendimento'), pk=pk)
+    if request.method != 'POST':
+        return redirect('incorporadora:tabela_detail', pk=pk)
+
+    unidades = Unidade.objects.filter(
+        bloco__empreendimento=tabela.empreendimento,
+        tipo__in=['apartamento', 'sala', 'loja'],
+    )
+    series = list(tabela.series.all())
+    criados = atualizados = 0
+    for u in unidades:
+        item, criado = ItemTabelaVendas.objects.get_or_create(
+            tabela=tabela,
+            unidade=u,
+            defaults={'status': 'disponivel', 'valor_venda': u.valor_tabela},
+        )
+        if criado:
+            criados += 1
+        else:
+            if item.valor_venda != u.valor_tabela:
+                item.valor_venda = u.valor_tabela
+                item.save(update_fields=['valor_venda'])
+            atualizados += 1
+
+        for serie in series:
+            if serie.percentual and item.valor_venda:
+                from decimal import Decimal
+                qtd = serie.quantidade or 1
+                valor_parcela = (item.valor_venda * serie.percentual / Decimal('100') / qtd).quantize(Decimal('0.01'))
+                ValorSerie.objects.update_or_create(
+                    item=item, serie=serie,
+                    defaults={'valor_parcela': valor_parcela},
+                )
+            else:
+                ValorSerie.objects.get_or_create(item=item, serie=serie,
+                                                 defaults={'valor_parcela': 0})
+
+    messages.success(request, f'{criados} item(ns) criado(s), {atualizados} já existia(m).')
+    return redirect('incorporadora:tabela_detail', pk=pk)
+
+
+@login_required
+def tabela_pdf(request, pk):
+    from decimal import Decimal
+    from io import BytesIO
+    from itertools import groupby
+    from collections import defaultdict
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, PageBreak
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.enums import TA_RIGHT, TA_LEFT, TA_CENTER
+
+    tabela = get_object_or_404(
+        TabelaVendas.objects.select_related('empreendimento__empresa').prefetch_related('series'),
+        pk=pk,
+    )
+    series = list(tabela.series.order_by('ordem'))
+
+    itens_qs = (ItemTabelaVendas.objects
+                .filter(tabela=tabela)
+                .select_related('unidade__bloco')
+                .prefetch_related('valores__serie', 'unidade__vinculadas')
+                .order_by('unidade__bloco__nome', 'unidade__pagina', 'unidade__ordem', 'unidade__numero'))
+
+    cub = tabela.cub_referencia or Decimal('1')
+
+    processed = []
+    for item in itens_qs:
+        u = item.unidade
+        vinculadas = list(u.vinculadas.all())
+        garagens   = [v for v in vinculadas if v.tipo == 'garagem']
+        hbs        = [v for v in vinculadas if v.tipo == 'hobby_box']
+
+        vagas_nums = ', '.join(v.numero_display for v in garagens + hbs) or '—'
+        vagas_tipo = garagens[0].tipologia if garagens else (hbs[0].tipologia if hbs else '')
+
+        area_vinc  = sum(v.area_privativa for v in vinculadas)
+        area_total = u.area_privativa + u.area_privativa_acessoria + u.area_comum + area_vinc
+
+        cub_priv  = (item.valor_venda / (cub * u.area_privativa)).quantize(Decimal('0.000001'))  if u.area_privativa else Decimal('0')
+        cub_total = (item.valor_venda / (cub * area_total)).quantize(Decimal('0.000001'))         if area_total       else Decimal('0')
+
+        processed.append({
+            'item':       item,
+            'unidade':    u,
+            'bloco':      u.bloco.nome,
+            'pagina':     u.pagina,
+            'vagas_nums': vagas_nums,
+            'vagas_tipo': vagas_tipo,
+            'area_total': area_total,
+            'cub_priv':   cub_priv,
+            'cub_total':  cub_total,
+            'valores':    {v.serie_id: v.valor_parcela for v in item.valores.all()},
+        })
+
+    STATUS_LABELS = dict(ItemTabelaVendas.STATUS_CHOICES)
+    resumo = defaultdict(lambda: {'label': '', 'count': 0,
+                                  'area_priv': Decimal('0'), 'area_total': Decimal('0'), 'valor': Decimal('0')})
+    for p in processed:
+        s = p['item'].status
+        resumo[s]['label']       = STATUS_LABELS.get(s, s)
+        resumo[s]['count']      += 1
+        resumo[s]['area_priv']  += p['unidade'].area_privativa
+        resumo[s]['area_total'] += p['area_total']
+        resumo[s]['valor']      += p['item'].valor_venda
+
+    # ── cores ──
+    C_HDR   = colors.HexColor('#A7A3AB')
+    C_ALT   = colors.HexColor('#f7f7f7')
+    C_SUB   = colors.HexColor('#f0eff2')
+    C_BORDA = colors.HexColor('#e0e0e0')
+    C_DARK  = colors.HexColor('#1a1a2e')
+    C_MUTED = colors.HexColor('#888888')
+
+    def ps(name, font='Helvetica', size=7.5, color=colors.black, align=TA_LEFT, **kw):
+        return ParagraphStyle(name, fontName=font, fontSize=size, textColor=color,
+                              alignment=align, leading=kw.pop('leading', size * 1.15), **kw)
+
+    sN   = ps('n')
+    sC   = ps('c',  align=TA_CENTER)
+    sR   = ps('r',  align=TA_RIGHT)
+    sB   = ps('b',  font='Helvetica-Bold')
+    sBR  = ps('br', font='Helvetica-Bold', align=TA_RIGHT)
+    sBC  = ps('bc', font='Helvetica-Bold', align=TA_CENTER)
+    sMR  = ps('mr', color=C_MUTED, align=TA_RIGHT)
+    sMC  = ps('mc', color=C_MUTED, align=TA_CENTER)
+    sST  = ps('st', font='Helvetica-Bold', size=6, color=C_MUTED, align=TA_CENTER)
+    sH   = ps('h',  font='Helvetica-Bold', size=7, color=colors.white, align=TA_CENTER)
+    sHR  = ps('hr', font='Helvetica-Bold', size=7, color=colors.white, align=TA_RIGHT)
+
+    # ── larguras (A4 landscape 297mm − 2×15mm margem = 267mm) ──
+    TOTAL_W  = 267
+    FIXED_MM = [14, 12, 22, 30, 16, 16, 16, 26, 14, 14]   # 10 colunas fixas = 180mm
+    n_series = len(series)
+    if n_series:
+        serie_w = max(16.0, min(35.0, (TOTAL_W - sum(FIXED_MM)) / n_series))
+        avail   = TOTAL_W - serie_w * n_series
+        ratio   = avail / sum(FIXED_MM)
+    else:
+        serie_w = 0
+        ratio   = TOTAL_W / sum(FIXED_MM)
+    CW = [f * ratio * mm for f in FIXED_MM[:8]] + [serie_w * mm] * n_series + [f * ratio * mm for f in FIXED_MM[8:]]
+
+    def fmt(v, places=2):
+        try:
+            s = f'{float(v):,.{places}f}'
+            return s.replace(',', 'X').replace('.', ',').replace('X', '.')
+        except Exception:
+            return str(v) if v else ''
+
+    def hdr():
+        row = [
+            Paragraph('STATUS', sH), Paragraph('APTO', sH), Paragraph('TIPOLOGIA', sH),
+            Paragraph('VAGAS', sH), Paragraph('TIPO', sH),
+            Paragraph('Á. PRIV.<br/>(m²)', sHR), Paragraph('Á. TOTAL<br/>(m²)', sHR),
+            Paragraph('VALOR<br/>VENDA', sHR),
+        ]
+        for s in series:
+            row.append(Paragraph(s.label, sHR))
+        row += [Paragraph('CUB<br/>Á.PRIV.', sHR), Paragraph('CUB<br/>Á.TOTAL', sHR)]
+        return row
+
+    def tbl_style(n_rows):
+        st = TableStyle([
+            ('BACKGROUND',   (0, 0), (-1, 0), C_HDR),
+            ('VALIGN',       (0, 0), (-1,-1), 'MIDDLE'),
+            ('GRID',         (0, 0), (-1, 0), 0.5, colors.HexColor('#888888')),
+            ('LINEBELOW',    (0, 1), (-1,-1), 0.4, C_BORDA),
+            ('TOPPADDING',   (0, 0), (-1,-1), 3),
+            ('BOTTOMPADDING',(0, 0), (-1,-1), 3),
+            ('LEFTPADDING',  (0, 0), (-1,-1), 3),
+            ('RIGHTPADDING', (0, 0), (-1,-1), 3),
+        ])
+        for i in range(2, n_rows + 1, 2):
+            st.add('BACKGROUND', (0, i), (-1, i), C_ALT)
+        return st
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
+                            leftMargin=15*mm, rightMargin=15*mm,
+                            topMargin=15*mm, bottomMargin=15*mm)
+    els = []
+    hoje = date.today().strftime('%d/%m/%Y')
+
+    vigencia = ''
+    if tabela.data_inicio:
+        vigencia = f' | Vigência: {tabela.data_inicio.strftime("%d/%m/%Y")}'
+        if tabela.data_fim:
+            vigencia += f' a {tabela.data_fim.strftime("%d/%m/%Y")}'
+
+    first_page = True
+    for (bloco_nome, pagina), grupo_iter in groupby(processed, key=lambda x: (x['bloco'], x['pagina'])):
+        if not first_page:
+            els.append(PageBreak())
+        first_page = False
+        grupo_list = list(grupo_iter)
+
+        els.append(Paragraph(str(tabela.empreendimento.empresa).upper(),
+                             ps('emp', font='Helvetica-Bold', size=8, color=C_HDR)))
+        els.append(Paragraph(
+            f'TABELA DE VENDAS ({tabela.get_modalidade_display().upper()}) — {bloco_nome.upper()}',
+            ps('tit', font='Helvetica-Bold', size=13, color=C_DARK, spaceBefore=3)))
+        data_ref = tabela.data_referencia.strftime('%m/%Y') if tabela.data_referencia else ''
+        els.append(Paragraph(
+            f'{tabela.nome} | Data ref.: {data_ref} | CUB: R$ {tabela.cub_referencia}{vigencia} | Gerado em {hoje}',
+            ps('sub', size=7.5, color=C_MUTED, spaceBefore=2)))
+        els.append(HRFlowable(width='100%', thickness=2, color=C_HDR, spaceAfter=3*mm, spaceBefore=2*mm))
+
+        data = [hdr()]
+        for p in grupo_list:
+            u = p['unidade']
+            row = [
+                Paragraph(p['item'].get_status_display() if p['item'].status != 'disponivel' else '', sST),
+                Paragraph(u.numero, sBC),
+                Paragraph(u.tipologia or '—', ps('tp', color=C_MUTED, size=7.5)),
+                Paragraph(p['vagas_nums'], sMC),
+                Paragraph(p['vagas_tipo'] or '—', sMC),
+                Paragraph(fmt(u.area_privativa), sR),
+                Paragraph(fmt(p['area_total']), sMR),
+                Paragraph(fmt(p['item'].valor_venda), sBR),
+            ]
+            for s in series:
+                v = p['valores'].get(s.pk)
+                row.append(Paragraph(fmt(v) if v is not None else '', sMR))
+            row += [Paragraph(fmt(p['cub_priv'], 4), sMR), Paragraph(fmt(p['cub_total'], 4), sMR)]
+            data.append(row)
+
+        n_data = len(data)
+        ftr_row = [Paragraph('TOTAL', ps('ft', font='Helvetica-Bold', size=7.5))] + [''] * 4
+        ftr_row.append(Paragraph(f'{len(grupo_list)} unid.',
+                                  ps('ftr', font='Helvetica-Bold', size=7.5, align=TA_RIGHT)))
+        ftr_row += ['', ''] + [''] * n_series + ['', '']
+        data.append(ftr_row)
+
+        st = tbl_style(n_data - 1)
+        st.add('BACKGROUND', (0, n_data), (-1, n_data), C_SUB)
+        st.add('LINEABOVE',  (0, n_data), (-1, n_data), 1, C_HDR)
+        t = Table(data, colWidths=CW, repeatRows=1)
+        t.setStyle(st)
+        els.append(t)
+        data_ref_long = tabela.data_referencia.strftime('%B/%Y') if tabela.data_referencia else ''
+        els.append(Paragraph(
+            f'Mês de referência: {data_ref_long} — A presente tabela poderá ser alterada sem aviso prévio.',
+            ps('fn', size=6.5, color=C_MUTED, align=TA_RIGHT, spaceBefore=3)))
+
+    # ── RESUMO ──
+    els.append(PageBreak())
+    els.append(Paragraph(str(tabela.empreendimento.empresa).upper(),
+                         ps('emp2', font='Helvetica-Bold', size=8, color=C_HDR)))
+    els.append(Paragraph(
+        f'TABELA DE VENDAS ({tabela.get_modalidade_display().upper()}) — RESUMO',
+        ps('tit2', font='Helvetica-Bold', size=13, color=C_DARK, spaceBefore=3)))
+    els.append(Paragraph(f'{tabela.nome} | Gerado em {hoje}',
+                         ps('sub2', size=7.5, color=C_MUTED, spaceBefore=2)))
+    els.append(HRFlowable(width='100%', thickness=2, color=C_HDR, spaceAfter=4*mm, spaceBefore=2*mm))
+
+    sRH  = ps('rh',  font='Helvetica-Bold', size=8, color=colors.white)
+    sRHR = ps('rhr', font='Helvetica-Bold', size=8, color=colors.white, align=TA_RIGHT)
+    sRN  = ps('rn',  size=8)
+    sRR  = ps('rr',  size=8, align=TA_RIGHT)
+    sRB  = ps('rb',  font='Helvetica-Bold', size=8)
+    sRBR = ps('rbr', font='Helvetica-Bold', size=8, align=TA_RIGHT)
+
+    tot = {'count': 0, 'area_priv': Decimal('0'), 'area_total': Decimal('0'), 'valor': Decimal('0')}
+    rdata = [[Paragraph('Situação', sRH), Paragraph('Unidades', sRHR),
+              Paragraph('Área Privativa (m²)', sRHR), Paragraph('Área Total (m²)', sRHR),
+              Paragraph('Valor Total (R$)', sRHR)]]
+    for dados in resumo.values():
+        rdata.append([Paragraph(dados['label'], sRN), Paragraph(str(dados['count']), sRR),
+                      Paragraph(fmt(dados['area_priv']), sRR), Paragraph(fmt(dados['area_total']), sRR),
+                      Paragraph(fmt(dados['valor']), sRR)])
+        tot['count']     += dados['count']
+        tot['area_priv'] += dados['area_priv']
+        tot['area_total']+= dados['area_total']
+        tot['valor']     += dados['valor']
+    rdata.append([Paragraph('TOTAL', sRB), Paragraph(str(tot['count']), sRBR),
+                  Paragraph(fmt(tot['area_priv']), sRBR), Paragraph(fmt(tot['area_total']), sRBR),
+                  Paragraph(fmt(tot['valor']), sRBR)])
+
+    RCW = [80*mm, 30*mm, 52*mm, 52*mm, 53*mm]
+    rt = Table(rdata, colWidths=RCW)
+    rt.setStyle(TableStyle([
+        ('BACKGROUND',   (0, 0), (-1, 0), C_HDR),
+        ('VALIGN',       (0, 0), (-1,-1), 'MIDDLE'),
+        ('GRID',         (0, 0), (-1, 0), 0.5, colors.HexColor('#888888')),
+        ('LINEBELOW',    (0, 1), (-1,-2), 0.4, C_BORDA),
+        ('BACKGROUND',   (0, len(rdata)-1), (-1,-1), C_SUB),
+        ('LINEABOVE',    (0, len(rdata)-1), (-1,-1), 1, C_HDR),
+        ('TOPPADDING',   (0, 0), (-1,-1), 4),
+        ('BOTTOMPADDING',(0, 0), (-1,-1), 4),
+        ('LEFTPADDING',  (0, 0), (-1,-1), 5),
+        ('RIGHTPADDING', (0, 0), (-1,-1), 5),
+    ]))
+    els.append(rt)
+
+    doc.build(els)
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="tabela_{pk}.pdf"'
     return response

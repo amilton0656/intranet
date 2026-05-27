@@ -1,5 +1,5 @@
 from django import forms
-from .models import Empresa, Empreendimento, Bloco, Unidade
+from .models import Empresa, Empreendimento, Bloco, Unidade, TabelaVendas, SeriePagamento
 
 
 class EmpresaForm(forms.ModelForm):
@@ -49,7 +49,7 @@ class UnidadeForm(forms.ModelForm):
     class Meta:
         model = Unidade
         fields = [
-            'bloco', 'ordem', 'numero', 'numeros_adicionais', 'tipo', 'tipologia', 'localizacao',
+            'bloco', 'ordem', 'pagina', 'numero', 'numeros_adicionais', 'tipo', 'tipologia', 'localizacao',
             'area_privativa', 'area_privativa_acessoria', 'area_comum',
             'fracao_ideal', 'valor_tabela', 'status',
             'unidade_principal',
@@ -58,6 +58,7 @@ class UnidadeForm(forms.ModelForm):
         widgets = {
             'bloco':                    forms.Select(attrs={'class': 'form-select'}),
             'ordem':                    forms.NumberInput(attrs={'class': 'form-control text-end'}),
+            'pagina':                   forms.NumberInput(attrs={'class': 'form-control text-end'}),
             'numero':                   forms.TextInput(attrs={'class': 'form-control', 'autofocus': True}),
             'numeros_adicionais':       forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: M03, HB60'}),
             'tipo':                     forms.Select(attrs={'class': 'form-select', 'id': 'id_tipo'}),
@@ -85,3 +86,56 @@ class UnidadeForm(forms.ModelForm):
         else:
             self.fields['unidade_principal'].queryset = Unidade.objects.none()
         self.fields['unidade_principal'].empty_label = '— Nenhuma —'
+
+
+class TabelaVendasForm(forms.ModelForm):
+    class Meta:
+        model = TabelaVendas
+        fields = ['nome', 'modalidade', 'cub_referencia', 'data_referencia', 'data_inicio', 'data_fim', 'ativa']
+        widgets = {
+            'nome':            forms.TextInput(attrs={'class': 'form-control', 'autofocus': True}),
+            'modalidade':      forms.Select(attrs={'class': 'form-select'}),
+            'cub_referencia':  forms.NumberInput(attrs={'class': 'form-control text-end', 'step': '0.01'}),
+            'data_referencia': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
+            'data_inicio':     forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
+            'data_fim':        forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
+            'ativa':           forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class SeriePagamentoForm(forms.ModelForm):
+    class Meta:
+        model = SeriePagamento
+        fields = ['tipo', 'periodicidade', 'primeiro_vencimento', 'quantidade', 'percentual', 'indice', 'ordem']
+        widgets = {
+            'tipo':                forms.Select(attrs={'class': 'form-select'}),
+            'periodicidade':       forms.Select(attrs={'class': 'form-select'}),
+            'primeiro_vencimento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
+            'quantidade':          forms.NumberInput(attrs={'class': 'form-control text-end'}),
+            'percentual':          forms.NumberInput(attrs={'class': 'form-control text-end', 'step': '0.001', 'placeholder': 'Ex: 20.000'}),
+            'indice':              forms.Select(attrs={'class': 'form-select'}),
+            'ordem':               forms.NumberInput(attrs={'class': 'form-control text-end'}),
+        }
+
+    def __init__(self, *args, tabela=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._tabela = tabela
+
+    def clean_percentual(self):
+        from decimal import Decimal
+        percentual = self.cleaned_data.get('percentual')
+        if percentual is None or self._tabela is None:
+            return percentual
+        outras = (
+            SeriePagamento.objects
+            .filter(tabela=self._tabela)
+            .exclude(pk=self.instance.pk if self.instance.pk else None)
+        )
+        soma = sum(s.percentual for s in outras if s.percentual) or Decimal('0')
+        disponivel = Decimal('100') - soma
+        if percentual > disponivel:
+            raise forms.ValidationError(
+                f'Percentual inválido. Já alocado: {soma}%. '
+                f'Disponível: {disponivel:.3f}%.'
+            )
+        return percentual

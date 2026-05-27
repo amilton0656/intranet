@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4 landscape;
+    margin: 1.5cm 1.2cm 1.5cm 1.2cm;
+  }
+  body {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 8pt;
+    color: #222;
+  }
+  .page-break { page-break-before: always; }
+
+  /* Cabeçalho de cada grupo */
+  .grp-header {
+    border-bottom: 2pt solid #A7A3AB;
+    margin-bottom: 6pt;
+    padding-bottom: 4pt;
+  }
+  .grp-header .empresa {
+    font-size: 8pt;
+    font-weight: bold;
+    color: #A7A3AB;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 2pt 0;
+  }
+  .grp-header .titulo {
+    font-size: 13pt;
+    font-weight: bold;
+    color: #1a1a2e;
+    margin: 0 0 1pt 0;
+  }
+  .grp-header .sub {
+    font-size: 7.5pt;
+    color: #666;
+    margin: 0;
+  }
+
+  /* Tabela de unidades */
+  table.tv {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4pt;
+  }
+  table.tv thead tr th {
+    background-color: #A7A3AB;
+    color: #fff;
+    font-size: 6.5pt;
+    font-weight: bold;
+    padding: 4pt 3pt;
+    text-align: center;
+    border: 0.5pt solid #888;
+    word-wrap: break-word;
+  }
+  table.tv tbody td {
+    font-size: 7.5pt;
+    padding: 3pt 4pt;
+    border-bottom: 0.4pt solid #e0e0e0;
+    vertical-align: middle;
+  }
+  table.tv tbody tr.alt td { background-color: #f7f7f7; }
+  table.tv tfoot td {
+    background-color: #f0eff2;
+    font-size: 7.5pt;
+    font-weight: bold;
+    padding: 4pt 4pt;
+    border-top: 1pt solid #A7A3AB;
+  }
+  .right { text-align: right; }
+  .center { text-align: center; }
+  .muted { color: #888; }
+  .bold { font-weight: bold; }
+  .status-label {
+    font-size: 6pt;
+    font-weight: bold;
+    color: #888;
+    text-transform: uppercase;
+  }
+
+  /* Resumo */
+  table.resumo {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10pt;
+  }
+  table.resumo thead th {
+    background-color: #A7A3AB;
+    color: #fff;
+    font-size: 7.5pt;
+    font-weight: bold;
+    padding: 5pt 6pt;
+    text-align: left;
+    border: 0.5pt solid #888;
+  }
+  table.resumo thead th.right { text-align: right; }
+  table.resumo tbody td {
+    font-size: 7.5pt;
+    padding: 4pt 6pt;
+    border-bottom: 0.4pt solid #e0e0e0;
+  }
+  table.resumo tfoot td {
+    background-color: #f0eff2;
+    font-size: 7.5pt;
+    font-weight: bold;
+    padding: 5pt 6pt;
+    border-top: 1pt solid #A7A3AB;
+  }
+  .resumo-titulo {
+    font-size: 13pt;
+    font-weight: bold;
+    color: #1a1a2e;
+    margin: 0 0 6pt 0;
+  }
+  .footer {
+    margin-top: 10pt;
+    font-size: 6.5pt;
+    color: #999;
+    text-align: right;
+  }
+</style>
+</head>
+<body>
+
+{% for grupo in grupos %}
+{% if not forloop.first %}<div class="page-break"></div>{% endif %}
+
+<div class="grp-header">
+  <p class="empresa">{{ tabela.empreendimento.empresa }}</p>
+  <p class="titulo">TABELA DE VENDAS ({{ tabela.get_modalidade_display|upper }}) &mdash; {{ grupo.bloco|upper }}</p>
+  <p class="sub">
+    {{ tabela.nome }}
+    &nbsp;|&nbsp; Data ref.: {{ tabela.data_referencia|date:"m/Y" }}
+    &nbsp;|&nbsp; CUB: R$ {{ tabela.cub_referencia }}
+    {% if tabela.data_inicio %}&nbsp;|&nbsp; Vigência: {{ tabela.data_inicio|date:"d/m/Y" }}{% if tabela.data_fim %} a {{ tabela.data_fim|date:"d/m/Y" }}{% endif %}{% endif %}
+    &nbsp;|&nbsp; Gerado em {{ data }}
+  </p>
+</div>
+
+<table class="tv">
+  <thead>
+    <tr class="h1">
+      <th><div style="width:12mm;">STATUS</div></th>
+      <th><div style="width:10mm;">APTO</div></th>
+      <th><div style="width:20mm;">TIPOLOGIA</div></th>
+      <th><div style="width:14mm;">VAGAS</div></th>
+      <th><div style="width:14mm;">TIPO</div></th>
+      <th class="right"><div style="width:16mm;">Á. PRIV.<br>(m²)</div></th>
+      <th class="right"><div style="width:16mm;">Á. TOTAL<br>(m²)</div></th>
+      <th class="right"><div style="width:24mm;">VALOR<br>VENDA</div></th>
+      {% for s in series %}
+      <th class="right"><div style="width:26mm;">{{ s.label }}</div></th>
+      {% endfor %}
+      <th class="right"><div style="width:14mm;">CUB<br>Á.PRIV.</div></th>
+      <th class="right"><div style="width:14mm;">CUB<br>Á.TOTAL</div></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in grupo.itens %}
+    <tr {% if forloop.counter|divisibleby:2 %}class="alt"{% endif %}>
+      <td class="status-label center">
+        {% if p.item.status != 'disponivel' %}{{ p.item.get_status_display }}{% endif %}
+      </td>
+      <td class="bold center">{{ p.unidade.numero }}</td>
+      <td class="muted">{{ p.unidade.tipologia|default:"—" }}</td>
+      <td class="muted center">{{ p.vagas_nums }}</td>
+      <td class="muted center">{{ p.vagas_tipo }}</td>
+      <td class="right">{{ p.unidade.area_privativa }}</td>
+      <td class="right muted">{{ p.area_total }}</td>
+      <td class="right bold">{{ p.item.valor_venda }}</td>
+      {% for s in series %}
+      <td class="right muted">
+        {% for vid, vval in p.valores.items %}{% if vid == s.pk %}{{ vval }}{% endif %}{% endfor %}
+      </td>
+      {% endfor %}
+      <td class="right muted">{{ p.cub_priv }}</td>
+      <td class="right muted">{{ p.cub_total }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="5" class="right">TOTAL</td>
+      <td class="right">{{ grupo.itens|length }} unid.</td>
+      <td></td>
+      <td></td>
+      {% for s in series %}<td></td>{% endfor %}
+      <td></td>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>
+
+<p class="footer">
+  {% if tabela.data_referencia %}Mês de referência: {{ tabela.data_referencia|date:"F/Y" }} — A presente tabela poderá ser alterada sem aviso prévio.{% endif %}
+</p>
+
+{% endfor %}
+
+<!-- RESUMO FINAL -->
+<div class="page-break"></div>
+
+<div class="grp-header">
+  <p class="empresa">{{ tabela.empreendimento.empresa }}</p>
+  <p class="titulo">TABELA DE VENDAS ({{ tabela.get_modalidade_display|upper }}) &mdash; RESUMO</p>
+  <p class="sub">{{ tabela.nome }} &nbsp;|&nbsp; Gerado em {{ data }}</p>
+</div>
+
+<table class="resumo">
+  <thead>
+    <tr>
+      <th style="width:25%">Situação</th>
+      <th class="right" style="width:10%">Unidades</th>
+      <th class="right" style="width:20%">Área Privativa (m²)</th>
+      <th class="right" style="width:20%">Área Total (m²)</th>
+      <th class="right" style="width:25%">Valor Total (R$)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for status, dados in resumo.items %}
+    <tr>
+      <td>{{ dados.label }}</td>
+      <td class="right">{{ dados.count }}</td>
+      <td class="right">{{ dados.area_priv }}</td>
+      <td class="right">{{ dados.area_total }}</td>
+      <td class="right">{{ dados.valor }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td>TOTAL</td>
+      <td class="right">{{ totais.count }}</td>
+      <td class="right">{{ totais.area_priv }}</td>
+      <td class="right">{{ totais.area_total }}</td>
+      <td class="right">{{ totais.valor }}</td>
+    </tr>
+  </tfoot>
+</table>
+
+</body>
+</html>
