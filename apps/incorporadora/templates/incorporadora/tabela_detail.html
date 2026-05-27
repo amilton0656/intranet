@@ -1,4 +1,5 @@
 {% extends "incorporadora/base.html" %}
+{% load incorporadora_tags %}
 {% block title %}{{ tabela.nome }} — Incorporadora{% endblock %}
 {% block nav_empreendimentos %}active{% endblock %}
 
@@ -55,7 +56,7 @@
     <div class="col-auto">
       <div class="bg-white border rounded p-3" style="min-width:160px;">
         <div class="text-muted small">CUB de Referência</div>
-        <div class="fw-semibold">R$ {{ tabela.cub_referencia }}</div>
+        <div class="fw-semibold">{{ tabela.cub_referencia|brl }}</div>
       </div>
     </div>
     {% if tabela.data_inicio or tabela.data_fim %}
@@ -188,13 +189,13 @@
               {{ g.numero }}{% if not forloop.last %}, {% endif %}
             {% empty %}—{% endfor %}
           </td>
-          <td class="text-end text-muted">{{ item.unidade.area_privativa }}</td>
-          <td class="text-end text-muted">{{ item.unidade.area_privativa|add:item.unidade.area_comum }}</td>
-          <td class="text-end fw-semibold">{{ item.valor_venda }}</td>
+          <td class="text-end text-muted">{{ item.unidade.area_privativa|dec }}</td>
+          <td class="text-end text-muted">{{ item.unidade.area_total|dec }}</td>
+          <td class="text-end fw-semibold">{{ item.valor_venda|brl }}</td>
           {% for s in series %}
             {% with valor=None %}
             <td class="text-end text-muted">
-              {% for v in item.valores.all %}{% if v.serie_id == s.pk %}{{ v.valor_parcela }}{% endif %}{% endfor %}
+              {% for v in item.valores.all %}{% if v.serie_id == s.pk %}{{ v.valor_parcela|brl }}{% endif %}{% endfor %}
             </td>
             {% endwith %}
           {% endfor %}

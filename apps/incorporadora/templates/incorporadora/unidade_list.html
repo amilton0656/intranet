@@ -1,4 +1,5 @@
 {% extends "incorporadora/base.html" %}
+{% load incorporadora_tags %}
 {% block title %}Unidades — {{ bloco }} — Incorporadora{% endblock %}
 {% block nav_empreendimentos %}active{% endblock %}
 
@@ -122,11 +123,11 @@
           <td>{{ u.get_tipo_display }}</td>
           <td>{{ u.tipologia }}</td>
           <td>{{ u.localizacao }}</td>
-          <td class="text-end">{{ u.area_privativa }}</td>
-          <td class="text-end">{{ u.area_privativa_acessoria }}</td>
-          <td class="text-end">{{ u.area_comum }}</td>
-          <td class="text-end">{{ u.fracao_ideal }}</td>
-          <td class="text-end">R$ {{ u.valor_tabela|floatformat:2 }}</td>
+          <td class="text-end">{{ u.area_privativa|dec }}</td>
+          <td class="text-end">{{ u.area_privativa_acessoria|dec }}</td>
+          <td class="text-end">{{ u.area_comum|dec }}</td>
+          <td class="text-end">{{ u.fracao_ideal|dec:6 }}</td>
+          <td class="text-end">{{ u.valor_tabela|brl }}</td>
           <td>
             {% if u.status == 'disponivel' %}
               <span class="badge bg-success-subtle text-success border border-success-subtle">Disponível</span>

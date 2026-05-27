@@ -1,4 +1,5 @@
 {% extends "incorporadora/base.html" %}
+{% load incorporadora_tags %}
 {% block title %}Tabelas de Vendas — {{ empreendimento }}{% endblock %}
 {% block nav_empreendimentos %}active{% endblock %}
 
@@ -53,7 +54,7 @@
           </td>
           <td>{{ t.get_modalidade_display }}</td>
           <td>{{ t.data_referencia|date:"m/Y" }}</td>
-          <td class="text-end text-muted">{{ t.cub_referencia }}</td>
+          <td class="text-end text-muted">{{ t.cub_referencia|brl }}</td>
           <td class="text-muted">{{ t.series.count }}</td>
           <td class="text-muted">{{ t.itens.count }}</td>
           <td>

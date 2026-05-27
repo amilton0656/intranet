@@ -1,4 +1,5 @@
 {% extends "incorporadora/pdf/base.html" %}
+{% load incorporadora_tags %}
 {% block page_size %}A4 landscape{% endblock %}
 
 {% block header_content %}
@@ -44,11 +45,11 @@
       <td>{{ u.get_tipo_display }}</td>
       <td>{{ u.tipologia }}</td>
       <td>{{ u.localizacao }}</td>
-      <td class="right">{{ u.area_privativa }}</td>
-      <td class="right">{{ u.area_privativa_acessoria }}</td>
-      <td class="right">{{ u.area_comum }}</td>
-      <td class="right">{{ u.fracao_ideal }}</td>
-      <td class="right">{{ u.valor_tabela|floatformat:2 }}</td>
+      <td class="right">{{ u.area_privativa|dec }}</td>
+      <td class="right">{{ u.area_privativa_acessoria|dec }}</td>
+      <td class="right">{{ u.area_comum|dec }}</td>
+      <td class="right">{{ u.fracao_ideal|dec:6 }}</td>
+      <td class="right">{{ u.valor_tabela|brl }}</td>
       <td>{{ u.get_status_display }}</td>
     </tr>
     {% empty %}
@@ -59,11 +60,11 @@
   <tfoot>
     <tr style="border-top: 1.5pt solid #A7A3AB;">
       <td colspan="4" style="font-size:8pt; font-weight:bold; padding:5pt 6pt;">Total ({{ unidades|length }} unidades)</td>
-      <td style="font-weight:bold; padding:5pt 6pt; text-align:right;">{{ totais.area_privativa|floatformat:2 }}</td>
-      <td style="font-weight:bold; padding:5pt 6pt; text-align:right;">{{ totais.area_privativa_acessoria|floatformat:2 }}</td>
-      <td style="font-weight:bold; padding:5pt 6pt; text-align:right;">{{ totais.area_comum|floatformat:2 }}</td>
-      <td style="font-weight:bold; padding:5pt 6pt; text-align:right;">{{ totais.fracao_ideal|floatformat:6 }}</td>
-      <td style="font-weight:bold; padding:5pt 6pt; text-align:right;">{{ totais.valor_tabela|floatformat:2 }}</td>
+      <td style="font-weight:bold; padding:5pt 6pt; text-align:right;">{{ totais.area_privativa|dec }}</td>
+      <td style="font-weight:bold; padding:5pt 6pt; text-align:right;">{{ totais.area_privativa_acessoria|dec }}</td>
+      <td style="font-weight:bold; padding:5pt 6pt; text-align:right;">{{ totais.area_comum|dec }}</td>
+      <td style="font-weight:bold; padding:5pt 6pt; text-align:right;">{{ totais.fracao_ideal|dec:6 }}</td>
+      <td style="font-weight:bold; padding:5pt 6pt; text-align:right;">{{ totais.valor_tabela|brl }}</td>
       <td></td>
     </tr>
   </tfoot>

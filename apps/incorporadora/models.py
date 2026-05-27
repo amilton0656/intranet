@@ -96,6 +96,10 @@ class Unidade(models.Model):
         verbose_name_plural = 'Unidades'
         unique_together = [('bloco', 'numero')]
 
+    @property
+    def area_total(self):
+        return self.area_privativa + self.area_privativa_acessoria + self.area_comum
+
     def __str__(self):
         return f'{self.bloco.empreendimento} — {self.bloco.nome} — {self.numero}'
 
