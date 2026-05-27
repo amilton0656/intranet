@@ -1929,7 +1929,7 @@ def tabela_pdf(request, pk):
         for p in grupo_list:
             u = p['unidade']
             row = [
-                Paragraph(p['item'].get_status_display() if p['item'].status != 'disponivel' else '', sST),
+                Paragraph(u.get_status_display() if u.status != 'disponivel' else '', sST),
                 Paragraph(u.numero, sBC),
                 Paragraph(u.tipologia or '—', ps('tp', color=C_MUTED, size=7.5)),
                 Paragraph(p['vagas_nums'], sMC),
