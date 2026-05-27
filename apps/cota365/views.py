@@ -29,7 +29,7 @@ from reportlab.lib.units import cm
 
 from .models import (
     ImportLog, Tabela, Permuta, Vinculo, Venda,
-    Unidade, FluxoContrato, FluxoParcela, Comissao, SerieContrato, Parcela,
+    Unidade, FluxoContrato, FluxoParcela, Comissao, SerieContrato, Parcela, ComissaoObs,
 )
 
 # ---------------------------------------------------------------------------
@@ -1095,6 +1095,7 @@ def comissoes_cadastro(request):
         return redirect('cota365:comissoes_cadastro')
 
     # Agrupa por reserva
+    obs_map = {o.reserva: o.observacao for o in ComissaoObs.objects.all()}
     groups = defaultdict(list)
     for c in Comissao.objects.order_by('unidade', 'reserva', 'beneficiario'):
         groups[c.reserva].append(c)
@@ -1136,6 +1137,7 @@ def comissoes_cadastro(request):
             'tem_data':           bool(data_prevista or data_pagamento),
             'parceiros_json':     json.dumps(parceiros, ensure_ascii=False),
             'total_json':         _fmt_brl(total_comissao),
+            'observacao':         obs_map.get(reserva, ''),
         })
 
     sort     = request.GET.get('sort', 'unidade')
@@ -1160,6 +1162,15 @@ def comissoes_cadastro(request):
             ('imobiliaria', 'Imobiliária'),
         ],
     })
+
+
+def salvar_obs_reserva(request, reserva):
+    from django.http import JsonResponse
+    if request.method != 'POST':
+        return JsonResponse({'ok': False}, status=405)
+    obs = request.POST.get('observacao', '').strip()
+    ComissaoObs.objects.update_or_create(reserva=reserva, defaults={'observacao': obs})
+    return JsonResponse({'ok': True})
 
 
 def delete_reserva(request, reserva):

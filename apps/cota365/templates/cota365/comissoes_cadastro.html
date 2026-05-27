@@ -183,7 +183,8 @@
         <tr class="row-clicavel {% if r.pago %}row-pago{% elif r.tem_data %}row-prevista{% endif %}"
             data-reserva="{{ r.reserva }}"
             data-parceiros='{{ r.parceiros_json }}'
-            data-total="{{ r.total_json }}">
+            data-total="{{ r.total_json }}"
+            data-obs="{{ r.observacao|escapejs }}">
           <td>{{ r.unidade }}</td>
           <td>{{ r.reserva }}</td>
           <td>{{ r.cliente }}</td>
@@ -266,6 +267,21 @@
             </tr>
           </tfoot>
         </table>
+        <!-- Observações -->
+        <div class="px-3 pt-3 pb-2" style="border-top:1px solid #e9ecef; background:#fafbfc;">
+          <label class="form-label mb-1" style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#6c757d;">
+            <i class="bi bi-sticky me-1"></i>Observações
+          </label>
+          <textarea id="modal-obs" class="form-control form-control-sm"
+                    rows="3" placeholder="Nenhuma observação…"
+                    style="font-size:0.83rem; resize:vertical;"></textarea>
+          <div class="d-flex justify-content-between align-items-center mt-2">
+            <span id="modal-obs-feedback" class="text-success small" style="display:none!important;"></span>
+            <button type="button" class="btn btn-sm btn-primary ms-auto" id="btn-salvar-obs">
+              <i class="bi bi-check-lg me-1"></i>Salvar observação
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -358,6 +374,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
       document.getElementById('modal-reserva').textContent = reserva;
       document.getElementById('modal-total').textContent   = total;
+      document.getElementById('modal-obs').value           = this.dataset.obs || '';
+      document.getElementById('modal-obs-feedback').style.display = 'none';
+      document.getElementById('btn-salvar-obs').dataset.reserva   = reserva;
 
       var tbody = document.getElementById('modal-tbody');
       tbody.innerHTML = '';
@@ -376,6 +395,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
       bootstrap.Modal.getOrCreateInstance(modalEl).show();
     });
+  });
+
+  // ── Salvar observação ──────────────────────────────────────────────────
+  document.getElementById('btn-salvar-obs').addEventListener('click', function () {
+    var reserva = this.dataset.reserva;
+    var obs     = document.getElementById('modal-obs').value;
+    var btn     = this;
+    var fb      = document.getElementById('modal-obs-feedback');
+
+    btn.disabled = true;
+
+    var form = new FormData();
+    form.append('observacao', obs);
+    form.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    fetch('/cota365/comissoes/cadastro/' + reserva + '/obs/', { method: 'POST', body: form })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.ok) {
+          // Atualiza o data-obs da linha correspondente
+          var row = document.querySelector('[data-reserva="' + reserva + '"]');
+          if (row) row.dataset.obs = obs;
+
+          fb.textContent = 'Salvo!';
+          fb.style.removeProperty('display');
+          setTimeout(function () { fb.style.display = 'none'; }, 2000);
+        }
+      })
+      .finally(function () { btn.disabled = false; });
   });
 });
 </script>

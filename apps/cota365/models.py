@@ -154,3 +154,16 @@ class Comissao(models.Model):
 
     def __str__(self):
         return f'#{self.numero} — {self.beneficiario}'
+
+
+class ComissaoObs(models.Model):
+    reserva    = models.CharField(max_length=20, unique=True, db_index=True)
+    observacao = models.TextField(blank=True, default='')
+    atualizado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Observação de Comissão'
+        verbose_name_plural = 'Observações de Comissões'
+
+    def __str__(self):
+        return f'Obs reserva {self.reserva}'
