@@ -29,6 +29,10 @@ urlpatterns = [
     path('<str:numero>/documentos/upload/', views.documento_upload, name='documento_upload'),
     path('documentos/<int:pk>/remover/',    views.documento_remove, name='documento_remove'),
 
+    # Workflow
+    path('workflow/',         views.proposta_workflow, name='proposta_workflow'),
+    path('workflow/salvar/',  views.workflow_salvar,   name='workflow_salvar'),
+
     # AJAX helpers
     path('tabelas/<int:tabela_pk>/unidades/', views.tabela_unidades_json, name='tabela_unidades_json'),
 ]

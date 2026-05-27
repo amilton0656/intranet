@@ -179,3 +179,14 @@ class DocumentoProposta(models.Model):
 
     def __str__(self):
         return f'{self.proposta.numero} — {self.get_tipo_display()}'
+
+
+class WorkflowConfig(models.Model):
+    drawflow_json = models.JSONField('Layout', default=dict)
+    salvo_em      = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Configuração do Workflow'
+
+    def __str__(self):
+        return f'Workflow ({self.salvo_em:%d/%m/%Y %H:%M})'

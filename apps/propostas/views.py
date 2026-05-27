@@ -1,7 +1,10 @@
+import json
+
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 from apps.incorporadora.models import Empreendimento, TabelaVendas, Unidade, SeriePagamento, ValorSerie
 from apps.pessoas.models import Pessoa
@@ -391,6 +394,63 @@ def documento_remove(request, pk):
     doc.arquivo.delete(save=False)
     doc.delete()
     return redirect('propostas:proposta_detail', numero=numero)
+
+
+# ── workflow ──────────────────────────────────────────────────────────────────
+
+def _default_drawflow():
+    positions = {
+        'rascunho':            (60,  220),
+        'enviada':             (300, 220),
+        'em_analise':          (540, 220),
+        'aprovada':            (540,  80),
+        'reprovada':           (540, 360),
+        'contrato_elaborado':  (780,  80),
+        'contratada':          (1020, 80),
+    }
+    nodes = {}
+    for i, (val, label) in enumerate(Proposta.SITUACAO_CHOICES):
+        nid = i + 1
+        x, y = positions.get(val, (100 + i * 200, 220))
+        nodes[str(nid)] = {
+            'id': nid,
+            'name': val,
+            'data': {},
+            'class': val,
+            'html': f'<div class="wf-node-header">{label}</div>',
+            'typenode': False,
+            'inputs':  {'input_1':  {'connections': []}},
+            'outputs': {'output_1': {'connections': []}},
+            'pos_x': x,
+            'pos_y': y,
+        }
+    return {'drawflow': {'Home': {'data': nodes}}}
+
+
+@login_required
+def proposta_workflow(request):
+    from .models import WorkflowConfig
+    config = WorkflowConfig.objects.first()
+    data = config.drawflow_json if (config and config.drawflow_json) else _default_drawflow()
+    return render(request, 'propostas/proposta_workflow.html', {
+        'drawflow_data': json.dumps(data),
+        'situacao_cores': json.dumps(SITUACAO_CORES),
+    })
+
+
+@login_required
+def workflow_salvar(request):
+    if request.method == 'POST':
+        from .models import WorkflowConfig
+        try:
+            data = json.loads(request.body)
+            config, _ = WorkflowConfig.objects.get_or_create(pk=1)
+            config.drawflow_json = data
+            config.save()
+            return JsonResponse({'ok': True})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'POST only'}, status=405)
 
 
 # ── AJAX helpers ──────────────────────────────────────────────────────────────
