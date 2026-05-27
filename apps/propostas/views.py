@@ -184,6 +184,20 @@ def proposta_edit(request, numero):
     })
 
 
+# ── excluir ───────────────────────────────────────────────────────────────────
+
+@login_required
+def proposta_delete(request, numero):
+    proposta = get_object_or_404(Proposta, numero=numero)
+    if request.method == 'POST':
+        for doc in proposta.documentos.all():
+            doc.arquivo.delete(save=False)
+        proposta.delete()
+        messages.success(request, f'Proposta {numero} excluída.')
+        return redirect('propostas:proposta_list')
+    return redirect('propostas:proposta_detail', numero=numero)
+
+
 # ── unidades ──────────────────────────────────────────────────────────────────
 
 @login_required

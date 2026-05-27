@@ -24,7 +24,7 @@
       </ol>
     </nav>
   </div>
-  <div class="d-flex gap-2 pt-1">
+  <div class="d-flex gap-2 pt-1 align-items-center">
     <span class="badge fs-6
       {% if proposta.situacao == 'rascunho' %}bg-secondary-subtle text-secondary border border-secondary-subtle
       {% elif proposta.situacao == 'enviada' %}bg-info-subtle text-info-emphasis border border-info-subtle
@@ -38,6 +38,9 @@
     <a href="{% url 'propostas:proposta_edit' numero=proposta.numero %}" class="btn btn-outline-secondary btn-sm">
       <i class="bi bi-pencil me-1"></i>Editar
     </a>
+    <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalExcluir">
+      <i class="bi bi-trash me-1"></i>Excluir
+    </button>
   </div>
 </div>
 
@@ -485,6 +488,29 @@
         </div>
         <div class="modal-footer py-2">
           <button type="submit" class="btn btn-primary btn-sm">Anexar</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Excluir ── -->
+<div class="modal fade" id="modalExcluir" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <form method="post" action="{% url 'propostas:proposta_delete' numero=proposta.numero %}">
+        {% csrf_token %}
+        <div class="modal-header py-2">
+          <h6 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Excluir Proposta</h6>
+          <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0">Confirma a exclusão de <strong>{{ proposta.numero }}</strong>?</p>
+          <p class="text-muted small mb-0">Esta ação não pode ser desfeita.</p>
+        </div>
+        <div class="modal-footer py-2">
+          <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
           <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
         </div>
       </form>

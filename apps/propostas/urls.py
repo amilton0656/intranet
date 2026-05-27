@@ -8,6 +8,7 @@ urlpatterns = [
     path('nova/',                     views.proposta_create, name='proposta_create'),
     path('<str:numero>/',             views.proposta_detail, name='proposta_detail'),
     path('<str:numero>/editar/',      views.proposta_edit,   name='proposta_edit'),
+    path('<str:numero>/excluir/',     views.proposta_delete, name='proposta_delete'),
 
     # Unidades
     path('<str:numero>/unidades/adicionar/', views.unidade_add,    name='unidade_add'),
