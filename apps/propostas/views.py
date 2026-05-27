@@ -83,6 +83,78 @@ SITUACAO_CORES = {
 }
 
 
+def _etapas_choices():
+    from .models import WorkflowEtapa
+    qs = list(WorkflowEtapa.objects.order_by('ordem').values_list('slug', 'label'))
+    return qs if qs else Proposta.SITUACAO_CHOICES
+
+
+def _etapas_map():
+    from .models import WorkflowEtapa
+    return {e.slug: {'label': e.label, 'cor': e.cor}
+            for e in WorkflowEtapa.objects.all()}
+
+
+def _build_drawflow():
+    from .models import WorkflowEtapa, WorkflowTransicao
+    etapas = list(WorkflowEtapa.objects.order_by('ordem'))
+    if not etapas:
+        return _default_drawflow()
+    slug_to_id = {e.slug: str(i + 1) for i, e in enumerate(etapas)}
+    nodes = {}
+    for i, e in enumerate(etapas):
+        nid = str(i + 1)
+        nodes[nid] = {
+            'id': i + 1,
+            'name': e.slug,
+            'data': {},
+            'class': e.slug,
+            'html': f'<div class="wf-node-header" style="background:{e.cor}">{e.label}</div>',
+            'typenode': False,
+            'inputs':  {'input_1':  {'connections': []}},
+            'outputs': {'output_1': {'connections': []}},
+            'pos_x': e.pos_x,
+            'pos_y': e.pos_y,
+        }
+    for t in WorkflowTransicao.objects.select_related('de_etapa', 'para_etapa'):
+        src = slug_to_id.get(t.de_etapa.slug)
+        dst = slug_to_id.get(t.para_etapa.slug)
+        if src and dst:
+            nodes[src]['outputs']['output_1']['connections'].append({'node': dst, 'output': 'output_1'})
+            nodes[dst]['inputs']['input_1']['connections'].append({'node': src, 'input': 'input_1'})
+    return {'drawflow': {'Home': {'data': nodes}}}
+
+
+def _sync_from_drawflow(data):
+    from .models import WorkflowEtapa, WorkflowTransicao
+    nodes = data.get('drawflow', {}).get('Home', {}).get('data', {})
+    for node in nodes.values():
+        slug = node.get('name', '')
+        if slug:
+            WorkflowEtapa.objects.filter(slug=slug).update(
+                pos_x=node.get('pos_x', 100),
+                pos_y=node.get('pos_y', 100),
+            )
+    WorkflowTransicao.objects.all().delete()
+    seen = set()
+    for nid, node in nodes.items():
+        src_slug = node.get('name', '')
+        for conn in node.get('outputs', {}).get('output_1', {}).get('connections', []):
+            dst_nid = conn.get('node')
+            if dst_nid in nodes:
+                dst_slug = nodes[dst_nid].get('name', '')
+                pair = (src_slug, dst_slug)
+                if src_slug and dst_slug and pair not in seen:
+                    seen.add(pair)
+                    try:
+                        WorkflowTransicao.objects.create(
+                            de_etapa=WorkflowEtapa.objects.get(slug=src_slug),
+                            para_etapa=WorkflowEtapa.objects.get(slug=dst_slug),
+                        )
+                    except WorkflowEtapa.DoesNotExist:
+                        pass
+
+
 # ── listagem ──────────────────────────────────────────────────────────────────
 
 @login_required
@@ -98,7 +170,8 @@ def proposta_list(request):
     return render(request, 'propostas/proposta_list.html', {
         'propostas':        qs,
         'situacao_filter':  situacao,
-        'situacao_choices': Proposta.SITUACAO_CHOICES,
+        'situacao_choices': _etapas_choices(),
+        'etapas_map':       _etapas_map(),
     })
 
 
@@ -126,18 +199,21 @@ def proposta_kanban(request):
         .values_list('proposta_id', 'total')
     )
 
-    agrupadas = {val: [] for val, _ in Proposta.SITUACAO_CHOICES}
+    from .models import WorkflowEtapa
+    etapas = list(WorkflowEtapa.objects.order_by('ordem'))
+
+    agrupadas = {e.slug: [] for e in etapas}
     for p in todas:
         p.kanban_valor = totais.get(p.pk, Decimal('0'))
         agrupadas.setdefault(p.situacao, []).append(p)
 
     colunas = []
-    for val, label in Proposta.SITUACAO_CHOICES:
-        grupo = agrupadas.get(val, [])
+    for e in etapas:
+        grupo = agrupadas.get(e.slug, [])
         colunas.append({
-            'val':      val,
-            'label':    label,
-            'cor':      SITUACAO_CORES.get(val, '#6c757d'),
+            'val':      e.slug,
+            'label':    e.label,
+            'cor':      e.cor,
             'propostas': grupo,
             'count':    len(grupo),
             'total':    sum(p.kanban_valor for p in grupo),
@@ -195,7 +271,8 @@ def proposta_detail(request, numero):
         'proposta':         proposta,
         'series_tabela':    series_tabela,
         'series_proposta':  series_proposta,
-        'situacao_choices': Proposta.SITUACAO_CHOICES,
+        'situacao_choices': _etapas_choices(),
+        'etapas_map':       _etapas_map(),
         'pessoas':          Pessoa.objects.filter(ativo=True).order_by('nome'),
         'unidades_disponiveis': (
             Unidade.objects
@@ -238,7 +315,7 @@ def proposta_edit(request, numero):
         'imobiliarias':    Pessoa.objects.filter(is_imobiliaria=True, ativo=True).order_by('nome'),
         'corretores':      Pessoa.objects.filter(is_corretor=True, ativo=True).order_by('nome'),
         'empreendimentos': Empreendimento.objects.order_by('nome'),
-        'situacao_choices':Proposta.SITUACAO_CHOICES,
+        'situacao_choices': _etapas_choices(),
     })
 
 
@@ -429,12 +506,9 @@ def _default_drawflow():
 
 @login_required
 def proposta_workflow(request):
-    from .models import WorkflowConfig
-    config = WorkflowConfig.objects.first()
-    data = config.drawflow_json if (config and config.drawflow_json) else _default_drawflow()
+    data = _build_drawflow()
     return render(request, 'propostas/proposta_workflow.html', {
         'drawflow_data': json.dumps(data),
-        'situacao_cores': json.dumps(SITUACAO_CORES),
     })
 
 
@@ -444,12 +518,54 @@ def workflow_salvar(request):
         from .models import WorkflowConfig
         try:
             data = json.loads(request.body)
+            _sync_from_drawflow(data)
             config, _ = WorkflowConfig.objects.get_or_create(pk=1)
             config.drawflow_json = data
             config.save()
             return JsonResponse({'ok': True})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'POST only'}, status=405)
+
+
+@login_required
+def etapa_criar(request):
+    if request.method == 'POST':
+        import re
+        from .models import WorkflowEtapa
+        data = json.loads(request.body)
+        label = data.get('label', '').strip()
+        cor   = data.get('cor', '#6c757d')
+        if not label:
+            return JsonResponse({'error': 'Nome obrigatório'}, status=400)
+        slug = re.sub(r'[^a-z0-9]+', '_', label.lower()).strip('_') or 'etapa'
+        base, i = slug, 1
+        while WorkflowEtapa.objects.filter(slug=slug).exists():
+            slug = f'{base}_{i}'; i += 1
+        etapa = WorkflowEtapa.objects.create(
+            slug=slug, label=label, cor=cor,
+            ordem=WorkflowEtapa.objects.count(),
+            pos_x=data.get('pos_x', 200), pos_y=data.get('pos_y', 200),
+        )
+        return JsonResponse({
+            'slug':  etapa.slug,
+            'label': etapa.label,
+            'cor':   etapa.cor,
+            'html':  f'<div class="wf-node-header" style="background:{etapa.cor}">{etapa.label}</div>',
+        })
+    return JsonResponse({'error': 'POST only'}, status=405)
+
+
+@login_required
+def etapa_excluir(request, slug):
+    if request.method == 'POST':
+        from .models import WorkflowEtapa
+        etapa = get_object_or_404(WorkflowEtapa, slug=slug)
+        count = Proposta.objects.filter(situacao=slug).count()
+        if count:
+            return JsonResponse({'error': f'Existem {count} proposta(s) com essa situação. Altere-as primeiro.'}, status=400)
+        etapa.delete()
+        return JsonResponse({'ok': True})
     return JsonResponse({'error': 'POST only'}, status=405)
 
 

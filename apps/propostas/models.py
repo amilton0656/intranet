@@ -181,6 +181,36 @@ class DocumentoProposta(models.Model):
         return f'{self.proposta.numero} — {self.get_tipo_display()}'
 
 
+class WorkflowEtapa(models.Model):
+    slug  = models.SlugField('Slug', max_length=50, unique=True)
+    label = models.CharField('Nome', max_length=100)
+    cor   = models.CharField('Cor', max_length=20, default='#6c757d')
+    ordem = models.PositiveSmallIntegerField('Ordem', default=0)
+    pos_x = models.IntegerField('X', default=100)
+    pos_y = models.IntegerField('Y', default=100)
+
+    class Meta:
+        ordering = ['ordem']
+        verbose_name = 'Etapa do Workflow'
+        verbose_name_plural = 'Etapas do Workflow'
+
+    def __str__(self):
+        return self.label
+
+
+class WorkflowTransicao(models.Model):
+    de_etapa   = models.ForeignKey(WorkflowEtapa, on_delete=models.CASCADE, related_name='saidas',   verbose_name='De')
+    para_etapa = models.ForeignKey(WorkflowEtapa, on_delete=models.CASCADE, related_name='entradas', verbose_name='Para')
+
+    class Meta:
+        unique_together = [('de_etapa', 'para_etapa')]
+        verbose_name = 'Transição do Workflow'
+        verbose_name_plural = 'Transições do Workflow'
+
+    def __str__(self):
+        return f'{self.de_etapa} → {self.para_etapa}'
+
+
 class WorkflowConfig(models.Model):
     drawflow_json = models.JSONField('Layout', default=dict)
     salvo_em      = models.DateTimeField(auto_now=True)

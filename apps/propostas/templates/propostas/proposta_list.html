@@ -1,5 +1,5 @@
 {% extends 'propostas/base.html' %}
-{% load incorporadora_tags %}
+{% load incorporadora_tags propostas_tags %}
 {% block title %}Propostas{% endblock %}
 {% block nav_propostas %}active{% endblock %}
 
@@ -68,17 +68,11 @@
           </td>
           <td class="text-muted">{{ p.data|date:"d/m/Y" }}</td>
           <td>
-            <span class="badge
-              {% if p.situacao == 'rascunho' %}bg-secondary-subtle text-secondary border border-secondary-subtle
-              {% elif p.situacao == 'enviada' %}bg-info-subtle text-info-emphasis border border-info-subtle
-              {% elif p.situacao == 'em_analise' %}bg-warning-subtle text-warning-emphasis border border-warning-subtle
-              {% elif p.situacao == 'aprovada' %}bg-success-subtle text-success border border-success-subtle
-              {% elif p.situacao == 'reprovada' %}bg-danger-subtle text-danger border border-danger-subtle
-              {% elif p.situacao == 'contrato_elaborado' %}bg-primary-subtle text-primary border border-primary-subtle
-              {% else %}bg-dark-subtle text-dark border border-dark-subtle
-              {% endif %}">
-              {{ p.get_situacao_display }}
+            {% with ei=etapas_map|get_item:p.situacao %}
+            <span class="badge" style="background:{{ ei.cor|default:'#6c757d' }};color:#fff;">
+              {{ ei.label|default:p.situacao }}
             </span>
+            {% endwith %}
           </td>
           <td>{{ p.empreendimento }}</td>
           <td class="text-muted">{{ p.tabela.nome }}</td>

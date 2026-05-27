@@ -10,8 +10,10 @@ urlpatterns = [
     path('nova/',   views.proposta_create, name='proposta_create'),
 
     # Workflow
-    path('workflow/',        views.proposta_workflow, name='proposta_workflow'),
-    path('workflow/salvar/', views.workflow_salvar,   name='workflow_salvar'),
+    path('workflow/',                    views.proposta_workflow, name='proposta_workflow'),
+    path('workflow/salvar/',             views.workflow_salvar,   name='workflow_salvar'),
+    path('workflow/etapa/criar/',        views.etapa_criar,       name='etapa_criar'),
+    path('workflow/etapa/<slug:slug>/excluir/', views.etapa_excluir, name='etapa_excluir'),
 
     # Subrecursos sem número de proposta
     path('unidades/<int:pk>/remover/',       views.unidade_remove,     name='unidade_remove'),

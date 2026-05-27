@@ -5,125 +5,56 @@
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/drawflow/dist/drawflow.min.css">
 <style>
-  /* ── toolbar ── */
   .wf-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    display: flex; align-items: center; justify-content: space-between;
     padding: 0.45rem 1.25rem;
-    background: #fff;
-    border-bottom: 1px solid #e2e6ea;
+    background: #fff; border-bottom: 1px solid #e2e6ea;
+    flex-wrap: wrap; gap: 0.5rem;
   }
-  .wf-toolbar-brand {
-    font-weight: 700;
-    font-size: 0.9rem;
-    color: #1a1a2e;
-  }
-  .wf-toolbar .hint {
-    font-size: 0.72rem;
-    color: #9098a3;
-    margin-left: 1rem;
-  }
+  .wf-toolbar-brand { font-weight: 700; font-size: 0.9rem; color: #1a1a2e; }
+  .wf-toolbar .hint  { font-size: 0.71rem; color: #9098a3; margin-left: 0.75rem; }
 
-  /* ── canvas ── */
   #drawflow {
-    width: 100%;
-    height: calc(100vh - 148px);
+    width: 100%; height: calc(100vh - 148px);
     background-color: #f5f6fa;
     background-image: radial-gradient(circle, #cdd2da 1px, transparent 1px);
     background-size: 22px 22px;
-    position: relative;
-    overflow: hidden;
-    user-select: none;
+    position: relative; overflow: hidden; user-select: none;
   }
 
-  /* ── nodes ── */
   .drawflow .drawflow-node {
-    background: #fff;
-    border: 1.5px solid #dee2e8;
-    border-radius: 9px;
-    padding: 0;
-    min-width: 155px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.10);
-    cursor: grab;
+    background: #fff; border: 1.5px solid #dee2e8; border-radius: 9px;
+    padding: 0; min-width: 155px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.10); cursor: grab;
   }
   .drawflow .drawflow-node:active { cursor: grabbing; }
   .drawflow .drawflow-node.selected {
     box-shadow: 0 0 0 2.5px #0d6efd, 0 2px 10px rgba(13,110,253,.2);
     border-color: #0d6efd;
   }
-
   .wf-node-header {
-    padding: 7px 13px 6px;
-    border-radius: 7px 7px 0 0;
-    color: #fff;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .05em;
-    text-align: center;
-    white-space: nowrap;
+    padding: 7px 13px 6px; border-radius: 7px 7px 0 0;
+    color: #fff; font-size: 0.75rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em;
+    text-align: center; white-space: nowrap;
   }
-
-  /* per-situação colors */
-  .drawflow-node.rascunho           .wf-node-header { background: #6c757d; }
-  .drawflow-node.enviada            .wf-node-header { background: #0d6efd; }
-  .drawflow-node.em_analise         .wf-node-header { background: #0ea5e9; }
-  .drawflow-node.aprovada           .wf-node-header { background: #198754; }
-  .drawflow-node.reprovada          .wf-node-header { background: #dc3545; }
-  .drawflow-node.contrato_elaborado .wf-node-header { background: #6f42c1; }
-  .drawflow-node.contratada         .wf-node-header { background: #0f766e; }
-
-  /* ── ports ── */
-  .drawflow .input,
-  .drawflow .output {
-    width: 13px;
-    height: 13px;
-    background: #fff;
-    border: 2.5px solid #9ca3af;
-    border-radius: 50%;
-    top: 50%;
-    transform: translateY(-50%);
-    transition: border-color .15s, background .15s;
+  .drawflow .input, .drawflow .output {
+    width: 13px; height: 13px; background: #fff;
+    border: 2.5px solid #9ca3af; border-radius: 50%;
+    top: 50%; transform: translateY(-50%); transition: .15s;
   }
   .drawflow .input  { left: -7px; }
   .drawflow .output { right: -7px; }
-  .drawflow .input:hover,
-  .drawflow .output:hover {
-    background: #0d6efd;
-    border-color: #0d6efd;
-  }
-
-  /* ── connections ── */
-  .drawflow .connection .main-path {
-    stroke: #9ca3af;
-    stroke-width: 2.5;
-    fill: none;
-  }
+  .drawflow .input:hover, .drawflow .output:hover { background: #0d6efd; border-color: #0d6efd; }
+  .drawflow .connection .main-path { stroke: #9ca3af; stroke-width: 2.5; fill: none; }
   .drawflow .connection .main-path:hover,
-  .drawflow .connection.selected .main-path {
-    stroke: #0d6efd;
-    stroke-width: 3;
-  }
-  .drawflow .connection .point {
-    fill: #6c757d;
-    stroke: none;
-  }
+  .drawflow .connection.selected .main-path { stroke: #0d6efd; stroke-width: 3; }
 
-  /* ── help overlay ── */
   .wf-help {
-    position: absolute;
-    bottom: 14px;
-    left: 14px;
-    background: rgba(255,255,255,.88);
-    border: 1px solid #dee2e8;
-    border-radius: 7px;
-    padding: 7px 12px;
-    font-size: 0.7rem;
-    color: #6c757d;
-    line-height: 1.7;
-    pointer-events: none;
-    z-index: 10;
+    position: absolute; bottom: 14px; left: 14px;
+    background: rgba(255,255,255,.88); border: 1px solid #dee2e8;
+    border-radius: 7px; padding: 7px 12px; font-size: 0.7rem;
+    color: #6c757d; line-height: 1.7; pointer-events: none; z-index: 10;
   }
 </style>
 {% endblock %}
@@ -131,13 +62,17 @@
 {% block content %}
 <div class="wf-toolbar">
   <div class="d-flex align-items-center">
-    <span class="wf-toolbar-brand"><i class="bi bi-diagram-3 me-2"></i>Workflow de Propostas</span>
-    <span class="hint">Arraste os nós · Conecte saída → entrada · Delete seleciona conexões</span>
+    <span class="wf-toolbar-brand"><i class="bi bi-diagram-3 me-2"></i>Workflow</span>
+    <span class="hint">Arraste nós · Conecte saída→entrada · Delete remove conexão selecionada</span>
   </div>
-  <div class="d-flex gap-2">
-    <button id="btn-resetar" class="btn btn-outline-secondary btn-sm" title="Restaurar layout padrão">
-      <i class="bi bi-arrow-counterclockwise"></i>
+  <div class="d-flex gap-2 flex-wrap">
+    <button id="btn-nova-etapa" class="btn btn-success btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>Nova Etapa
     </button>
+    <button id="btn-excluir-etapa" class="btn btn-outline-danger btn-sm" style="display:none" title="Excluir etapa selecionada">
+      <i class="bi bi-trash me-1"></i>Excluir Etapa
+    </button>
+    <div class="vr"></div>
     <button id="btn-zoom-out" class="btn btn-outline-secondary btn-sm"><i class="bi bi-dash-lg"></i></button>
     <button id="btn-zoom-in"  class="btn btn-outline-secondary btn-sm"><i class="bi bi-plus-lg"></i></button>
     <button id="btn-center"   class="btn btn-outline-secondary btn-sm" title="Centralizar"><i class="bi bi-fullscreen"></i></button>
@@ -152,7 +87,44 @@
     <strong>Como usar:</strong><br>
     Arraste um nó para mover<br>
     Arraste da porta → para conectar<br>
-    Clique numa conexão + Delete para remover
+    Clique numa conexão + Delete para remover<br>
+    Selecione um nó e clique "Excluir Etapa"
+  </div>
+</div>
+
+<!-- Modal Nova Etapa -->
+<div class="modal fade" id="modalNovaEtapa" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Nova Etapa</h6>
+        <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Nome da Etapa</label>
+          <input type="text" id="nova-etapa-nome" class="form-control form-control-sm" placeholder="Ex: Distratos">
+        </div>
+        <div>
+          <label class="form-label fw-semibold small">Cor</label>
+          <div class="d-flex gap-2 align-items-center">
+            <input type="color" id="nova-etapa-cor" class="form-control form-control-color" value="#6c757d" style="width:48px;height:34px;">
+            <div class="d-flex gap-1 flex-wrap">
+              {% for cor in "#6c757d #0d6efd #0ea5e9 #198754 #dc3545 #6f42c1 #0f766e #f59e0b #ec4899 #1a1a2e"|split:" " %}
+              <div class="color-swatch" data-cor="{{ cor }}"
+                   style="width:20px;height:20px;border-radius:4px;background:{{ cor }};cursor:pointer;border:1px solid rgba(0,0,0,.15);"
+                   title="{{ cor }}"></div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        <div id="nova-etapa-erro" class="text-danger small mt-2" style="display:none"></div>
+      </div>
+      <div class="modal-footer py-2">
+        <button id="btn-confirmar-nova-etapa" class="btn btn-success btn-sm">Criar</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -161,53 +133,52 @@
 <script src="https://cdn.jsdelivr.net/npm/drawflow/dist/drawflow.min.js"></script>
 <script>
 const DRAWFLOW_DATA = {{ drawflow_data|safe }};
+const CSRF = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
 
 // ── init ──────────────────────────────────────────────────────────────────────
-const container = document.getElementById('drawflow');
-const editor    = new Drawflow(container);
-editor.reroute              = true;
+const editor = new Drawflow(document.getElementById('drawflow'));
+editor.reroute = true;
 editor.reroute_fix_curvature = true;
-editor.force_first_input    = false;
+editor.force_first_input = false;
 editor.start();
+editor.import(DRAWFLOW_DATA);
 
-// ── load saved data ───────────────────────────────────────────────────────────
-if (DRAWFLOW_DATA && DRAWFLOW_DATA.drawflow) {
-  editor.import(DRAWFLOW_DATA);
-} else {
-  editor.zoom_reset();
-}
+// ── selected node tracking ────────────────────────────────────────────────────
+let selectedNodeId   = null;
+let selectedNodeSlug = null;
+
+editor.on('nodeSelected', function (id) {
+  selectedNodeId = id;
+  const data = editor.getNodeFromId(id);
+  selectedNodeSlug = data ? data.name : null;
+  document.getElementById('btn-excluir-etapa').style.display = '';
+});
+editor.on('nodeUnselected', function () {
+  selectedNodeId = null; selectedNodeSlug = null;
+  document.getElementById('btn-excluir-etapa').style.display = 'none';
+});
 
 // ── save ──────────────────────────────────────────────────────────────────────
 document.getElementById('btn-salvar').addEventListener('click', function () {
-  const btn  = this;
-  const data = editor.export();
+  const btn = this;
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Salvando…';
-
   fetch('{% url "propostas:workflow_salvar" %}', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '',
-    },
-    body: JSON.stringify(data),
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+    body: JSON.stringify(editor.export()),
   })
   .then(r => r.json())
   .then(d => {
-    if (d.ok) {
-      btn.classList.replace('btn-primary', 'btn-success');
-      btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Salvo!';
-      setTimeout(() => {
-        btn.classList.replace('btn-success', 'btn-primary');
-        btn.innerHTML = '<i class="bi bi-floppy me-1"></i>Salvar';
-        btn.disabled = false;
-      }, 2000);
-    }
+    btn.classList.replace('btn-primary', 'btn-success');
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Salvo!';
+    setTimeout(() => {
+      btn.classList.replace('btn-success', 'btn-primary');
+      btn.innerHTML = '<i class="bi bi-floppy me-1"></i>Salvar';
+      btn.disabled = false;
+    }, 2000);
   })
-  .catch(() => {
-    btn.innerHTML = '<i class="bi bi-floppy me-1"></i>Salvar';
-    btn.disabled = false;
-  });
+  .catch(() => { btn.innerHTML = '<i class="bi bi-floppy me-1"></i>Salvar'; btn.disabled = false; });
 });
 
 // ── zoom / center ─────────────────────────────────────────────────────────────
@@ -215,20 +186,77 @@ document.getElementById('btn-zoom-in') .addEventListener('click', () => editor.z
 document.getElementById('btn-zoom-out').addEventListener('click', () => editor.zoom_out());
 document.getElementById('btn-center')  .addEventListener('click', () => editor.zoom_reset());
 
-// ── reset to default ─────────────────────────────────────────────────────────
-document.getElementById('btn-resetar').addEventListener('click', function () {
-  if (!confirm('Restaurar o layout padrão? O layout salvo será substituído.')) return;
-  editor.clear();
-  const nodes = {{ drawflow_data|safe }};
-  // re-import fresh default (page reload simpler)
-  location.reload();
-});
-
-// ── keyboard: delete selected connection ─────────────────────────────────────
+// ── keyboard delete connection ────────────────────────────────────────────────
 document.addEventListener('keydown', function (e) {
   if ((e.key === 'Delete' || e.key === 'Backspace') && e.target === document.body) {
     editor.removeConnectionSelected();
   }
+});
+
+// ── nova etapa ────────────────────────────────────────────────────────────────
+const modalNovaEtapa = new bootstrap.Modal(document.getElementById('modalNovaEtapa'));
+
+document.getElementById('btn-nova-etapa').addEventListener('click', function () {
+  document.getElementById('nova-etapa-nome').value = '';
+  document.getElementById('nova-etapa-cor').value  = '#6c757d';
+  document.getElementById('nova-etapa-erro').style.display = 'none';
+  modalNovaEtapa.show();
+  setTimeout(() => document.getElementById('nova-etapa-nome').focus(), 300);
+});
+
+document.querySelectorAll('.color-swatch').forEach(function (el) {
+  el.addEventListener('click', function () {
+    document.getElementById('nova-etapa-cor').value = this.dataset.cor;
+  });
+});
+
+document.getElementById('btn-confirmar-nova-etapa').addEventListener('click', function () {
+  const label = document.getElementById('nova-etapa-nome').value.trim();
+  const cor   = document.getElementById('nova-etapa-cor').value;
+  const erro  = document.getElementById('nova-etapa-erro');
+  if (!label) { erro.textContent = 'Informe o nome da etapa.'; erro.style.display = ''; return; }
+  erro.style.display = 'none';
+
+  // Position near visible center
+  const container = document.getElementById('drawflow');
+  const posX = Math.round((-editor.canvas_x + container.clientWidth  / 2) / editor.zoom - 80);
+  const posY = Math.round((-editor.canvas_y + container.clientHeight / 2) / editor.zoom - 20);
+
+  fetch('{% url "propostas:etapa_criar" %}', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+    body: JSON.stringify({label, cor, pos_x: posX, pos_y: posY}),
+  })
+  .then(r => r.json())
+  .then(function (data) {
+    if (data.error) { erro.textContent = data.error; erro.style.display = ''; return; }
+    editor.addNode(data.slug, 1, 1, posX, posY, data.slug, {}, data.html);
+    modalNovaEtapa.hide();
+  })
+  .catch(() => { erro.textContent = 'Erro ao criar etapa.'; erro.style.display = ''; });
+});
+
+// Enter no input confirma
+document.getElementById('nova-etapa-nome').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') document.getElementById('btn-confirmar-nova-etapa').click();
+});
+
+// ── excluir etapa ─────────────────────────────────────────────────────────────
+document.getElementById('btn-excluir-etapa').addEventListener('click', function () {
+  if (!selectedNodeSlug) return;
+  if (!confirm(`Excluir a etapa "${selectedNodeSlug}"? Esta ação não pode ser desfeita.`)) return;
+
+  fetch(`{% url "propostas:etapa_excluir" slug="__slug__" %}`.replace('__slug__', selectedNodeSlug), {
+    method: 'POST',
+    headers: {'X-CSRFToken': CSRF},
+  })
+  .then(r => r.json())
+  .then(function (data) {
+    if (data.error) { alert(data.error); return; }
+    editor.removeNodeId('node-' + selectedNodeId);
+    document.getElementById('btn-excluir-etapa').style.display = 'none';
+  })
+  .catch(() => alert('Erro ao excluir etapa.'));
 });
 </script>
 {% endblock %}
