@@ -1155,6 +1155,101 @@ def unidade_import_empreendimento_csv(request, empreendimento_pk):
 
 
 @login_required
+def unidade_import_tabela_cv(request, empreendimento_pk):
+    import csv as csv_mod, io, re
+    from decimal import Decimal, InvalidOperation
+
+    empreendimento = get_object_or_404(Empreendimento, pk=empreendimento_pk)
+
+    if request.method != 'POST':
+        return redirect('incorporadora:bloco_list', empreendimento_pk=empreendimento_pk)
+
+    csv_file = request.FILES.get('arquivo')
+    if not csv_file:
+        messages.error(request, 'Selecione um arquivo CSV.')
+        return redirect('incorporadora:bloco_list', empreendimento_pk=empreendimento_pk)
+
+    status_map = {
+        'disponível': 'disponivel',
+        'disponivel': 'disponivel',
+        'reservada':  'reservado',
+        'reservado':  'reservado',
+        'vendida':    'vendido',
+        'vendido':    'vendido',
+    }
+
+    def parse_valor(raw):
+        raw = re.sub(r'[R$\s]', '', raw)
+        raw = raw.replace('.', '').replace(',', '.')
+        try:
+            return Decimal(raw)
+        except InvalidOperation:
+            return None
+
+    try:
+        decoded = csv_file.read().decode('utf-8-sig')
+    except UnicodeDecodeError:
+        csv_file.seek(0)
+        decoded = csv_file.read().decode('latin-1')
+
+    reader = csv_mod.DictReader(io.StringIO(decoded), delimiter=';')
+    rows = [{k.strip(): (v or '').strip() for k, v in row.items()} for row in reader]
+
+    unidades_map = {
+        u.numero: u
+        for u in Unidade.objects.filter(bloco__empreendimento=empreendimento)
+    }
+
+    atualizadas = 0
+    erros = []
+
+    for i, row in enumerate(rows, 2):
+        numero = (row.get('UNIDADE') or row.get('unidade') or '').strip()
+        if not numero:
+            continue
+
+        unidade = unidades_map.get(str(numero))
+        if not unidade:
+            erros.append(f'Linha {i}: unidade "{numero}" não encontrada.')
+            continue
+
+        situacao_raw = (row.get('SITUAÇÃO') or row.get('SITUACAO') or row.get('situação') or row.get('situacao') or '').strip()
+        valor_raw    = (row.get('VALOR TOTAL') or row.get('valor total') or '').strip()
+
+        campos = {}
+        if situacao_raw:
+            status = status_map.get(situacao_raw.lower())
+            if status:
+                campos['status'] = status
+
+        if valor_raw:
+            valor = parse_valor(valor_raw)
+            if valor is not None:
+                campos['valor_tabela'] = valor
+            else:
+                erros.append(f'Linha {i}: valor "{valor_raw}" inválido.')
+
+        if campos:
+            for attr, val in campos.items():
+                setattr(unidade, attr, val)
+            unidade.save(update_fields=list(campos.keys()))
+            atualizadas += 1
+
+    if erros:
+        for e in erros[:10]:
+            messages.warning(request, e)
+        if len(erros) > 10:
+            messages.warning(request, f'... e mais {len(erros) - 10} aviso(s) não exibidos.')
+
+    if atualizadas:
+        messages.success(request, f'{atualizadas} unidade(s) atualizadas com dados da tabela CV.')
+    elif not erros:
+        messages.warning(request, 'Nenhuma unidade encontrada no arquivo.')
+
+    return redirect('incorporadora:bloco_list', empreendimento_pk=empreendimento_pk)
+
+
+@login_required
 def unidade_import_csv(request, bloco_pk):
     import csv as csv_mod, io
     from decimal import Decimal, InvalidOperation

@@ -37,8 +37,9 @@ urlpatterns = [
     path('unidades/<int:pk>/excluir/',                         views.unidade_delete,         name='unidade_delete'),
 
     # Importação de unidades no nível do empreendimento
-    path('empreendimentos/<int:empreendimento_pk>/unidades/importar-csv/', views.unidade_import_empreendimento_csv,   name='unidade_import_empreendimento_csv'),
-    path('empreendimentos/<int:empreendimento_pk>/unidades/template-csv/', views.unidade_csv_template_empreendimento, name='unidade_csv_template_empreendimento'),
+    path('empreendimentos/<int:empreendimento_pk>/unidades/importar-csv/',      views.unidade_import_empreendimento_csv,   name='unidade_import_empreendimento_csv'),
+    path('empreendimentos/<int:empreendimento_pk>/unidades/template-csv/',      views.unidade_csv_template_empreendimento, name='unidade_csv_template_empreendimento'),
+    path('empreendimentos/<int:empreendimento_pk>/unidades/importar-tabela-cv/', views.unidade_import_tabela_cv,            name='unidade_import_tabela_cv'),
 
     # Relatório completo por empreendimento
     path('empreendimentos/<int:pk>/relatorio/', views.empreendimento_relatorio_pdf, name='empreendimento_relatorio_pdf'),
