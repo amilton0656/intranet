@@ -1,0 +1,36 @@
+<div class="row g-2">
+  <div class="col-12">
+    <label class="form-label fw-semibold">Descrição</label>
+    <input type="text" name="label" class="form-control" required maxlength="100">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label fw-semibold">Tipo</label>
+    <select name="tipo" class="form-select">
+      <option value="fixa">Fixa</option>
+      <option value="variavel">Variável</option>
+    </select>
+  </div>
+  <div class="col-md-6">
+    <label class="form-label fw-semibold">Indexador</label>
+    <select name="indexador" class="form-select">
+      <option value="nenhum">Nenhum</option>
+      <option value="cub_residencial">CUB Residencial</option>
+      <option value="cub_comercial">CUB Comercial</option>
+      <option value="incc">INCC</option>
+      <option value="igpm">IGP-M</option>
+      <option value="ipca">IPCA</option>
+    </select>
+  </div>
+  <div class="col-md-4">
+    <label class="form-label fw-semibold">Qtde Parcelas</label>
+    <input type="number" name="quantidade" class="form-control" min="1" value="1" required>
+  </div>
+  <div class="col-md-4">
+    <label class="form-label fw-semibold">Valor (R$)</label>
+    <input type="number" name="valor" class="form-control" min="0" step="0.01" value="0.00" required>
+  </div>
+  <div class="col-md-4">
+    <label class="form-label fw-semibold">1º Vencimento</label>
+    <input type="date" name="primeiro_vencimento" class="form-control">
+  </div>
+</div>

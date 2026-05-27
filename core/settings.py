@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'apps.cota365',
     'apps.incorporadora',
     'apps.pessoas',
+    'apps.propostas',
 ]
 
 MIDDLEWARE = [

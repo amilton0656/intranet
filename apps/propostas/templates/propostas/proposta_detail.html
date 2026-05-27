@@ -1,0 +1,510 @@
+{% extends 'propostas/base.html' %}
+{% load incorporadora_tags %}
+{% block title %}{{ proposta.numero }} — Propostas{% endblock %}
+
+{% block extra_head %}
+<style>
+  .info-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; }
+  .info-value { font-size: 0.9rem; font-weight: 600; color: #1a1a2e; }
+  .serie-row td { font-size: 0.82rem; vertical-align: middle; }
+  .badge-papel-proponente   { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .badge-papel-interveniente{ background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; }
+  .badge-papel-coobrigado   { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-start justify-content-between">
+  <div>
+    <h1><i class="bi bi-file-earmark-text me-2"></i>{{ proposta.numero }}</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'propostas:proposta_list' %}">Propostas</a></li>
+        <li class="breadcrumb-item active">{{ proposta.numero }}</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="d-flex gap-2 pt-1">
+    <span class="badge fs-6
+      {% if proposta.situacao == 'rascunho' %}bg-secondary-subtle text-secondary border border-secondary-subtle
+      {% elif proposta.situacao == 'enviada' %}bg-info-subtle text-info-emphasis border border-info-subtle
+      {% elif proposta.situacao == 'em_analise' %}bg-warning-subtle text-warning-emphasis border border-warning-subtle
+      {% elif proposta.situacao == 'aprovada' %}bg-success-subtle text-success border border-success-subtle
+      {% elif proposta.situacao == 'reprovada' %}bg-danger-subtle text-danger border border-danger-subtle
+      {% elif proposta.situacao == 'contrato_elaborado' %}bg-primary-subtle text-primary border border-primary-subtle
+      {% else %}bg-dark-subtle text-dark border border-dark-subtle{% endif %}">
+      {{ proposta.get_situacao_display }}
+    </span>
+    <a href="{% url 'propostas:proposta_edit' numero=proposta.numero %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-pencil me-1"></i>Editar
+    </a>
+  </div>
+</div>
+
+<div class="main-content">
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show d-flex gap-2">
+        <span>{{ msg }}</span>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- ── Cabeçalho ── -->
+  <div class="card-section">
+    <div class="row g-3">
+      <div class="col-6 col-md-3">
+        <div class="info-label">Data</div>
+        <div class="info-value">{{ proposta.data|date:"d/m/Y" }}</div>
+      </div>
+      {% if proposta.numero_contrato %}
+      <div class="col-6 col-md-3">
+        <div class="info-label">Nº Contrato</div>
+        <div class="info-value">{{ proposta.numero_contrato }}</div>
+      </div>
+      {% endif %}
+      <div class="col-6 col-md-3">
+        <div class="info-label">Imobiliária</div>
+        <div class="info-value">{{ proposta.imobiliaria }}</div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="info-label">Corretor</div>
+        <div class="info-value">{{ proposta.corretor }}</div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="info-label">Empreendimento</div>
+        <div class="info-value">{{ proposta.empreendimento }}</div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="info-label">Tabela de Vendas</div>
+        <div class="info-value">{{ proposta.tabela.nome }}</div>
+      </div>
+      {% if proposta.observacoes %}
+      <div class="col-12">
+        <div class="info-label">Observações</div>
+        <div class="info-value" style="font-weight:400; white-space:pre-line;">{{ proposta.observacoes }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- ── Unidades ── -->
+    <div class="col-12 col-lg-5">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="section-title mb-0">Unidades Pretendidas</div>
+        <button class="btn btn-outline-primary btn-sm py-0" data-bs-toggle="modal" data-bs-target="#modalUnidade">
+          <i class="bi bi-plus-lg me-1"></i>Incluir
+        </button>
+      </div>
+      <div class="data-table">
+        <table class="table mb-0">
+          <thead>
+            <tr>
+              <th>Bloco</th>
+              <th>Unidade</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in proposta.unidades.all %}
+            <tr>
+              <td class="text-muted">{{ u.unidade.bloco.nome }}</td>
+              <td class="fw-semibold">{{ u.unidade.numero }}</td>
+              <td>
+                <form method="post" action="{% url 'propostas:unidade_remove' pk=u.pk %}"
+                      onsubmit="return confirm('Remover unidade?')">
+                  {% csrf_token %}
+                  <button class="btn btn-outline-danger btn-sm py-0 px-2"><i class="bi bi-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-muted py-3">Nenhuma unidade.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Participantes ── -->
+    <div class="col-12 col-lg-7">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="section-title mb-0">Participantes</div>
+        <button class="btn btn-outline-primary btn-sm py-0" data-bs-toggle="modal" data-bs-target="#modalParticipante">
+          <i class="bi bi-plus-lg me-1"></i>Incluir
+        </button>
+      </div>
+      <div class="data-table">
+        <table class="table mb-0">
+          <thead>
+            <tr>
+              <th>Papel</th>
+              <th>Nome</th>
+              <th>CPF/CNPJ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for part in proposta.participantes.all %}
+            <tr>
+              <td>
+                <span class="badge badge-papel-{{ part.papel }}">{{ part.get_papel_display }}</span>
+              </td>
+              <td class="fw-semibold">{{ part.pessoa.nome }}</td>
+              <td class="text-muted small">{{ part.pessoa.cpf_cnpj|default:"—" }}</td>
+              <td>
+                <form method="post" action="{% url 'propostas:participante_remove' pk=part.pk %}"
+                      onsubmit="return confirm('Remover participante?')">
+                  {% csrf_token %}
+                  <button class="btn btn-outline-danger btn-sm py-0 px-2"><i class="bi bi-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-3">Nenhum participante.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Séries ── -->
+  <div class="mt-3">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <div class="section-title mb-0">Formas de Pagamento</div>
+      <div class="d-flex gap-2">
+        <form method="post" action="{% url 'propostas:series_copiar_tabela' numero=proposta.numero %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-secondary btn-sm py-0"
+                  title="Copia as séries da tabela de vendas como referência">
+            <i class="bi bi-arrow-down-circle me-1"></i>Copiar da Tabela
+          </button>
+        </form>
+        <button class="btn btn-outline-primary btn-sm py-0" data-bs-toggle="modal" data-bs-target="#modalSerie">
+          <i class="bi bi-plus-lg me-1"></i>Adicionar Série
+        </button>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <!-- Valores da Tabela -->
+      <div class="col-12 col-xl-6">
+        <div class="section-title" style="font-size:0.68rem;">Valores conforme Tabela de Vendas</div>
+        <div class="data-table">
+          <table class="table mb-0">
+            <thead>
+              <tr>
+                <th>Série</th>
+                <th>Tipo</th>
+                <th class="text-end">Parcelas</th>
+                <th class="text-end">Valor</th>
+                <th class="text-end">Subtotal</th>
+                <th>1º Vencto</th>
+                <th>Indexador</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in series_tabela %}
+              <tr class="serie-row">
+                <td class="fw-semibold">{{ s.label }}</td>
+                <td class="text-muted">{{ s.get_tipo_display }}</td>
+                <td class="text-end text-muted">{{ s.quantidade }}</td>
+                <td class="text-end">{{ s.valor|brl }}</td>
+                <td class="text-end fw-semibold">{{ s.subtotal|brl }}</td>
+                <td class="text-muted">{{ s.primeiro_vencimento|date:"d/m/Y"|default:"—" }}</td>
+                <td class="text-muted small">{{ s.get_indexador_display }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="7" class="text-center text-muted py-3">
+                Use "Copiar da Tabela" para preencher.
+              </td></tr>
+              {% endfor %}
+            </tbody>
+            {% if series_tabela %}
+            <tfoot>
+              <tr style="background:#f0eff2; font-weight:700; font-size:0.82rem;">
+                <td colspan="4">Total Tabela</td>
+                <td class="text-end">{{ proposta.valor_tabela_total|brl }}</td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+            {% endif %}
+          </table>
+        </div>
+      </div>
+
+      <!-- Valores Propostos -->
+      <div class="col-12 col-xl-6">
+        <div class="section-title" style="font-size:0.68rem;">Valores Propostos</div>
+        <div class="data-table">
+          <table class="table mb-0">
+            <thead>
+              <tr>
+                <th>Série</th>
+                <th>Tipo</th>
+                <th class="text-end">Parcelas</th>
+                <th class="text-end">Valor</th>
+                <th class="text-end">Subtotal</th>
+                <th>1º Vencto</th>
+                <th>Indexador</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in series_proposta %}
+              <tr class="serie-row">
+                <td class="fw-semibold">{{ s.label }}</td>
+                <td class="text-muted">{{ s.get_tipo_display }}</td>
+                <td class="text-end text-muted">{{ s.quantidade }}</td>
+                <td class="text-end">{{ s.valor|brl }}</td>
+                <td class="text-end fw-semibold">{{ s.subtotal|brl }}</td>
+                <td class="text-muted">{{ s.primeiro_vencimento|date:"d/m/Y"|default:"—" }}</td>
+                <td class="text-muted small">{{ s.get_indexador_display }}</td>
+                <td>
+                  <div class="d-flex gap-1">
+                    <button class="btn btn-outline-secondary btn-sm py-0 px-1"
+                            onclick="abrirEditSerie({{ s.pk }}, '{{ s.label|escapejs }}', '{{ s.tipo }}', {{ s.quantidade }}, '{{ s.valor }}', '{% if s.primeiro_vencimento %}{{ s.primeiro_vencimento|date:'Y-m-d' }}{% endif %}', '{{ s.indexador }}')"
+                            data-bs-toggle="modal" data-bs-target="#modalEditSerie">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <form method="post" action="{% url 'propostas:serie_remove' pk=s.pk %}"
+                          onsubmit="return confirm('Remover série?')">
+                      {% csrf_token %}
+                      <button class="btn btn-outline-danger btn-sm py-0 px-1"><i class="bi bi-trash"></i></button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="8" class="text-center text-muted py-3">Nenhuma série proposta.</td></tr>
+              {% endfor %}
+            </tbody>
+            {% if series_proposta %}
+            <tfoot>
+              <tr style="background:#e8f0fe; font-weight:700; font-size:0.82rem;">
+                <td colspan="4">Total Proposto</td>
+                <td class="text-end">{{ proposta.valor_proposto_total|brl }}</td>
+                <td colspan="3"></td>
+              </tr>
+            </tfoot>
+            {% endif %}
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Documentos ── -->
+  <div class="mt-3">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <div class="section-title mb-0">Documentos</div>
+      <button class="btn btn-outline-primary btn-sm py-0" data-bs-toggle="modal" data-bs-target="#modalDocumento">
+        <i class="bi bi-paperclip me-1"></i>Anexar
+      </button>
+    </div>
+    <div class="data-table">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Participante</th>
+            <th>Descrição</th>
+            <th>Enviado em</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for doc in proposta.documentos.all %}
+          <tr>
+            <td><span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">{{ doc.get_tipo_display }}</span></td>
+            <td class="text-muted">{{ doc.participante.pessoa.nome|default:"—" }}</td>
+            <td>{{ doc.descricao|default:"—" }}</td>
+            <td class="text-muted small">{{ doc.uploaded_em|date:"d/m/Y H:i" }}</td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{{ doc.arquivo.url }}" target="_blank" class="btn btn-outline-secondary btn-sm py-0 px-2">
+                  <i class="bi bi-download"></i>
+                </a>
+                <form method="post" action="{% url 'propostas:documento_remove' pk=doc.pk %}"
+                      onsubmit="return confirm('Remover documento?')">
+                  {% csrf_token %}
+                  <button class="btn btn-outline-danger btn-sm py-0 px-2"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-3">Nenhum documento anexado.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Modal Unidade ── -->
+<div class="modal fade" id="modalUnidade" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <form method="post" action="{% url 'propostas:unidade_add' numero=proposta.numero %}">
+        {% csrf_token %}
+        <div class="modal-header py-2"><h6 class="modal-title">Incluir Unidade</h6>
+          <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <select name="unidade" class="form-select form-select-sm" required>
+            <option value="">— selecione —</option>
+            {% for u in unidades_disponiveis %}
+            <option value="{{ u.pk }}">{{ u.bloco.nome }} — {{ u.numero }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="modal-footer py-2">
+          <button type="submit" class="btn btn-primary btn-sm">Incluir</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Participante ── -->
+<div class="modal fade" id="modalParticipante" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'propostas:participante_add' numero=proposta.numero %}">
+        {% csrf_token %}
+        <div class="modal-header py-2"><h6 class="modal-title">Incluir Participante</h6>
+          <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Papel</label>
+            <select name="papel" class="form-select form-select-sm">
+              {% for val, label in papel_choices %}
+              <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="form-label fw-semibold small">Pessoa</label>
+            <select name="pessoa" class="form-select form-select-sm" required>
+              <option value="">— selecione —</option>
+              {% for p in pessoas %}
+              <option value="{{ p.pk }}">{{ p.nome }}{% if p.cpf_cnpj %} ({{ p.cpf_cnpj }}){% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer py-2">
+          <button type="submit" class="btn btn-primary btn-sm">Incluir</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Adicionar Série ── -->
+<div class="modal fade" id="modalSerie" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'propostas:serie_add' numero=proposta.numero %}">
+        {% csrf_token %}
+        <div class="modal-header py-2"><h6 class="modal-title">Adicionar Série Proposta</h6>
+          <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          {% include 'propostas/_serie_fields.html' %}
+        </div>
+        <div class="modal-footer py-2">
+          <button type="submit" class="btn btn-primary btn-sm">Adicionar</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Editar Série ── -->
+<div class="modal fade" id="modalEditSerie" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" id="form-edit-serie" action="">
+        {% csrf_token %}
+        <div class="modal-header py-2"><h6 class="modal-title">Editar Série</h6>
+          <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          {% include 'propostas/_serie_fields.html' %}
+        </div>
+        <div class="modal-footer py-2">
+          <button type="submit" class="btn btn-primary btn-sm">Salvar</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Documento ── -->
+<div class="modal fade" id="modalDocumento" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'propostas:documento_upload' numero=proposta.numero %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-header py-2"><h6 class="modal-title">Anexar Documento</h6>
+          <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <div class="mb-2">
+            <label class="form-label fw-semibold small">Tipo</label>
+            <select name="tipo" class="form-select form-select-sm">
+              {% for val, label in doc_tipo_choices %}
+              <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label fw-semibold small">Participante (opcional)</label>
+            <select name="participante" class="form-select form-select-sm">
+              <option value="">— proposta (geral) —</option>
+              {% for part in proposta.participantes.all %}
+              <option value="{{ part.pk }}">{{ part.get_papel_display }}: {{ part.pessoa.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label fw-semibold small">Arquivo</label>
+            <input type="file" name="arquivo" class="form-control form-control-sm" required>
+          </div>
+          <div>
+            <label class="form-label fw-semibold small">Descrição</label>
+            <input type="text" name="descricao" class="form-control form-control-sm" placeholder="Opcional">
+          </div>
+        </div>
+        <div class="modal-footer py-2">
+          <button type="submit" class="btn btn-primary btn-sm">Anexar</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function abrirEditSerie(pk, label, tipo, qtd, valor, vcto, indexador) {
+  var form = document.getElementById('form-edit-serie');
+  form.action = '/propostas/series/' + pk + '/editar/';
+  form.querySelector('[name=label]').value    = label;
+  form.querySelector('[name=tipo]').value     = tipo;
+  form.querySelector('[name=quantidade]').value = qtd;
+  form.querySelector('[name=valor]').value    = valor;
+  form.querySelector('[name=primeiro_vencimento]').value = vcto;
+  form.querySelector('[name=indexador]').value = indexador;
+}
+</script>
+{% endblock %}

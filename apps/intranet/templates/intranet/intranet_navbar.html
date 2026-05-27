@@ -168,6 +168,14 @@
                 </li>
                 {% endif %}
 
+                {% if show_propostas_menu %}
+                <li class="nav-item">
+                    <a class="nav-link me-4" href="{% url 'propostas:proposta_list' %}">
+                        <i class="bi bi-file-earmark-text me-1"></i>Propostas
+                    </a>
+                </li>
+                {% endif %}
+
                 {% if show_admin_menu %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"

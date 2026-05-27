@@ -1,0 +1,120 @@
+{% extends 'propostas/base.html' %}
+{% block title %}{% if proposta %}Editar Proposta{% else %}Nova Proposta{% endif %}{% endblock %}
+{% block nav_propostas %}active{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-file-earmark-plus me-2"></i>{% if proposta %}Editar {{ proposta.numero }}{% else %}Nova Proposta{% endif %}</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'propostas:proposta_list' %}">Propostas</a></li>
+        <li class="breadcrumb-item active">{% if proposta %}{{ proposta.numero }}{% else %}Nova{% endif %}</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<div class="main-content">
+  <div class="card-section" style="max-width:680px;">
+    <form method="post" action="{% if proposta %}{% url 'propostas:proposta_edit' numero=proposta.numero %}{% else %}{% url 'propostas:proposta_create' %}{% endif %}">
+      {% csrf_token %}
+
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Data</label>
+          <input type="date" name="data" class="form-control"
+                 value="{% if proposta %}{{ proposta.data|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}" required>
+        </div>
+        {% if proposta %}
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Situação</label>
+          <select name="situacao" class="form-select">
+            {% for val, label in situacao_choices %}
+            <option value="{{ val }}" {% if proposta.situacao == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Nº Contrato</label>
+          <input type="text" name="numero_contrato" class="form-control" value="{{ proposta.numero_contrato }}">
+        </div>
+        {% endif %}
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Imobiliária</label>
+          <select name="imobiliaria" class="form-select" required>
+            <option value="">— selecione —</option>
+            {% for i in imobiliarias %}
+            <option value="{{ i.pk }}" {% if proposta and proposta.imobiliaria_id == i.pk %}selected{% endif %}>{{ i.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Corretor</label>
+          <select name="corretor" class="form-select" required>
+            <option value="">— selecione —</option>
+            {% for c in corretores %}
+            <option value="{{ c.pk }}" {% if proposta and proposta.corretor_id == c.pk %}selected{% endif %}>{{ c.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Empreendimento</label>
+          <select name="empreendimento" class="form-select" id="sel-empreend" required>
+            <option value="">— selecione —</option>
+            {% for e in empreendimentos %}
+            <option value="{{ e.pk }}" {% if proposta and proposta.empreendimento_id == e.pk %}selected{% endif %}>{{ e.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Tabela de Vendas</label>
+          <select name="tabela" class="form-select" id="sel-tabela" required>
+            <option value="">— selecione o empreendimento —</option>
+            {% if proposta %}
+            <option value="{{ proposta.tabela.pk }}" selected>{{ proposta.tabela.nome }}</option>
+            {% endif %}
+          </select>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label fw-semibold">Observações</label>
+          <textarea name="observacoes" class="form-control" rows="3">{% if proposta %}{{ proposta.observacoes }}{% endif %}</textarea>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-check-lg me-1"></i>{% if proposta %}Salvar{% else %}Criar Proposta{% endif %}
+        </button>
+        <a href="{% if proposta %}{% url 'propostas:proposta_detail' numero=proposta.numero %}{% else %}{% url 'propostas:proposta_list' %}{% endif %}"
+           class="btn btn-outline-secondary btn-sm">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('sel-empreend').addEventListener('change', function () {
+  var eid = this.value;
+  var sel = document.getElementById('sel-tabela');
+  sel.innerHTML = '<option value="">carregando…</option>';
+  if (!eid) { sel.innerHTML = '<option value="">— selecione o empreendimento —</option>'; return; }
+  fetch('/incorporadora/empreendimentos/' + eid + '/tabelas/?json=1')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      sel.innerHTML = '<option value="">— selecione —</option>';
+      data.forEach(function(t) {
+        sel.innerHTML += '<option value="' + t.pk + '">' + t.nome + '</option>';
+      });
+    })
+    .catch(function() {
+      sel.innerHTML = '<option value="">Erro ao carregar tabelas</option>';
+    });
+});
+</script>
+{% endblock %}

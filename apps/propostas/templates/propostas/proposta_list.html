@@ -1,0 +1,111 @@
+{% extends 'propostas/base.html' %}
+{% load incorporadora_tags %}
+{% block title %}Propostas{% endblock %}
+{% block nav_propostas %}active{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-file-earmark-text me-2"></i>Propostas</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item active">Propostas</li>
+      </ol>
+    </nav>
+  </div>
+  <a href="{% url 'propostas:proposta_create' %}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Nova Proposta
+  </a>
+</div>
+
+<div class="main-content">
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show">
+        {{ msg }}<button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Filtro situação -->
+  <div class="mb-3 d-flex gap-2 align-items-center flex-wrap">
+    <a href="{% url 'propostas:proposta_list' %}"
+       class="btn btn-sm {% if not situacao_filter %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+      Todas
+    </a>
+    {% for val, label in situacao_choices %}
+    <a href="?situacao={{ val }}"
+       class="btn btn-sm {% if situacao_filter == val %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+      {{ label }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="data-table">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Data</th>
+          <th>Situação</th>
+          <th>Empreendimento</th>
+          <th>Tabela</th>
+          <th>Imobiliária</th>
+          <th>Corretor</th>
+          <th>Proponente(s)</th>
+          <th class="text-end">Valor Proposto</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in propostas %}
+        <tr>
+          <td class="fw-bold">
+            <a href="{% url 'propostas:proposta_detail' numero=p.numero %}" class="text-decoration-none">
+              {{ p.numero }}
+            </a>
+          </td>
+          <td class="text-muted">{{ p.data|date:"d/m/Y" }}</td>
+          <td>
+            <span class="badge
+              {% if p.situacao == 'rascunho' %}bg-secondary-subtle text-secondary border border-secondary-subtle
+              {% elif p.situacao == 'enviada' %}bg-info-subtle text-info-emphasis border border-info-subtle
+              {% elif p.situacao == 'em_analise' %}bg-warning-subtle text-warning-emphasis border border-warning-subtle
+              {% elif p.situacao == 'aprovada' %}bg-success-subtle text-success border border-success-subtle
+              {% elif p.situacao == 'reprovada' %}bg-danger-subtle text-danger border border-danger-subtle
+              {% elif p.situacao == 'contrato_elaborado' %}bg-primary-subtle text-primary border border-primary-subtle
+              {% else %}bg-dark-subtle text-dark border border-dark-subtle
+              {% endif %}">
+              {{ p.get_situacao_display }}
+            </span>
+          </td>
+          <td>{{ p.empreendimento }}</td>
+          <td class="text-muted">{{ p.tabela.nome }}</td>
+          <td class="text-muted">{{ p.imobiliaria }}</td>
+          <td class="text-muted">{{ p.corretor }}</td>
+          <td class="text-muted small">
+            {% for part in p.participantes.all %}
+              {% if part.papel == 'proponente' %}{{ part.pessoa.nome }}{% if not forloop.last %}, {% endif %}{% endif %}
+            {% empty %}—{% endfor %}
+          </td>
+          <td class="text-end fw-semibold">{{ p.valor_proposto_total|brl }}</td>
+          <td>
+            <a href="{% url 'propostas:proposta_detail' numero=p.numero %}" class="btn btn-outline-secondary btn-sm py-0 px-2">
+              <i class="bi bi-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="10" class="text-center text-muted py-4">
+            <i class="bi bi-inbox me-2"></i>Nenhuma proposta encontrada.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="text-muted small mt-2">{{ propostas|length }} proposta(s)</div>
+</div>
+{% endblock %}

@@ -1516,8 +1516,11 @@ def unidade_list_pdf(request, bloco_pk):
 
 @login_required
 def tabela_list(request, empreendimento_pk):
+    from django.http import JsonResponse as _JsonResponse
     empreendimento = get_object_or_404(Empreendimento, pk=empreendimento_pk)
     tabelas = TabelaVendas.objects.filter(empreendimento=empreendimento)
+    if request.GET.get('json'):
+        return _JsonResponse([{'pk': t.pk, 'nome': t.nome} for t in tabelas], safe=False)
     return render(request, 'incorporadora/tabela_list.html', {
         'empreendimento': empreendimento,
         'tabelas': tabelas,
