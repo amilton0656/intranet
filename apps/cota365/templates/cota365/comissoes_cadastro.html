@@ -199,6 +199,7 @@
                 {{ r.outros_str }}
               </span>
             {% endif %}
+            {% if r.observacao %}<span class="outros-badge bg-secondary text-white ms-1" title="{{ r.observacao|truncatechars:80 }}">O</span>{% endif %}
           </td>
           <td class="text-center" onclick="event.stopPropagation()">
             <input form="form-{{ r.reserva }}" type="date" name="data_prevista"
