@@ -199,8 +199,12 @@
             {% endwith %}
           {% endfor %}
           <td>
-            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-              {{ item.get_status_display }}
+            <span class="badge
+              {% if item.unidade.status == 'disponivel' %}bg-success-subtle text-success border border-success-subtle
+              {% elif item.unidade.status == 'vendido' %}bg-danger-subtle text-danger border border-danger-subtle
+              {% elif item.unidade.status == 'reservado' %}bg-warning-subtle text-warning-emphasis border border-warning-subtle
+              {% else %}bg-secondary-subtle text-secondary border border-secondary-subtle{% endif %}">
+              {{ item.unidade.get_status_display }}
             </span>
           </td>
         </tr>
