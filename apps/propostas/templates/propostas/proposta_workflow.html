@@ -146,20 +146,60 @@ editor.force_first_input = true;
 editor.start();
 editor.import(DRAWFLOW_DATA);
 
-// ── fix: SVG path intercepting mouseup during connection drag ─────────────────
-// The temporary connection SVG is appended last in the DOM (renders on top),
-// so e.target on mouseup lands on the SVG path instead of the input port.
-// Solution: disable pointer-events on all .main-path while dragging.
-function _dfPaths() { return document.querySelectorAll('#drawflow .main-path'); }
-editor.on('connectionStart', function () {
-  _dfPaths().forEach(function (p) { p.style.pointerEvents = 'none'; });
-});
-editor.on('connectionCreated', function () {
-  _dfPaths().forEach(function (p) { p.style.pointerEvents = ''; });
-});
-editor.on('connectionCancel', function () {
-  _dfPaths().forEach(function (p) { p.style.pointerEvents = ''; });
-});
+// ── connection fix ────────────────────────────────────────────────────────────
+// Drawflow checks e.target.classList[0] === 'input' on mouseup.
+// The temporary SVG path (last in DOM = on top) intercepts the mouseup
+// before it reaches the input port. Fix: capture-phase intercept that walks
+// up from the real target to find the destination node, then calls addConnection.
+document.getElementById('drawflow').addEventListener('mouseup', function(e) {
+  if (!editor.connection || !editor.ele_selected) return;
+
+  // If already on the input port, let Drawflow handle normally
+  if (e.target.classList && e.target.classList[0] === 'input') return;
+
+  // If landed on SVG path, find the real HTML element underneath
+  var el = e.target;
+  if (el.tagName === 'path' || el.tagName === 'svg' ||
+      (el.classList && el.classList.contains('main-path'))) {
+    var svgs = document.querySelectorAll('#drawflow .connection');
+    svgs.forEach(function(s) { s.style.display = 'none'; });
+    el = document.elementFromPoint(e.clientX, e.clientY) || el;
+    svgs.forEach(function(s) { s.style.display = ''; });
+  }
+
+  // Walk up DOM to find drawflow-node
+  var node = el;
+  while (node && node !== this) {
+    if (node.classList && node.classList.contains('drawflow-node') &&
+        node.id && node.id.startsWith('node-')) break;
+    node = node.parentElement;
+  }
+  if (!node || !node.classList || !node.classList.contains('drawflow-node')) return;
+
+  // We have a target node — intercept and create connection ourselves
+  e.stopImmediatePropagation();
+
+  var srcEl  = editor.ele_selected;
+  if (!srcEl.parentElement || !srcEl.parentElement.parentElement) return;
+  var out_id  = srcEl.parentElement.parentElement.id.slice(5);
+  var out_cls = srcEl.classList[1] || 'output_1';
+  var in_id   = node.id.slice(5);
+
+  // Clean up Drawflow's internal state
+  if (editor.connection_ele) { editor.connection_ele.remove(); editor.connection_ele = null; }
+  editor.connection     = false;
+  editor.ele_selected   = null;
+  editor.drag           = false;
+  editor.drag_point     = false;
+  editor.editor_selected = false;
+
+  if (out_id === in_id) return; // no self-connections
+
+  var nd = editor.getNodeFromId(in_id);
+  if (!nd || Object.keys(nd.inputs).length === 0) return;
+
+  try { editor.addConnection(out_id, in_id, out_cls, 'input_1'); } catch(ignored) {}
+}, true); // capture phase — runs before Drawflow's bubble handler
 
 // ── selected node tracking ────────────────────────────────────────────────────
 let selectedNodeId   = null;
