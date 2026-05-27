@@ -1775,11 +1775,14 @@ def tabela_pdf(request, pk):
     )
     series = list(tabela.series.order_by('ordem'))
 
+    apenas_disponiveis = request.GET.get('disponivel') == '1'
     itens_qs = (ItemTabelaVendas.objects
                 .filter(tabela=tabela)
                 .select_related('unidade__bloco')
                 .prefetch_related('valores__serie', 'unidade__vinculadas')
                 .order_by('unidade__bloco__nome', 'unidade__pagina', 'unidade__ordem', 'unidade__numero'))
+    if apenas_disponiveis:
+        itens_qs = itens_qs.filter(unidade__status='disponivel')
 
     cub = tabela.cub_referencia or Decimal('1')
 
