@@ -26,4 +26,7 @@ urlpatterns = [
     # Documentos
     path('<str:numero>/documentos/upload/', views.documento_upload, name='documento_upload'),
     path('documentos/<int:pk>/remover/',    views.documento_remove, name='documento_remove'),
+
+    # AJAX helpers
+    path('tabelas/<int:tabela_pk>/unidades/', views.tabela_unidades_json, name='tabela_unidades_json'),
 ]

@@ -79,6 +79,16 @@
           </select>
         </div>
 
+        {% if not proposta %}
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Unidade</label>
+          <select name="unidade" class="form-select" id="sel-unidade">
+            <option value="">— selecione a tabela primeiro —</option>
+          </select>
+          <div class="form-text">Preenche os valores da proposta conforme a tabela</div>
+        </div>
+        {% endif %}
+
         <div class="col-12">
           <label class="form-label fw-semibold">Observações</label>
           <textarea name="observacoes" class="form-control" rows="3">{% if proposta %}{{ proposta.observacoes }}{% endif %}</textarea>
@@ -111,10 +121,33 @@ document.getElementById('sel-empreend').addEventListener('change', function () {
       data.forEach(function(t) {
         sel.innerHTML += '<option value="' + t.pk + '">' + t.nome + '</option>';
       });
+      carregarUnidades('');
     })
     .catch(function() {
       sel.innerHTML = '<option value="">Erro ao carregar tabelas</option>';
     });
+});
+
+function carregarUnidades(tabela_pk) {
+  var selU = document.getElementById('sel-unidade');
+  if (!selU) return;
+  if (!tabela_pk) { selU.innerHTML = '<option value="">— selecione a tabela primeiro —</option>'; return; }
+  selU.innerHTML = '<option value="">carregando…</option>';
+  fetch('/propostas/tabelas/' + tabela_pk + '/unidades/')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      selU.innerHTML = '<option value="">— selecione (opcional) —</option>';
+      data.forEach(function(u) {
+        selU.innerHTML += '<option value="' + u.pk + '">' + u.label + '</option>';
+      });
+    })
+    .catch(function() {
+      selU.innerHTML = '<option value="">Erro ao carregar unidades</option>';
+    });
+}
+
+document.getElementById('sel-tabela').addEventListener('change', function () {
+  carregarUnidades(this.value);
 });
 </script>
 {% endblock %}

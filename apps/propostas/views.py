@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import JsonResponse
 
-from apps.incorporadora.models import Empreendimento, TabelaVendas, Unidade, SeriePagamento
+from apps.incorporadora.models import Empreendimento, TabelaVendas, Unidade, SeriePagamento, ValorSerie
 from apps.pessoas.models import Pessoa
 
 from .models import (
@@ -21,17 +21,31 @@ _INDICE_MAP = {
 }
 
 
-def _copiar_series_da_tabela(proposta):
-    """Recria as séries de tabela e proposta a partir da TabelaVendas."""
+def _copiar_series_da_tabela(proposta, unidade=None):
+    """Recria séries de tabela e proposta usando ValorSerie da unidade."""
+    if unidade is None:
+        up = proposta.unidades.select_related('unidade').first()
+        if up:
+            unidade = up.unidade
+
+    vs_map = {}
+    if unidade:
+        for vs in ValorSerie.objects.filter(
+            item__tabela=proposta.tabela,
+            item__unidade=unidade,
+        ).select_related('serie'):
+            vs_map[vs.serie_id] = vs.valor_parcela
+
     proposta.series.filter(origem__in=['tabela', 'proposta']).delete()
     bulk = []
     for i, s in enumerate(proposta.tabela.series.order_by('ordem')):
+        valor = vs_map.get(s.pk, 0)
         kwargs = dict(
             proposta=proposta,
             label=s.get_tipo_display(),
             tipo='fixa',
             quantidade=s.quantidade or 1,
-            valor=0,
+            valor=valor,
             primeiro_vencimento=s.primeiro_vencimento,
             indexador=_INDICE_MAP.get(s.indice, 'nenhum'),
             ordem=i,
@@ -90,7 +104,15 @@ def proposta_create(request):
                 observacoes=p.get('observacoes', ''),
             )
             proposta.save()
-            _copiar_series_da_tabela(proposta)
+            unidade = None
+            unidade_pk = p.get('unidade')
+            if unidade_pk:
+                try:
+                    unidade = Unidade.objects.get(pk=unidade_pk)
+                    UnidadeProposta.objects.create(proposta=proposta, unidade=unidade)
+                except Unidade.DoesNotExist:
+                    pass
+            _copiar_series_da_tabela(proposta, unidade=unidade)
             messages.success(request, f'Proposta {proposta.numero} criada.')
             return redirect('propostas:proposta_detail', numero=proposta.numero)
         except Exception as e:
@@ -170,8 +192,13 @@ def unidade_add(request, numero):
         proposta = get_object_or_404(Proposta, numero=numero)
         unidade_pk = request.POST.get('unidade')
         if unidade_pk:
+            was_empty = not proposta.unidades.exists()
             unidade = get_object_or_404(Unidade, pk=unidade_pk)
-            UnidadeProposta.objects.get_or_create(proposta=proposta, unidade=unidade)
+            _, created = UnidadeProposta.objects.get_or_create(proposta=proposta, unidade=unidade)
+            if was_empty and created:
+                sem_valores = not proposta.series.filter(origem='proposta').exclude(valor=0).exists()
+                if sem_valores:
+                    _copiar_series_da_tabela(proposta, unidade=unidade)
     return redirect('propostas:proposta_detail', numero=numero)
 
 
@@ -295,3 +322,17 @@ def documento_remove(request, pk):
     doc.arquivo.delete(save=False)
     doc.delete()
     return redirect('propostas:proposta_detail', numero=numero)
+
+
+# ── AJAX helpers ──────────────────────────────────────────────────────────────
+
+@login_required
+def tabela_unidades_json(request, tabela_pk):
+    from apps.incorporadora.models import ItemTabelaVendas
+    itens = (ItemTabelaVendas.objects
+             .filter(tabela_id=tabela_pk)
+             .select_related('unidade__bloco')
+             .order_by('unidade__bloco__nome', 'unidade__numero'))
+    data = [{'pk': it.unidade_id, 'label': f"{it.unidade.bloco.nome} — {it.unidade.numero}"}
+            for it in itens]
+    return JsonResponse(data, safe=False)
