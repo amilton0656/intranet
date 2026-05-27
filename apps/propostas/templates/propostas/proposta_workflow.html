@@ -146,6 +146,21 @@ editor.force_first_input = true;
 editor.start();
 editor.import(DRAWFLOW_DATA);
 
+// ── fix: SVG path intercepting mouseup during connection drag ─────────────────
+// The temporary connection SVG is appended last in the DOM (renders on top),
+// so e.target on mouseup lands on the SVG path instead of the input port.
+// Solution: disable pointer-events on all .main-path while dragging.
+function _dfPaths() { return document.querySelectorAll('#drawflow .main-path'); }
+editor.on('connectionStart', function () {
+  _dfPaths().forEach(function (p) { p.style.pointerEvents = 'none'; });
+});
+editor.on('connectionCreated', function () {
+  _dfPaths().forEach(function (p) { p.style.pointerEvents = ''; });
+});
+editor.on('connectionCancel', function () {
+  _dfPaths().forEach(function (p) { p.style.pointerEvents = ''; });
+});
+
 // ── selected node tracking ────────────────────────────────────────────────────
 let selectedNodeId   = null;
 let selectedNodeSlug = null;
