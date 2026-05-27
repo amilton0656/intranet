@@ -1,0 +1,188 @@
+{% extends 'propostas/base.html' %}
+{% load incorporadora_tags %}
+{% block title %}Kanban — Propostas{% endblock %}
+{% block nav_kanban %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  body { overflow-x: hidden; }
+
+  .kanban-page-header {
+    background: #fff;
+    border-bottom: 1px solid #e2e6ea;
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .kanban-page-header h1 { font-size: 1.15rem; font-weight: 700; margin: 0; color: #1a1a2e; }
+  .kanban-page-header .breadcrumb { margin: 0; font-size: 0.78rem; }
+
+  .kanban-wrap {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem 1.5rem;
+    overflow-x: auto;
+    align-items: flex-start;
+    min-height: calc(100vh - 120px);
+  }
+  .kanban-wrap::-webkit-scrollbar { height: 6px; }
+  .kanban-wrap::-webkit-scrollbar-track { background: #f0f2f5; }
+  .kanban-wrap::-webkit-scrollbar-thumb { background: #c1c8d0; border-radius: 3px; }
+
+  .kanban-col {
+    flex: 0 0 255px;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 140px);
+  }
+  .kanban-col-header {
+    border-radius: 8px 8px 0 0;
+    padding: 0.55rem 0.85rem 0.6rem;
+    color: #fff;
+  }
+  .kanban-col-title {
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .kanban-col-meta {
+    font-size: 0.72rem;
+    opacity: .88;
+    margin-top: 2px;
+  }
+  .kanban-col-body {
+    background: #eef0f4;
+    border-radius: 0 0 8px 8px;
+    padding: 0.5rem;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+  .kanban-col-body::-webkit-scrollbar { width: 4px; }
+  .kanban-col-body::-webkit-scrollbar-thumb { background: #c1c8d0; border-radius: 2px; }
+
+  .kanban-card {
+    background: #fff;
+    border-radius: 7px;
+    padding: 0.6rem 0.7rem;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    border: 1px solid #e4e8ed;
+    transition: box-shadow .15s, transform .12s;
+  }
+  .kanban-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,.13);
+    transform: translateY(-2px);
+    color: inherit;
+    text-decoration: none;
+  }
+  .kanban-card-num {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #9098a3;
+    margin-bottom: 3px;
+    letter-spacing: .03em;
+  }
+  .kanban-card-nome {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1a1a2e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .kanban-card-info {
+    font-size: 0.72rem;
+    color: #6c757d;
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+  .kanban-card-info i { font-size: 0.68rem; }
+  .kanban-card-valor {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1a3a2e;
+    margin-top: 6px;
+    padding-top: 5px;
+    border-top: 1px solid #f0f2f5;
+  }
+  .kanban-empty {
+    text-align: center;
+    color: #b0b8c4;
+    font-size: 0.78rem;
+    padding: 1.2rem 0;
+    font-style: italic;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="kanban-page-header">
+  <div>
+    <h1><i class="bi bi-kanban me-2"></i>Kanban de Propostas</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'propostas:proposta_list' %}">Propostas</a></li>
+        <li class="breadcrumb-item active">Kanban</li>
+      </ol>
+    </nav>
+  </div>
+  <a href="{% url 'propostas:proposta_create' %}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Nova Proposta
+  </a>
+</div>
+
+<div class="kanban-wrap">
+  {% for col in colunas %}
+  <div class="kanban-col">
+
+    <div class="kanban-col-header" style="background: {{ col.cor }}">
+      <div class="kanban-col-title">{{ col.label }}</div>
+      <div class="kanban-col-meta">
+        {{ col.total|brl }}&nbsp;&nbsp;·&nbsp;&nbsp;{{ col.count }}&nbsp;proposta{{ col.count|pluralize:"s" }}
+      </div>
+    </div>
+
+    <div class="kanban-col-body">
+      {% for p in col.propostas %}
+      <a href="{% url 'propostas:proposta_detail' numero=p.numero %}" class="kanban-card">
+
+        <div class="kanban-card-num">{{ p.numero }} &nbsp;·&nbsp; {{ p.data|date:"d/m/Y" }}</div>
+
+        {% with proponentes=p.participantes.all %}
+          {% for part in proponentes %}{% if part.papel == 'proponente' %}
+            <div class="kanban-card-nome">{{ part.pessoa.nome }}</div>
+          {% endif %}{% endfor %}
+          {% if not proponentes %}<div class="kanban-card-nome text-muted fst-italic">Sem proponente</div>{% endif %}
+        {% endwith %}
+
+        <div class="kanban-card-info">
+          <i class="bi bi-buildings"></i>&nbsp;{{ p.empreendimento }}
+          {% with uns=p.unidades.all %}
+            {% if uns %}
+            <br><i class="bi bi-door-open"></i>&nbsp;{% for up in uns %}{{ up.unidade.bloco.nome }}/{{ up.unidade.numero }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            {% endif %}
+          {% endwith %}
+        </div>
+
+        <div class="kanban-card-valor">{{ p.kanban_valor|brl }}</div>
+
+      </a>
+      {% empty %}
+      <div class="kanban-empty"><i class="bi bi-inbox fs-5 d-block mb-1"></i>Vazio</div>
+      {% endfor %}
+    </div>
+
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

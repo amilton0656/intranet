@@ -5,6 +5,7 @@ app_name = 'propostas'
 
 urlpatterns = [
     path('',                          views.proposta_list,   name='proposta_list'),
+    path('kanban/',                   views.proposta_kanban, name='proposta_kanban'),
     path('nova/',                     views.proposta_create, name='proposta_create'),
     path('<str:numero>/',             views.proposta_detail, name='proposta_detail'),
     path('<str:numero>/editar/',      views.proposta_edit,   name='proposta_edit'),

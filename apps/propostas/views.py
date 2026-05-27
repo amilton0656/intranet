@@ -69,6 +69,17 @@ def _get_proposta(numero):
     )
 
 
+SITUACAO_CORES = {
+    'rascunho':           '#6c757d',
+    'enviada':            '#0d6efd',
+    'em_analise':         '#0ea5e9',
+    'aprovada':           '#198754',
+    'reprovada':          '#dc3545',
+    'contrato_elaborado': '#6f42c1',
+    'contratada':         '#0f766e',
+}
+
+
 # ── listagem ──────────────────────────────────────────────────────────────────
 
 @login_required
@@ -86,6 +97,50 @@ def proposta_list(request):
         'situacao_filter':  situacao,
         'situacao_choices': Proposta.SITUACAO_CHOICES,
     })
+
+
+# ── kanban ────────────────────────────────────────────────────────────────────
+
+@login_required
+def proposta_kanban(request):
+    from decimal import Decimal
+    from django.db.models import F, Sum, ExpressionWrapper, DecimalField as DField
+
+    todas = list(
+        Proposta.objects
+        .select_related('empreendimento', 'imobiliaria', 'corretor')
+        .prefetch_related('participantes__pessoa', 'unidades__unidade__bloco')
+    )
+
+    totais = dict(
+        SerieProposta.objects
+        .filter(origem='proposta')
+        .values('proposta_id')
+        .annotate(total=Sum(ExpressionWrapper(
+            F('valor') * F('quantidade'),
+            output_field=DField(max_digits=16, decimal_places=2),
+        )))
+        .values_list('proposta_id', 'total')
+    )
+
+    agrupadas = {val: [] for val, _ in Proposta.SITUACAO_CHOICES}
+    for p in todas:
+        p.kanban_valor = totais.get(p.pk, Decimal('0'))
+        agrupadas.setdefault(p.situacao, []).append(p)
+
+    colunas = []
+    for val, label in Proposta.SITUACAO_CHOICES:
+        grupo = agrupadas.get(val, [])
+        colunas.append({
+            'val':      val,
+            'label':    label,
+            'cor':      SITUACAO_CORES.get(val, '#6c757d'),
+            'propostas': grupo,
+            'count':    len(grupo),
+            'total':    sum(p.kanban_valor for p in grupo),
+        })
+
+    return render(request, 'propostas/proposta_kanban.html', {'colunas': colunas})
 
 
 # ── criar ─────────────────────────────────────────────────────────────────────
