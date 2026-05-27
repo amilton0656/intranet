@@ -40,12 +40,14 @@
     text-align: center; white-space: nowrap;
   }
   .drawflow .input, .drawflow .output {
-    width: 13px; height: 13px; background: #fff;
+    width: 16px; height: 16px; background: #fff;
     border: 2.5px solid #9ca3af; border-radius: 50%;
-    top: 50%; transform: translateY(-50%); transition: .15s;
+    top: calc(50% - 8px); transition: .15s;
+    position: absolute; z-index: 10;
+    cursor: crosshair; pointer-events: all;
   }
-  .drawflow .input  { left: -7px; }
-  .drawflow .output { right: -7px; }
+  .drawflow .input  { left: -8px; }
+  .drawflow .output { right: -8px; }
   .drawflow .input:hover, .drawflow .output:hover { background: #0d6efd; border-color: #0d6efd; }
   .drawflow .connection .main-path { stroke: #9ca3af; stroke-width: 2.5; fill: none; }
   .drawflow .connection .main-path:hover,
