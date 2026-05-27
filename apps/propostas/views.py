@@ -14,6 +14,33 @@ from .models import (
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+_INDICE_MAP = {
+    'cub':  'cub_residencial',
+    'igpm': 'igpm',
+    'fixo': 'nenhum',
+}
+
+
+def _copiar_series_da_tabela(proposta):
+    """Recria as séries de tabela e proposta a partir da TabelaVendas."""
+    proposta.series.filter(origem__in=['tabela', 'proposta']).delete()
+    bulk = []
+    for i, s in enumerate(proposta.tabela.series.order_by('ordem')):
+        kwargs = dict(
+            proposta=proposta,
+            label=s.get_tipo_display(),
+            tipo='fixa',
+            quantidade=s.quantidade or 1,
+            valor=0,
+            primeiro_vencimento=s.primeiro_vencimento,
+            indexador=_INDICE_MAP.get(s.indice, 'nenhum'),
+            ordem=i,
+        )
+        bulk.append(SerieProposta(origem='tabela', **kwargs))
+        bulk.append(SerieProposta(origem='proposta', **kwargs))
+    SerieProposta.objects.bulk_create(bulk)
+
+
 def _get_proposta(numero):
     return get_object_or_404(
         Proposta.objects
@@ -63,6 +90,7 @@ def proposta_create(request):
                 observacoes=p.get('observacoes', ''),
             )
             proposta.save()
+            _copiar_series_da_tabela(proposta)
             messages.success(request, f'Proposta {proposta.numero} criada.')
             return redirect('propostas:proposta_detail', numero=proposta.numero)
         except Exception as e:
@@ -232,22 +260,10 @@ def serie_remove(request, pk):
 
 @login_required
 def series_copiar_tabela(request, numero):
-    """Copia as séries da TabelaVendas como origem='tabela' (snapshot)."""
+    """Recopia as séries da TabelaVendas, substituindo tabela e proposta."""
     proposta = get_object_or_404(Proposta, numero=numero)
-    proposta.series.filter(origem='tabela').delete()
-    for i, s in enumerate(proposta.tabela.series.order_by('ordem')):
-        SerieProposta.objects.create(
-            proposta=proposta,
-            origem='tabela',
-            label=s.label,
-            tipo='fixa',
-            quantidade=s.quantidade or 1,
-            valor=0,
-            primeiro_vencimento=s.primeiro_vencimento,
-            indexador='nenhum',
-            ordem=i,
-        )
-    messages.success(request, 'Séries da tabela copiadas.')
+    _copiar_series_da_tabela(proposta)
+    messages.success(request, 'Séries atualizadas a partir da tabela.')
     return redirect('propostas:proposta_detail', numero=numero)
 
 
