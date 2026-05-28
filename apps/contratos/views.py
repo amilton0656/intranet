@@ -223,14 +223,21 @@ def _converter_para_pdf(docx_buffer):
             from docx2pdf import convert
             convert(tmp_docx_path, tmp_pdf_path)
         else:
-            result = subprocess.run(
-                [
-                    'libreoffice', '--headless', '--convert-to', 'pdf',
-                    '--outdir', os.path.dirname(tmp_docx_path),
-                    tmp_docx_path,
-                ],
-                capture_output=True, text=True, timeout=60,
-            )
+            import shutil, uuid
+            profile_dir = f'/tmp/lo_profile_{uuid.uuid4().hex}'
+            try:
+                result = subprocess.run(
+                    [
+                        'libreoffice', '--headless',
+                        f'--env:UserInstallation=file://{profile_dir}',
+                        '--convert-to', 'pdf',
+                        '--outdir', os.path.dirname(tmp_docx_path),
+                        tmp_docx_path,
+                    ],
+                    capture_output=True, text=True, timeout=60,
+                )
+            finally:
+                shutil.rmtree(profile_dir, ignore_errors=True)
             if result.returncode != 0:
                 raise RuntimeError(f'LibreOffice: {result.stderr.strip()}')
             if not os.path.exists(tmp_pdf_path):
