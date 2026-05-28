@@ -147,8 +147,10 @@ editor.start();
 editor.import(DRAWFLOW_DATA);
 
 // ── connection fix ────────────────────────────────────────────────────────────
-// Track connection state via Drawflow events (avoids accessing internal props)
-var _conn = null; // { output_id, output_class } set by connectionStart
+// _conn is set by connectionStart (fired on mousedown) and cleared after.
+// The capture-phase listener on #drawflow runs BEFORE Drawflow's bubble-phase
+// dragEnd, so stopImmediatePropagation keeps Drawflow from cancelling.
+var _conn = null;
 
 editor.on('connectionStart', function(info) {
   _conn = { id: info.output_id, cls: info.output_class };
@@ -156,34 +158,38 @@ editor.on('connectionStart', function(info) {
 editor.on('connectionCreated', function() { _conn = null; });
 editor.on('connectionCancel',  function() { _conn = null; });
 
-document.addEventListener('mouseup', function(e) {
-  if (!_conn) return;  // no active connection drag
+document.getElementById('drawflow').addEventListener('mouseup', function(e) {
+  if (!_conn) return;
 
-  // Find the temporary SVG (connection with no node_in_* class) and remove it
+  // Intercept before Drawflow's dragEnd (bubble phase) can cancel the connection
+  e.stopImmediatePropagation();
+
+  // Find the temporary connection SVG (no node_in_* class yet) and hide it
   var tempSvg = null;
-  document.querySelectorAll('#drawflow svg.connection').forEach(function(svg) {
-    if (!svg.className.baseVal.includes('node_in_')) tempSvg = svg;
+  document.querySelectorAll('#drawflow svg.connection').forEach(function(s) {
+    if (!s.className.baseVal.includes('node_in_')) tempSvg = s;
   });
-
-  // Find real element under cursor (hide temp SVG first so it doesn't block)
   if (tempSvg) tempSvg.style.display = 'none';
+
+  // Find the real HTML element under the cursor
   var el = document.elementFromPoint(e.clientX, e.clientY);
   if (tempSvg) tempSvg.style.display = '';
 
-  // Walk up DOM to find destination drawflow-node
+  // Walk up the DOM to find the destination drawflow-node
   var node = el;
-  while (node && node.id !== 'drawflow') {
+  while (node && node !== this) {
     if (node.classList && node.classList.contains('drawflow-node') &&
         node.id && node.id.startsWith('node-')) break;
     node = node.parentElement;
   }
 
-  if (!node || !node.classList || !node.classList.contains('drawflow-node')) return;
-
-  // Remove temp SVG and create real connection
+  // Always remove the temp SVG (addConnection will draw the permanent one)
   if (tempSvg) tempSvg.remove();
+
   var src = _conn;
   _conn = null;
+
+  if (!node || !node.classList || !node.classList.contains('drawflow-node')) return;
 
   var in_id = node.id.slice(5);
   if (src.id === in_id) return;
@@ -193,7 +199,7 @@ document.addEventListener('mouseup', function(e) {
 
   try { editor.addConnection(src.id, in_id, src.cls, 'input_1'); } catch(ignored) {}
 
-});
+}, true); // ← capture phase: runs before Drawflow's bubble handler
 
 // ── selected node tracking ────────────────────────────────────────────────────
 let selectedNodeId   = null;
