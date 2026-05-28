@@ -43,6 +43,14 @@
       </div>
     </div>
 
+    {% if messages %}
+      {% for msg in messages %}
+      <div class="alert alert-danger alert-dismissible fade show py-2">
+        {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    {% endif %}
+
     {% if not minutas %}
       <div class="alert alert-warning">
         <i class="bi bi-exclamation-triangle me-2"></i>
@@ -52,8 +60,9 @@
     {% else %}
       <form method="post" novalidate>
         {% csrf_token %}
-        <div class="mb-4">
-          <label class="form-label fw-semibold">Selecione a minuta</label>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Minuta</label>
           <select name="minuta" class="form-select" required>
             <option value="">— Selecione —</option>
             {% for m in minutas %}
@@ -61,9 +70,30 @@
             {% endfor %}
           </select>
         </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold">Formato</label>
+          <div class="d-flex gap-3">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="formato" id="fmt-pdf" value="pdf" checked>
+              <label class="form-check-label" for="fmt-pdf">
+                <i class="bi bi-file-earmark-pdf text-danger me-1"></i>
+                PDF <span class="text-muted small">(salvo no histórico)</span>
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="formato" id="fmt-docx" value="docx">
+              <label class="form-check-label" for="fmt-docx">
+                <i class="bi bi-file-earmark-word text-primary me-1"></i>
+                Word (.docx) <span class="text-muted small">(só download)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <div class="d-flex gap-2">
           <button type="submit" class="btn btn-primary btn-sm px-4">
-            <i class="bi bi-download me-1"></i>Gerar e Baixar .docx
+            <i class="bi bi-download me-1"></i>Gerar e Baixar
           </button>
           <a href="{% url 'propostas:proposta_detail' numero=proposta.numero %}"
              class="btn btn-outline-secondary btn-sm px-4">Cancelar</a>

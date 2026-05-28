@@ -1,0 +1,119 @@
+{% extends 'contratos/base.html' %}
+{% block title %}Variáveis para Minutas{% endblock %}
+{% block nav_variaveis %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  .var-chip {
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 0.8rem;
+    background: #f0f4ff;
+    color: #3b5bdb;
+    border: 1px solid #d0d9f5;
+    border-radius: 5px;
+    padding: 2px 8px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+    display: inline-block;
+  }
+  .var-chip:hover { background: #dbe4ff; border-color: #748ffc; }
+  .var-chip.copied { background: #d3f9d8; border-color: #69db7c; color: #2f9e44; }
+
+  .loop-chip {
+    background: #fff4e6;
+    color: #e67700;
+    border-color: #ffd8a8;
+  }
+  .loop-chip:hover { background: #ffe8cc; border-color: #ffa94d; }
+
+  .cat-header {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: #6c757d;
+    padding: 0.4rem 0; margin-bottom: 0.5rem;
+    border-bottom: 1px solid #e9ecef;
+  }
+  .desc-col { font-size: 0.82rem; color: #495057; }
+  .ex-col   { font-size: 0.78rem; color: #adb5bd; font-style: italic; }
+  .var-table td { padding: 0.35rem 0.6rem; vertical-align: middle; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-braces me-2"></i>Variáveis para Minutas</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'contratos:minuta_list' %}">Minutas</a></li>
+        <li class="breadcrumb-item active">Variáveis</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<div class="main-content">
+  <p class="text-muted mb-4" style="font-size:0.88rem;">
+    Clique em qualquer variável para copiá-la. Cole diretamente no Word usando
+    <kbd>Ctrl+V</kbd>. O Word preserva a formatação do parágrafo ao redor.
+  </p>
+
+  <div class="row g-4">
+    {% for grupo in grupos %}
+    <div class="col-12">
+      <div class="card-section">
+        <div class="cat-header">
+          <i class="bi {{ grupo.icone }} me-2"></i>{{ grupo.categoria }}
+        </div>
+        <table class="var-table w-100">
+          <tbody>
+            {% for var, desc, exemplo in grupo.itens %}
+            <tr>
+              <td style="width:1%">
+                <span class="var-chip {% if '{%' in var %}loop-chip{% endif %}"
+                      data-var="{{ var }}"
+                      title="Clique para copiar">{{ var }}</span>
+              </td>
+              <td class="desc-col">{{ desc }}</td>
+              <td class="ex-col">{{ exemplo }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div id="toast-copied" style="
+  position:fixed; bottom:1.5rem; right:1.5rem;
+  background:#2f9e44; color:#fff; padding:.5rem 1rem;
+  border-radius:6px; font-size:.85rem; display:none;
+  box-shadow:0 4px 12px rgba(0,0,0,.2); z-index:9999;">
+  <i class="bi bi-check-lg me-1"></i>Copiado!
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var toast  = document.getElementById('toast-copied');
+  var timer  = null;
+
+  document.querySelectorAll('.var-chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      var txt = chip.dataset.var;
+      navigator.clipboard.writeText(txt).then(function () {
+        chip.classList.add('copied');
+        setTimeout(function () { chip.classList.remove('copied'); }, 1500);
+
+        toast.style.display = 'block';
+        clearTimeout(timer);
+        timer = setTimeout(function () { toast.style.display = 'none'; }, 2000);
+      });
+    });
+  });
+}());
+</script>
+{% endblock %}

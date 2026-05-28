@@ -9,4 +9,6 @@ urlpatterns = [
     path('<int:pk>/editar/',          views.minuta_edit,    name='minuta_edit'),
     path('<int:pk>/excluir/',         views.minuta_delete,  name='minuta_delete'),
     path('gerar/<str:numero>/',       views.contrato_gerar, name='contrato_gerar'),
+    path('variaveis/',                views.variaveis,       name='variaveis'),
+    path('excluir/<int:pk>/',         views.contrato_excluir, name='contrato_excluir'),
 ]
