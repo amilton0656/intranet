@@ -1654,7 +1654,7 @@ def tabela_item_csv_template(request, pk):
 
 @login_required
 def tabela_item_import_csv(request, pk):
-    import csv, io
+    import csv, io, re
     tabela = get_object_or_404(TabelaVendas.objects.select_related('empreendimento').prefetch_related('series'), pk=pk)
     series = {s.tipo: s for s in tabela.series.all()}
 
@@ -1666,50 +1666,117 @@ def tabela_item_import_csv(request, pk):
         messages.error(request, 'Nenhum arquivo enviado.')
         return redirect('incorporadora:tabela_detail', pk=pk)
 
+    # Mapeamento de status do CV CRM para os valores internos
+    STATUS_CV_MAP = {
+        'disponível': 'disponivel',
+        'disponivel': 'disponivel',
+        'bloqueada':  'bloqueado',
+        'bloqueado':  'bloqueado',
+        'reservada':  'reservado',
+        'reservado':  'reservado',
+        'vendida':    'vendido',
+        'vendido':    'vendido',
+    }
+
+    def _parse_valor_cv(raw):
+        """Converte 'R$132.123,00' ou '132.123,00' para '132123.00'."""
+        s = re.sub(r'[R$\s]', '', raw).strip()
+        s = s.replace('.', '').replace(',', '.')
+        return s or '0'
+
     try:
         texto = arquivo.read().decode('utf-8-sig')
         reader = csv.DictReader(io.StringIO(texto), delimiter=';')
+        # Normalize header keys stripping whitespace
+        fieldnames = [f.strip() for f in (reader.fieldnames or [])]
         criados = atualizados = erros = 0
 
+        # Detect CV CRM format by presence of 'SITUAÇÃO' column
+        is_cv_format = 'SITUAÇÃO' in fieldnames
+
         for i, row in enumerate(reader, start=2):
-            bloco_nome   = row.get('bloco', '').strip()
-            unidade_num  = row.get('unidade', '').strip()
-            status       = row.get('status', 'disponivel').strip()
-            valor_venda  = row.get('valor_venda', '0').strip().replace(',', '.')
+            row = {k.strip(): v for k, v in row.items()}
 
-            if not bloco_nome or not unidade_num:
-                continue
+            if is_cv_format:
+                unidade_num = row.get('UNIDADE', '').strip()
+                if not unidade_num:
+                    continue
 
-            try:
-                unidade = Unidade.objects.get(
-                    bloco__empreendimento=tabela.empreendimento,
-                    bloco__nome__iexact=bloco_nome,
-                    numero=unidade_num,
-                )
-            except Unidade.DoesNotExist:
-                messages.warning(request, f'Linha {i}: unidade {bloco_nome}/{unidade_num} não encontrada.')
-                erros += 1
-                continue
+                situacao_raw = row.get('SITUAÇÃO', '').strip()
+                status_interno = STATUS_CV_MAP.get(situacao_raw.lower(), 'disponivel')
+                valor_raw = row.get('VALOR TOTAL', '0').strip()
+                valor_venda = _parse_valor_cv(valor_raw)
 
-            item, criado = ItemTabelaVendas.objects.update_or_create(
-                tabela=tabela, unidade=unidade,
-                defaults={'status': status, 'valor_venda': valor_venda},
-            )
-            if criado:
-                criados += 1
-            else:
-                atualizados += 1
-
-            # valores por série
-            for col_name, valor_str in row.items():
-                col_key = col_name.strip()
-                if col_key in series:
-                    ValorSerie.objects.update_or_create(
-                        item=item, serie=series[col_key],
-                        defaults={'valor_parcela': valor_str.strip().replace(',', '.') or '0'},
+                try:
+                    unidade = Unidade.objects.get(
+                        bloco__empreendimento=tabela.empreendimento,
+                        numero=unidade_num,
                     )
+                except Unidade.DoesNotExist:
+                    messages.warning(request, f'Linha {i}: unidade {unidade_num} não encontrada.')
+                    erros += 1
+                    continue
+                except Unidade.MultipleObjectsReturned:
+                    messages.warning(request, f'Linha {i}: número {unidade_num} ambíguo (múltiplos blocos). Ignorado.')
+                    erros += 1
+                    continue
 
-        messages.success(request, f'Importação concluída: {criados} criados, {atualizados} atualizados, {erros} erro(s).')
+                # Update the Unidade itself
+                Unidade.objects.filter(pk=unidade.pk).update(
+                    status=status_interno,
+                    valor_tabela=valor_venda,
+                )
+
+                item, criado = ItemTabelaVendas.objects.update_or_create(
+                    tabela=tabela, unidade=unidade,
+                    defaults={'status': status_interno, 'valor_venda': valor_venda},
+                )
+                if criado:
+                    criados += 1
+                else:
+                    atualizados += 1
+
+            else:
+                # Legacy format: bloco;unidade;status;valor_venda[;series...]
+                bloco_nome  = row.get('bloco', '').strip()
+                unidade_num = row.get('unidade', '').strip()
+                status      = row.get('status', 'disponivel').strip()
+                valor_venda = row.get('valor_venda', '0').strip().replace(',', '.')
+
+                if not bloco_nome or not unidade_num:
+                    continue
+
+                try:
+                    unidade = Unidade.objects.get(
+                        bloco__empreendimento=tabela.empreendimento,
+                        bloco__nome__iexact=bloco_nome,
+                        numero=unidade_num,
+                    )
+                except Unidade.DoesNotExist:
+                    messages.warning(request, f'Linha {i}: unidade {bloco_nome}/{unidade_num} não encontrada.')
+                    erros += 1
+                    continue
+
+                item, criado = ItemTabelaVendas.objects.update_or_create(
+                    tabela=tabela, unidade=unidade,
+                    defaults={'status': status, 'valor_venda': valor_venda},
+                )
+                if criado:
+                    criados += 1
+                else:
+                    atualizados += 1
+
+                # valores por série
+                for col_name, valor_str in row.items():
+                    col_key = col_name.strip()
+                    if col_key in series:
+                        ValorSerie.objects.update_or_create(
+                            item=item, serie=series[col_key],
+                            defaults={'valor_parcela': valor_str.strip().replace(',', '.') or '0'},
+                        )
+
+        fmt = 'CV CRM' if is_cv_format else 'padrão'
+        messages.success(request, f'Importação ({fmt}) concluída: {criados} criados, {atualizados} atualizados, {erros} erro(s).')
     except Exception as e:
         messages.error(request, f'Erro ao processar arquivo: {e}')
 

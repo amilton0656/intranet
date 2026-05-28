@@ -69,6 +69,7 @@ class Unidade(models.Model):
         ('reservado',  'Reservado'),
         ('vendido',    'Vendido'),
         ('permuta',    'Permuta'),
+        ('bloqueado',  'Bloqueado'),
     ]
 
     bloco                    = models.ForeignKey(Bloco, on_delete=models.PROTECT, related_name='unidades', verbose_name='Bloco')
