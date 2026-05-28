@@ -146,28 +146,34 @@ editor.force_first_input = true;
 editor.start();
 editor.import(DRAWFLOW_DATA);
 
-// ── connection fix ────────────────────────────────────────────────────────────
-// The temporary connection SVG (last in DOM) intercepts the mouseup even when
-// the cursor is over the input port. We take full control of connection creation
-// via a capture-phase handler that always runs before Drawflow's bubble handler.
-document.getElementById('drawflow').addEventListener('mouseup', function(e) {
-  if (!editor.connection || !editor.ele_selected) return;
+// ── debug panel ───────────────────────────────────────────────────────────────
+var _dbg = document.createElement('div');
+_dbg.style.cssText = 'position:fixed;bottom:10px;right:10px;background:#111;color:#0f0;font:11px monospace;padding:8px 10px;border-radius:6px;z-index:9999;min-width:260px;max-height:180px;overflow-y:auto;pointer-events:none';
+document.body.appendChild(_dbg);
+function dfLog(msg) {
+  var t = new Date().toISOString().slice(14,22);
+  _dbg.innerHTML = '<span style="color:#999">' + t + '</span> ' + msg + '<br>' + _dbg.innerHTML;
+}
+editor.on('connectionStart',   function(i){ dfLog('🔵 start out=' + i.output_id + '.' + i.output_class); });
+editor.on('connectionCreated', function(i){ dfLog('✅ created ' + i.output_id + '→' + i.input_id); });
+editor.on('connectionCancel',  function(){ dfLog('❌ cancelled'); });
 
-  // Always intercept — we handle the connection ourselves
+// ── connection fix ────────────────────────────────────────────────────────────
+document.getElementById('drawflow').addEventListener('mouseup', function(e) {
+  dfLog('mouseup conn=' + editor.connection + ' target=' + (e.target.className||e.target.tagName));
+
+  if (!editor.connection || !editor.ele_selected) return;
   e.stopImmediatePropagation();
 
   var el = e.target;
-
-  // If the target is an SVG element (the connection line), hide all connections
-  // temporarily and use elementFromPoint to find the real HTML element below.
   if (el.namespaceURI === 'http://www.w3.org/2000/svg') {
     var conns = document.querySelectorAll('#drawflow .connection');
     conns.forEach(function(c) { c.style.display = 'none'; });
     el = document.elementFromPoint(e.clientX, e.clientY) || el;
     conns.forEach(function(c) { c.style.display = ''; });
+    dfLog('SVG→real: ' + (el && (el.className||el.tagName)));
   }
 
-  // Walk up the DOM to find the destination drawflow-node
   var node = el;
   while (node && node !== this) {
     if (node.classList && node.classList.contains('drawflow-node') &&
@@ -175,30 +181,34 @@ document.getElementById('drawflow').addEventListener('mouseup', function(e) {
     node = node.parentElement;
   }
 
-  // Clean up Drawflow's internal state regardless of outcome
   var srcEl = editor.ele_selected;
   if (editor.connection_ele) { editor.connection_ele.remove(); editor.connection_ele = null; }
-  editor.connection      = false;
-  editor.ele_selected    = null;
-  editor.drag            = false;
-  editor.drag_point      = false;
-  editor.editor_selected = false;
+  editor.connection = false; editor.ele_selected = null;
+  editor.drag = false; editor.drag_point = false; editor.editor_selected = false;
 
-  if (!node || !node.classList || !node.classList.contains('drawflow-node')) return;
-  if (!srcEl || !srcEl.parentElement || !srcEl.parentElement.parentElement) return;
+  if (!node || !node.classList || !node.classList.contains('drawflow-node')) {
+    dfLog('❌ no dest node found (el=' + (el && (el.className||el.tagName)) + ')');
+    return;
+  }
+  if (!srcEl || !srcEl.parentElement || !srcEl.parentElement.parentElement) {
+    dfLog('❌ bad srcEl hierarchy');
+    return;
+  }
 
   var out_id  = srcEl.parentElement.parentElement.id.slice(5);
   var out_cls = srcEl.classList[1] || 'output_1';
   var in_id   = node.id.slice(5);
+  dfLog('addConnection ' + out_id + '(' + out_cls + ')→' + in_id);
 
-  if (out_id === in_id) return;
+  if (out_id === in_id) { dfLog('❌ self-connection'); return; }
 
   var nd = editor.getNodeFromId(in_id);
-  if (!nd || Object.keys(nd.inputs).length === 0) return;
+  if (!nd || Object.keys(nd.inputs).length === 0) { dfLog('❌ no inputs'); return; }
 
-  try { editor.addConnection(out_id, in_id, out_cls, 'input_1'); } catch(ignored) {}
+  try { editor.addConnection(out_id, in_id, out_cls, 'input_1'); dfLog('✅ addConnection OK'); }
+  catch(err) { dfLog('❌ addConnection err: ' + err.message); }
 
-}, true); // capture phase — always runs before Drawflow's bubble handler
+}, true);
 
 // ── selected node tracking ────────────────────────────────────────────────────
 let selectedNodeId   = null;
