@@ -225,6 +225,7 @@ def _converter_para_pdf(docx_buffer):
         else:
             import shutil, uuid
             profile_dir = f'/tmp/lo_profile_{uuid.uuid4().hex}'
+            lo_env = {**os.environ, 'HOME': '/tmp'}
             try:
                 result = subprocess.run(
                     [
@@ -235,6 +236,7 @@ def _converter_para_pdf(docx_buffer):
                         tmp_docx_path,
                     ],
                     capture_output=True, text=True, timeout=60,
+                    env=lo_env,
                 )
             finally:
                 shutil.rmtree(profile_dir, ignore_errors=True)
