@@ -147,57 +147,27 @@
                 </li>
                 {% endif %}
 
-                {% if show_incorporadora_menu %}
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle me-4" href="#" role="button"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                        Incorporadora
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{% url 'incorporadora:empreendimento_list' %}">Empreendimentos</a></li>
-                        <li><a class="dropdown-item" href="{% url 'incorporadora:empresa_list' %}">Empresas</a></li>
-                    </ul>
-                </li>
-                {% endif %}
-
-                {% if show_pessoas_menu %}
-                <li class="nav-item">
-                    <a class="nav-link me-4" href="{% url 'pessoas:pessoa_list' %}">
-                        <i class="bi bi-people me-1"></i>Pessoas
-                    </a>
-                </li>
-                {% endif %}
-
-                {% if show_propostas_menu %}
-                <li class="nav-item">
-                    <a class="nav-link me-4" href="{% url 'propostas:proposta_list' %}">
-                        <i class="bi bi-file-earmark-text me-1"></i>Propostas
-                    </a>
-                </li>
-                {% endif %}
-
-                {% if show_contratos_menu %}
-                <li class="nav-item">
-                    <a class="nav-link me-4" href="{% url 'contratos:minuta_list' %}">
-                        <i class="bi bi-file-earmark-ruled me-1"></i>Contratos
-                    </a>
-                </li>
-                {% endif %}
-
-                {% if show_admin_menu %}
+                {% if show_incorporadora_menu or show_admin_menu %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
                         data-bs-toggle="dropdown" aria-expanded="false">
                         Admin
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        {% if show_incorporadora_menu %}
+                        <li><a class="dropdown-item" href="{% url 'incorporadora:empreendimento_list' %}"><i class="bi bi-buildings me-2"></i>Incorporadora</a></li>
+                        <li><a class="dropdown-item" href="{% url 'pessoas:pessoa_list' %}"><i class="bi bi-people me-2"></i>Pessoas</a></li>
+                        <li><a class="dropdown-item" href="{% url 'propostas:proposta_list' %}"><i class="bi bi-file-earmark-text me-2"></i>Propostas</a></li>
+                        <li><a class="dropdown-item" href="{% url 'contratos:minuta_list' %}"><i class="bi bi-file-earmark-ruled me-2"></i>Contratos</a></li>
+                        {% endif %}
+                        {% if show_admin_menu %}
+                        {% if show_incorporadora_menu %}<li><hr class="dropdown-divider"></li>{% endif %}
                         {% for link in admin_links %}
-                        <li>
-                            <a class="dropdown-item" href="{{ link.url }}">{{link.name }}</a>
-                        </li>
+                        <li><a class="dropdown-item" href="{{ link.url }}">{{ link.name }}</a></li>
                         {% endfor %}
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'usuario_list' %}"><i class="bi bi-people me-2"></i>Usuários</a></li>
+                        {% endif %}
                     </ul>
                 </li>
                 {% endif %}
