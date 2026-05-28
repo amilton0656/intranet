@@ -13,11 +13,43 @@ class Pessoa(models.Model):
         ('RJ','RJ'),('RN','RN'),('RS','RS'),('RO','RO'),('RR','RR'),('SC','SC'),
         ('SP','SP'),('SE','SE'),('TO','TO'),
     ]
+    ESTADO_CIVIL_CHOICES = [
+        ('solteiro',      'Solteiro(a)'),
+        ('casado',        'Casado(a)'),
+        ('divorciado',    'Divorciado(a)'),
+        ('viuvo',         'Viúvo(a)'),
+        ('uniao_estavel', 'União Estável'),
+        ('separado',      'Separado(a) Judicialmente'),
+    ]
+    REGIME_BENS_CHOICES = [
+        ('comunhao_parcial',   'Comunhão Parcial de Bens'),
+        ('comunhao_universal', 'Comunhão Universal de Bens'),
+        ('separacao_total',    'Separação Total de Bens'),
+        ('participacao_final', 'Participação Final nos Aquestos'),
+    ]
+    TIPO_CONTA_CHOICES = [
+        ('corrente', 'Corrente'),
+        ('poupanca', 'Poupança'),
+    ]
 
     tipo        = models.CharField('Tipo', max_length=10, choices=TIPO_CHOICES, default='fisica')
     nome        = models.CharField('Nome / Razão Social', max_length=200)
     cpf_cnpj    = models.CharField('CPF / CNPJ', max_length=20, blank=True)
     rg_ie       = models.CharField('RG / Insc. Estadual', max_length=30, blank=True)
+    rg_orgao_emissor = models.CharField('Órgão Emissor', max_length=20, blank=True)
+
+    # Pessoa Física
+    nacionalidade = models.CharField('Nacionalidade', max_length=60, blank=True, default='brasileiro(a)')
+    profissao     = models.CharField('Profissão', max_length=100, blank=True)
+    estado_civil  = models.CharField('Estado Civil', max_length=20, choices=ESTADO_CIVIL_CHOICES, blank=True)
+    regime_bens   = models.CharField('Regime de Bens', max_length=30, choices=REGIME_BENS_CHOICES, blank=True)
+
+    # Pessoa Jurídica
+    tipo_societario = models.CharField('Tipo Societário', max_length=60, blank=True,
+                                       help_text='Ex: Ltda, S/A, EIRELI, MEI')
+    representante   = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL,
+                                        related_name='representa_pj', verbose_name='Representante Legal')
+
     email       = models.EmailField('E-mail', blank=True)
     telefone    = models.CharField('Telefone', max_length=20, blank=True)
     celular     = models.CharField('Celular', max_length=20, blank=True)
@@ -35,6 +67,12 @@ class Pessoa(models.Model):
     is_imobiliaria = models.BooleanField('Imobiliária', default=False)
     is_fornecedor  = models.BooleanField('Fornecedor',  default=False)
     is_outro       = models.BooleanField('Outro',       default=False)
+
+    # Dados bancários
+    banco_nome       = models.CharField('Banco', max_length=100, blank=True)
+    banco_agencia    = models.CharField('Agência', max_length=20, blank=True)
+    banco_conta      = models.CharField('Conta', max_length=30, blank=True)
+    banco_tipo_conta = models.CharField('Tipo de Conta', max_length=15, choices=TIPO_CONTA_CHOICES, blank=True)
 
     observacoes = models.TextField('Observações', blank=True)
     ativo       = models.BooleanField('Ativo', default=True)

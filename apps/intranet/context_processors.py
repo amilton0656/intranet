@@ -154,6 +154,7 @@ def navbar_links(request):
     show_incorporadora_menu = False
     show_pessoas_menu = False
     show_propostas_menu = False
+    show_contratos_menu = False
 
     if user and user.is_authenticated:
         group_names = set(user.groups.values_list("name", flat=True))
@@ -163,6 +164,7 @@ def navbar_links(request):
         show_incorporadora_menu = bool(group_names & {"admin", "incorporadora"})
         show_pessoas_menu = bool(group_names & {"admin", "incorporadora"})
         show_propostas_menu = bool(group_names & {"admin", "incorporadora"})
+        show_contratos_menu = bool(group_names & {"admin", "incorporadora"})
 
     return {
         "empreendimento_links": EMPREENDEDIMENTO_LINKS,
@@ -180,4 +182,5 @@ def navbar_links(request):
         "show_incorporadora_menu": show_incorporadora_menu,
         "show_pessoas_menu": show_pessoas_menu,
         "show_propostas_menu": show_propostas_menu,
+        "show_contratos_menu": show_contratos_menu,
     }

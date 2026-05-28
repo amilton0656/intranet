@@ -176,6 +176,14 @@
                 </li>
                 {% endif %}
 
+                {% if show_contratos_menu %}
+                <li class="nav-item">
+                    <a class="nav-link me-4" href="{% url 'contratos:minuta_list' %}">
+                        <i class="bi bi-file-earmark-ruled me-1"></i>Contratos
+                    </a>
+                </li>
+                {% endif %}
+
                 {% if show_admin_menu %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"

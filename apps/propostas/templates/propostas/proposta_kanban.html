@@ -26,7 +26,10 @@
     overflow-x: auto;
     align-items: flex-start;
     min-height: calc(100vh - 120px);
+    cursor: grab;
+    scroll-behavior: smooth;
   }
+  .kanban-wrap.dragging { cursor: grabbing; scroll-behavior: auto; user-select: none; }
   .kanban-wrap::-webkit-scrollbar { height: 6px; }
   .kanban-wrap::-webkit-scrollbar-track { background: #f0f2f5; }
   .kanban-wrap::-webkit-scrollbar-thumb { background: #c1c8d0; border-radius: 3px; }
@@ -122,6 +125,15 @@
     padding: 1.2rem 0;
     font-style: italic;
   }
+
+  /* drag-and-drop */
+  .kanban-card[draggable="true"] { cursor: grab; }
+  .kanban-card.dragging-card { opacity: .35; }
+  .kanban-col-body.drop-over {
+    outline: 2px dashed #0d6efd;
+    outline-offset: -3px;
+    background: #e8f0fe;
+  }
 </style>
 {% endblock %}
 
@@ -152,9 +164,14 @@
       </div>
     </div>
 
-    <div class="kanban-col-body">
+    <div class="kanban-col-body" data-slug="{{ col.slug }}">
       {% for p in col.propostas %}
-      <a href="{% url 'propostas:proposta_detail' numero=p.numero %}" class="kanban-card">
+      <a href="{% url 'propostas:proposta_detail' numero=p.numero %}"
+         class="kanban-card"
+         draggable="true"
+         data-numero="{{ p.numero }}"
+         data-situacao="{{ col.slug }}"
+         data-valor="{{ p.kanban_valor }}">
 
         <div class="kanban-card-num">{{ p.numero }} &nbsp;·&nbsp; {{ p.data|date:"d/m/Y" }}</div>
 
@@ -185,4 +202,133 @@
   </div>
   {% endfor %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = '{{ csrf_token }}';
+
+// ── drag-and-drop entre colunas ───────────────────────────────────────────────
+(function () {
+  var dragCard = null;
+
+  document.querySelectorAll('.kanban-card[draggable]').forEach(function (card) {
+    card.addEventListener('dragstart', function (e) {
+      dragCard = card;
+      card.classList.add('dragging-card');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', card.dataset.numero);
+    });
+    card.addEventListener('dragend', function () {
+      card.classList.remove('dragging-card');
+      dragCard = null;
+      document.querySelectorAll('.drop-over').forEach(function (el) {
+        el.classList.remove('drop-over');
+      });
+    });
+  });
+
+  document.querySelectorAll('.kanban-col-body').forEach(function (col) {
+    col.addEventListener('dragover', function (e) {
+      if (!dragCard) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      col.classList.add('drop-over');
+    });
+    col.addEventListener('dragleave', function (e) {
+      if (!col.contains(e.relatedTarget)) col.classList.remove('drop-over');
+    });
+    col.addEventListener('drop', function (e) {
+      e.preventDefault();
+      col.classList.remove('drop-over');
+      if (!dragCard) return;
+
+      var novaSituacao = col.dataset.slug;
+      var card         = dragCard; // captura antes do fetch assíncrono
+      var numero       = card.dataset.numero;
+      if (novaSituacao === card.dataset.situacao) return; // mesma coluna
+
+      fetch('{% url "propostas:kanban_mover" %}', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body:    JSON.stringify({ numero: numero, situacao: novaSituacao }),
+      })
+      .then(function (r) {
+        if (!r.ok) {
+          return r.text().then(function (txt) {
+            try { var j = JSON.parse(txt); throw new Error(j.error || txt); }
+            catch (e2) { throw new Error('HTTP ' + r.status + ': ' + txt.slice(0, 200)); }
+          });
+        }
+        return r.json();
+      })
+      .then(function (data) {
+        if (data.error) { alert(data.error); return; }
+        // Move o card para a nova coluna no DOM
+        card.dataset.situacao = novaSituacao;
+        col.insertBefore(card, col.querySelector('.kanban-empty'));
+        // Remove "Vazio" da coluna de origem e atualiza contagens
+        _atualizarColunas();
+      })
+      .catch(function (err) { alert('Erro ao mover proposta.\n' + (err && err.message ? err.message : '')); });
+    });
+  });
+
+  var _brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  function _atualizarColunas() {
+    document.querySelectorAll('.kanban-col').forEach(function (colEl) {
+      var body   = colEl.querySelector('.kanban-col-body');
+      var cards  = body.querySelectorAll('.kanban-card');
+      var empty  = body.querySelector('.kanban-empty');
+      var header = colEl.querySelector('.kanban-col-meta');
+
+      // Mostra/oculta mensagem de vazio
+      if (cards.length === 0) {
+        if (!empty) {
+          var div = document.createElement('div');
+          div.className = 'kanban-empty';
+          div.innerHTML = '<i class="bi bi-inbox fs-5 d-block mb-1"></i>Vazio';
+          body.appendChild(div);
+        }
+      } else if (empty) {
+        empty.remove();
+      }
+
+      // Soma os valores dos cards e atualiza o cabeçalho
+      var total = 0;
+      cards.forEach(function (c) { total += parseFloat(c.dataset.valor || 0); });
+      header.innerHTML = _brl.format(total) + '&nbsp;&nbsp;·&nbsp;&nbsp;' +
+        cards.length + '&nbsp;proposta' + (cards.length !== 1 ? 's' : '');
+    });
+  }
+}());
+
+// ── arrastar canvas horizontalmente ──────────────────────────────────────────
+(function () {
+  var wrap = document.querySelector('.kanban-wrap');
+  var dragging = false, startX = 0, scrollStart = 0;
+
+  wrap.addEventListener('mousedown', function (e) {
+    if (e.button !== 0) return;
+    if (e.target.closest('.kanban-card')) return; // não interfere no clique do card
+    dragging    = true;
+    startX      = e.pageX;
+    scrollStart = wrap.scrollLeft;
+    wrap.classList.add('dragging');
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function (e) {
+    if (!dragging) return;
+    wrap.scrollLeft = scrollStart - (e.pageX - startX);
+  });
+
+  document.addEventListener('mouseup', function () {
+    if (!dragging) return;
+    dragging = false;
+    wrap.classList.remove('dragging');
+  });
+}());
+</script>
 {% endblock %}

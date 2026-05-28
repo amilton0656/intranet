@@ -1,5 +1,5 @@
 {% extends 'propostas/base.html' %}
-{% load incorporadora_tags propostas_tags %}
+{% load incorporadora_tags propostas_tags l10n %}
 {% block title %}{{ proposta.numero }} — Propostas{% endblock %}
 
 {% block extra_head %}
@@ -30,6 +30,13 @@
       {{ ei.label|default:proposta.situacao }}
     </span>
     {% endwith %}
+    <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#modalFluxo">
+      <i class="bi bi-calendar3 me-1"></i>Fluxo
+    </button>
+    <a href="{% url 'contratos:contrato_gerar' numero=proposta.numero %}"
+       class="btn btn-outline-success btn-sm">
+      <i class="bi bi-file-earmark-word me-1"></i>Gerar Contrato
+    </a>
     <a href="{% url 'propostas:proposta_edit' numero=proposta.numero %}" class="btn btn-outline-secondary btn-sm">
       <i class="bi bi-pencil me-1"></i>Editar
     </a>
@@ -265,7 +272,7 @@
                 <td>
                   <div class="d-flex gap-1">
                     <button class="btn btn-outline-secondary btn-sm py-0 px-1"
-                            onclick="abrirEditSerie({{ s.pk }}, '{{ s.label|escapejs }}', '{{ s.tipo }}', {{ s.quantidade }}, '{{ s.valor }}', '{% if s.primeiro_vencimento %}{{ s.primeiro_vencimento|date:'Y-m-d' }}{% endif %}', '{{ s.indexador }}')"
+                            onclick="abrirEditSerie({{ s.pk }}, '{{ s.label|escapejs }}', '{{ s.tipo }}', {{ s.quantidade }}, {{ s.valor|unlocalize }}, '{% if s.primeiro_vencimento %}{{ s.primeiro_vencimento|date:'Y-m-d' }}{% endif %}', '{{ s.indexador }}')"
                             data-bs-toggle="modal" data-bs-target="#modalEditSerie">
                       <i class="bi bi-pencil"></i>
                     </button>
@@ -486,6 +493,72 @@
           <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Fluxo de Pagamentos ── -->
+<div class="modal fade" id="modalFluxo" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title"><i class="bi bi-calendar3 me-2"></i>Fluxo de Pagamentos — {{ proposta.numero }}</h6>
+        <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        {% if fluxo %}
+        <table class="table table-hover table-sm mb-0" style="font-size:0.82rem;">
+          <thead class="table-dark sticky-top">
+            <tr>
+              <th class="ps-3" style="width:3rem;">#</th>
+              <th>Vencimento</th>
+              <th>Série</th>
+              <th class="text-center">Parcela</th>
+              <th class="text-end">Valor</th>
+              <th>Indexador</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in fluxo %}
+            <tr>
+              <td class="ps-3 text-muted">{{ p.num }}</td>
+              <td class="fw-semibold">
+                {% if p.vencimento %}{{ p.vencimento|date:"d/m/Y" }}{% else %}<span class="text-muted">—</span>{% endif %}
+              </td>
+              <td>{{ p.serie }}</td>
+              <td class="text-center text-muted">{{ p.parcela }}/{{ p.total }}</td>
+              <td class="text-end fw-semibold">{{ p.valor|brl }}</td>
+              <td class="text-muted small">{% if p.indexador != "Nenhum" %}{{ p.indexador }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr style="background:#e8f0fe; font-weight:700;">
+              <td colspan="4" class="ps-3">Total ({{ fluxo|length }} parcela{{ fluxo|length|pluralize:"s" }})</td>
+              <td class="text-end">
+                {% with total=0 %}
+                  {{ proposta.valor_proposto_total|brl }}
+                {% endwith %}
+              </td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+        {% else %}
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-inbox fs-3 d-block mb-2"></i>Nenhuma série proposta cadastrada.
+        </div>
+        {% endif %}
+      </div>
+      <div class="modal-footer py-2">
+        {% if fluxo %}
+        <a href="{% url 'propostas:proposta_fluxo_pdf' numero=proposta.numero %}"
+           class="btn btn-outline-danger btn-sm" target="_blank">
+          <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+        </a>
+        {% endif %}
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+      </div>
     </div>
   </div>
 </div>

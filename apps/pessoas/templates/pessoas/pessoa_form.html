@@ -15,12 +15,12 @@
 </div>
 
 <div class="main-content">
-  <div class="form-card p-4" style="max-width:760px;">
+  <div class="form-card p-4" style="max-width:860px;">
     <form method="post" novalidate>
       {% csrf_token %}
 
-      <!-- Identificação -->
-      <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size:0.72rem;letter-spacing:.05em;">Identificação</h6>
+      <!-- ── Identificação ─────────────────────────────────────────────── -->
+      <h6 class="section-title">Identificação</h6>
       <div class="row g-3 mb-3">
         <div class="col-md-3">
           <label class="form-label fw-semibold">Tipo</label>
@@ -35,14 +35,58 @@
           <label class="form-label fw-semibold">CPF / CNPJ</label>
           {{ form.cpf_cnpj }}
         </div>
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">RG / Insc. Estadual</label>
+        <div class="col-md-3" id="col-rg">
+          <label class="form-label fw-semibold" id="label-rg">RG</label>
           {{ form.rg_ie }}
+        </div>
+        <div class="col-md-2 section-pf">
+          <label class="form-label fw-semibold">Órgão Emissor</label>
+          {{ form.rg_orgao_emissor }}
+        </div>
+        <!-- PJ: tipo societário no lugar do órgão emissor -->
+        <div class="col-md-3 section-pj" style="display:none;">
+          <label class="form-label fw-semibold">Tipo Societário</label>
+          {{ form.tipo_societario }}
         </div>
       </div>
 
-      <!-- Contato -->
-      <h6 class="text-muted text-uppercase fw-semibold mb-3 mt-4" style="font-size:0.72rem;letter-spacing:.05em;">Contato</h6>
+      <!-- ── Dados Pessoais (PF) ────────────────────────────────────────── -->
+      <div class="section-pf">
+        <h6 class="section-title mt-4">Dados Pessoais</h6>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Nacionalidade</label>
+            {{ form.nacionalidade }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Profissão</label>
+            {{ form.profissao }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Estado Civil</label>
+            {{ form.estado_civil }}
+          </div>
+          <div class="col-md-4" id="row-regime-bens" style="display:none;">
+            <label class="form-label fw-semibold">Regime de Bens</label>
+            {{ form.regime_bens }}
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Representante Legal (PJ) ───────────────────────────────────── -->
+      <div class="section-pj" style="display:none;">
+        <h6 class="section-title mt-4">Representante Legal</h6>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Representante</label>
+            {{ form.representante }}
+            <div class="form-text">Pessoa física cadastrada no sistema que representa juridicamente esta empresa.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Contato ───────────────────────────────────────────────────── -->
+      <h6 class="section-title mt-4">Contato</h6>
       <div class="row g-3 mb-3">
         <div class="col-md-4">
           <label class="form-label fw-semibold">E-mail</label>
@@ -58,14 +102,21 @@
         </div>
       </div>
 
-      <!-- Endereço -->
-      <h6 class="text-muted text-uppercase fw-semibold mb-3 mt-4" style="font-size:0.72rem;letter-spacing:.05em;">Endereço</h6>
+      <!-- ── Endereço ──────────────────────────────────────────────────── -->
+      <h6 class="section-title mt-4">Endereço</h6>
       <div class="row g-3 mb-3">
         <div class="col-md-2">
           <label class="form-label fw-semibold">CEP</label>
-          {{ form.cep }}
+          <div class="input-group">
+            {{ form.cep }}
+            <span class="input-group-text px-2" id="cep-status" style="display:none;">
+              <span id="cep-spinner" class="spinner-border spinner-border-sm text-secondary" role="status" style="display:none;"></span>
+              <i id="cep-ok"    class="bi bi-check-circle-fill text-success" style="display:none;"></i>
+              <i id="cep-erro"  class="bi bi-x-circle-fill text-danger"      style="display:none;"></i>
+            </span>
+          </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-5">
           <label class="form-label fw-semibold">Logradouro</label>
           {{ form.logradouro }}
         </div>
@@ -73,7 +124,7 @@
           <label class="form-label fw-semibold">Número</label>
           {{ form.numero }}
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
           <label class="form-label fw-semibold">Complemento</label>
           {{ form.complemento }}
         </div>
@@ -91,10 +142,31 @@
         </div>
       </div>
 
-      <!-- Papéis -->
-      <h6 class="text-muted text-uppercase fw-semibold mb-3 mt-4" style="font-size:0.72rem;letter-spacing:.05em;">Papéis</h6>
+      <!-- ── Dados Bancários ───────────────────────────────────────────── -->
+      <h6 class="section-title mt-4">Dados Bancários</h6>
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Banco</label>
+          {{ form.banco_nome }}
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Agência</label>
+          {{ form.banco_agencia }}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Conta</label>
+          {{ form.banco_conta }}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Tipo</label>
+          {{ form.banco_tipo_conta }}
+        </div>
+      </div>
+
+      <!-- ── Papéis ────────────────────────────────────────────────────── -->
+      <h6 class="section-title mt-4">Papéis</h6>
       <div class="row g-2 mb-3">
-        <div class="col-auto">
+          <div class="col-auto">
           <div class="form-check form-check-inline">
             {{ form.is_cliente }}
             <label class="form-check-label" for="{{ form.is_cliente.id_for_label }}">Cliente</label>
@@ -126,13 +198,11 @@
         </div>
       </div>
 
-      <!-- Observações -->
+      <!-- ── Observações / Situação ────────────────────────────────────── -->
       <div class="mb-3 mt-4">
         <label class="form-label fw-semibold">Observações</label>
         {{ form.observacoes }}
       </div>
-
-      <!-- Situação -->
       <div class="mb-4">
         <div class="form-check">
           {{ form.ativo }}
@@ -155,4 +225,105 @@
     </form>
   </div>
 </div>
+
+<style>
+  .section-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #6c757d;
+    margin-bottom: 0.75rem;
+  }
+</style>
+
+<script>
+// ── Tipo PF / PJ ─────────────────────────────────────────────────────────────
+(function () {
+  var tipoSel   = document.getElementById('id_tipo');
+  var ecSel     = document.getElementById('id_estado_civil');
+  var labelRg   = document.getElementById('label-rg');
+  var rowRegime = document.getElementById('row-regime-bens');
+
+  function applyTipo() {
+    var isPJ = tipoSel.value === 'juridica';
+    document.querySelectorAll('.section-pf').forEach(function (el) { el.style.display = isPJ ? 'none' : ''; });
+    document.querySelectorAll('.section-pj').forEach(function (el) { el.style.display = isPJ ? '' : 'none'; });
+    labelRg.textContent = isPJ ? 'Insc. Estadual' : 'RG';
+  }
+
+  function applyEstadoCivil() {
+    var ec = ecSel.value;
+    rowRegime.style.display = (ec === 'casado' || ec === 'uniao_estavel') ? '' : 'none';
+  }
+
+  tipoSel.addEventListener('change', applyTipo);
+  ecSel.addEventListener('change', applyEstadoCivil);
+  applyTipo();
+  applyEstadoCivil();
+}());
+
+// ── Busca de CEP (ViaCEP) ─────────────────────────────────────────────────────
+(function () {
+  var cepInput  = document.getElementById('id_cep');
+  var status    = document.getElementById('cep-status');
+  var spinner   = document.getElementById('cep-spinner');
+  var iconOk    = document.getElementById('cep-ok');
+  var iconErro  = document.getElementById('cep-erro');
+  var timer     = null;
+
+  function showIcon(which) {
+    status.style.display  = '';
+    spinner.style.display = which === 'spinner' ? '' : 'none';
+    iconOk.style.display  = which === 'ok'      ? '' : 'none';
+    iconErro.style.display= which === 'erro'    ? '' : 'none';
+  }
+
+  function fill(data) {
+    var fields = {
+      id_logradouro: data.logradouro || '',
+      id_bairro:     data.bairro     || '',
+      id_cidade:     data.localidade || '',
+      id_estado:     data.uf         || '',
+    };
+    Object.keys(fields).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && fields[id]) el.value = fields[id];
+    });
+    // Foca no campo número após preencher
+    var numEl = document.getElementById('id_numero');
+    if (numEl) numEl.focus();
+  }
+
+  cepInput.addEventListener('input', function () {
+    clearTimeout(timer);
+    var raw = cepInput.value.replace(/\D/g, '');
+
+    // Aplica máscara 00000-000
+    if (raw.length > 5) {
+      cepInput.value = raw.slice(0, 5) + '-' + raw.slice(5, 8);
+    }
+
+    if (raw.length !== 8) {
+      status.style.display = 'none';
+      return;
+    }
+
+    showIcon('spinner');
+    timer = setTimeout(function () {
+      fetch('https://viacep.com.br/ws/' + raw + '/json/')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.erro) {
+            showIcon('erro');
+          } else {
+            fill(data);
+            showIcon('ok');
+          }
+        })
+        .catch(function () { showIcon('erro'); });
+    }, 400);
+  });
+}());
+</script>
 {% endblock %}

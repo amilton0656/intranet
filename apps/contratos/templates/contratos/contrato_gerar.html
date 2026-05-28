@@ -1,0 +1,76 @@
+{% extends 'contratos/base.html' %}
+{% block title %}Gerar Contrato — {{ proposta.numero }}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-file-earmark-arrow-down me-2"></i>Gerar Contrato</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'contratos:minuta_list' %}">Minutas</a></li>
+        <li class="breadcrumb-item active">Gerar — {{ proposta.numero }}</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<div class="main-content">
+  <div class="form-card p-4" style="max-width:580px;">
+
+    <!-- Resumo da proposta -->
+    <div class="mb-4 p-3 rounded" style="background:#f8f9fa;border:1px solid #e2e6ea;">
+      <div class="row g-2" style="font-size:0.85rem;">
+        <div class="col-6">
+          <span class="text-muted">Proposta</span><br>
+          <strong>{{ proposta.numero }}</strong>
+        </div>
+        <div class="col-6">
+          <span class="text-muted">Data</span><br>
+          <strong>{{ proposta.data|date:"d/m/Y" }}</strong>
+        </div>
+        <div class="col-6">
+          <span class="text-muted">Empreendimento</span><br>
+          <strong>{{ proposta.empreendimento }}</strong>
+        </div>
+        <div class="col-6">
+          <span class="text-muted">Proponente(s)</span><br>
+          <strong>
+            {% for part in proposta.participantes.all %}
+              {% if part.papel == 'proponente' %}{{ part.pessoa.nome }}{% if not forloop.last %}, {% endif %}{% endif %}
+            {% empty %}—{% endfor %}
+          </strong>
+        </div>
+      </div>
+    </div>
+
+    {% if not minutas %}
+      <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Nenhuma minuta ativa cadastrada.
+        <a href="{% url 'contratos:minuta_create' %}" class="alert-link">Cadastrar agora</a>.
+      </div>
+    {% else %}
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="mb-4">
+          <label class="form-label fw-semibold">Selecione a minuta</label>
+          <select name="minuta" class="form-select" required>
+            <option value="">— Selecione —</option>
+            {% for m in minutas %}
+            <option value="{{ m.pk }}">{{ m.nome }} ({{ m.get_tipo_display }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm px-4">
+            <i class="bi bi-download me-1"></i>Gerar e Baixar .docx
+          </button>
+          <a href="{% url 'propostas:proposta_detail' numero=proposta.numero %}"
+             class="btn btn-outline-secondary btn-sm px-4">Cancelar</a>
+        </div>
+      </form>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

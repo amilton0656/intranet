@@ -25,5 +25,6 @@ urlpatterns = [
     path('incorporadora/', include('apps.incorporadora.urls', namespace='incorporadora')),
     path('pessoas/', include('apps.pessoas.urls', namespace='pessoas')),
     path('propostas/', include('apps.propostas.urls', namespace='propostas')),
+    path('contratos/', include('apps.contratos.urls', namespace='contratos')),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]

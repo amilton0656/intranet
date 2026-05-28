@@ -13,9 +13,15 @@
       </ol>
     </nav>
   </div>
-  <a href="{% url 'propostas:proposta_create' %}" class="btn btn-primary btn-sm">
-    <i class="bi bi-plus-lg me-1"></i>Nova Proposta
-  </a>
+  <div class="d-flex gap-2">
+    <a href="{% url 'propostas:proposta_list_pdf' %}{% if situacao_filter %}?situacao={{ situacao_filter }}{% endif %}"
+       class="btn btn-outline-danger btn-sm" target="_blank">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+    </a>
+    <a href="{% url 'propostas:proposta_create' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>Nova Proposta
+    </a>
+  </div>
 </div>
 
 <div class="main-content">
