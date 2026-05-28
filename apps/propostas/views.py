@@ -491,9 +491,13 @@ def proposta_detail(request, numero):
         'pessoas':          Pessoa.objects.filter(ativo=True).order_by('nome'),
         'unidades_disponiveis': (
             Unidade.objects
-            .filter(bloco__empreendimento=proposta.empreendimento)
+            .filter(
+                bloco__empreendimento=proposta.empreendimento,
+                unidade_principal__isnull=True,
+            )
             .exclude(propostas__proposta=proposta)
             .select_related('bloco')
+            .prefetch_related('vinculadas')
             .order_by('bloco__nome', 'numero')
         ),
         'papel_choices':    ParticipanteProposta.PAPEL_CHOICES,
@@ -559,6 +563,9 @@ def unidade_add(request, numero):
             was_empty = not proposta.unidades.exists()
             unidade = get_object_or_404(Unidade, pk=unidade_pk)
             _, created = UnidadeProposta.objects.get_or_create(proposta=proposta, unidade=unidade)
+            # Adiciona automaticamente as unidades auxiliares vinculadas
+            for aux in unidade.vinculadas.all():
+                UnidadeProposta.objects.get_or_create(proposta=proposta, unidade=aux)
             if was_empty and created:
                 sem_valores = not proposta.series.filter(origem='proposta').exclude(valor=0).exists()
                 if sem_valores:

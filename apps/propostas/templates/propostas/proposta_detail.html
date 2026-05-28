@@ -415,7 +415,7 @@
           <select name="unidade" class="form-select form-select-sm" required>
             <option value="">— selecione —</option>
             {% for u in unidades_disponiveis %}
-            <option value="{{ u.pk }}">{{ u.bloco.nome }} — {{ u.numero }}</option>
+            <option value="{{ u.pk }}">{{ u.bloco.nome }} — {{ u.numero }}{% with aux=u.vinculadas.all %}{% if aux %} + {% for a in aux %}{{ a.numero }}{% if not forloop.last %} · {% endif %}{% endfor %}{% endif %}{% endwith %}</option>
             {% endfor %}
           </select>
         </div>
