@@ -495,6 +495,7 @@ def proposta_detail(request, numero):
             .filter(
                 bloco__empreendimento=proposta.empreendimento,
                 unidade_principal__isnull=True,
+                status='disponivel',
             )
             .exclude(propostas__proposta=proposta)
             .select_related('bloco')
