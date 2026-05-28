@@ -231,9 +231,14 @@ def contrato_gerar(request, numero):
     minutas  = MinutaContrato.objects.filter(ativo=True)
 
     if request.method == 'POST':
-        minuta_pk = request.POST.get('minuta')
+        minuta_pk = request.POST.get('minuta', '').strip()
         formato   = request.POST.get('formato', 'pdf')
-        minuta    = get_object_or_404(MinutaContrato, pk=minuta_pk, ativo=True)
+
+        if not minuta_pk:
+            messages.error(request, 'Selecione uma minuta antes de gerar o contrato.')
+            return redirect('contratos:contrato_gerar', numero=numero)
+
+        minuta = get_object_or_404(MinutaContrato, pk=minuta_pk, ativo=True)
 
         ctx          = build_context(proposta)
         docx_buffer  = _gerar_docx_buffer(minuta, ctx)
