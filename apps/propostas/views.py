@@ -2,6 +2,7 @@ import json
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -497,8 +498,10 @@ def proposta_detail(request, numero):
             )
             .exclude(propostas__proposta=proposta)
             .select_related('bloco')
-            .prefetch_related('vinculadas')
-            .order_by('bloco__nome', 'numero')
+            .prefetch_related(
+                Prefetch('vinculadas', queryset=Unidade.objects.order_by('ordem', 'numero'))
+            )
+            .order_by('bloco__nome', 'ordem', 'numero')
         ),
         'papel_choices':    ParticipanteProposta.PAPEL_CHOICES,
         'indexador_choices':SerieProposta.INDEXADOR_CHOICES,
