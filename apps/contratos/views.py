@@ -206,8 +206,12 @@ def _gerar_docx_buffer(minuta, ctx):
 
 
 def _converter_para_pdf(docx_buffer):
-    """Converte um BytesIO de .docx para bytes de PDF via docx2pdf."""
-    from docx2pdf import convert
+    """Converte um BytesIO de .docx para bytes de PDF.
+
+    Windows: usa docx2pdf (Microsoft Word via COM).
+    Linux:   usa LibreOffice headless.
+    """
+    import sys, subprocess
 
     with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as tmp_docx:
         tmp_docx.write(docx_buffer.read())
@@ -215,7 +219,23 @@ def _converter_para_pdf(docx_buffer):
 
     tmp_pdf_path = tmp_docx_path.replace('.docx', '.pdf')
     try:
-        convert(tmp_docx_path, tmp_pdf_path)
+        if sys.platform == 'win32':
+            from docx2pdf import convert
+            convert(tmp_docx_path, tmp_pdf_path)
+        else:
+            result = subprocess.run(
+                [
+                    'libreoffice', '--headless', '--convert-to', 'pdf',
+                    '--outdir', os.path.dirname(tmp_docx_path),
+                    tmp_docx_path,
+                ],
+                capture_output=True, text=True, timeout=60,
+            )
+            if result.returncode != 0:
+                raise RuntimeError(f'LibreOffice: {result.stderr.strip()}')
+            if not os.path.exists(tmp_pdf_path):
+                raise RuntimeError('LibreOffice não gerou o PDF.')
+
         with open(tmp_pdf_path, 'rb') as f:
             return f.read()
     finally:
