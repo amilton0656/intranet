@@ -230,7 +230,7 @@ def _converter_para_pdf(docx_buffer):
                 result = subprocess.run(
                     [
                         'libreoffice', '--headless',
-                        f'--env:UserInstallation=file://{profile_dir}',
+                        f'-env:UserInstallation=file://{profile_dir}',
                         '--convert-to', 'pdf',
                         '--outdir', os.path.dirname(tmp_docx_path),
                         tmp_docx_path,
