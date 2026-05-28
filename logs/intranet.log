@@ -110,3 +110,653 @@ Traceback (most recent call last):
                           ^^^^^^^^^^^^
 AttributeError: 'Bloco' object has no attribute 'user'
 2026-05-26 09:42:44,150 ERROR django.server "GET /incorporadora/empreendimentos/1/blocos/ HTTP/1.1" 500 88592
+2026-05-26 17:00:33,030 ERROR django.request Internal Server Error: /pessoas/
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\defaulttags.py", line 1035, in find_library
+    return parser.libraries[name]
+           ~~~~~~~~~~~~~~~~^^^^^^
+KeyError: 'pessoas_extras'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\newway\intranet\apps\pessoas\views.py", line 41, in pessoa_list
+    return render(request, 'pessoas/pessoa_list.html', {
+        'pessoas':        pessoas,
+    ...<2 lines>...
+        'filtros_ativos': filtros_ativos,
+    })
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader.py", line 61, in render_to_string
+    template = get_template(template_name, using=using)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader.py", line 15, in get_template
+    return engine.get_template(template_name)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\backends\django.py", line 79, in get_template
+    return Template(self.engine.get_template(template_name), self)
+                    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\engine.py", line 177, in get_template
+    template, origin = self.find_template(template_name)
+                       ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\engine.py", line 159, in find_template
+    template = loader.get_template(name, skip=skip)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loaders\cached.py", line 57, in get_template
+    template = super().get_template(template_name, skip)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loaders\base.py", line 28, in get_template
+    return Template(
+        contents,
+    ...<2 lines>...
+        self.engine,
+    )
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 154, in __init__
+    self.nodelist = self.compile_nodelist()
+                    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 196, in compile_nodelist
+    nodelist = parser.parse()
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 518, in parse
+    raise self.error(token, e)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 516, in parse
+    compiled_result = compile_func(self, token)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader_tags.py", line 299, in do_extends
+    nodelist = parser.parse()
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 518, in parse
+    raise self.error(token, e)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 516, in parse
+    compiled_result = compile_func(self, token)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\defaulttags.py", line 1097, in load
+    lib = find_library(parser, name)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\defaulttags.py", line 1037, in find_library
+    raise TemplateSyntaxError(
+    ...<5 lines>...
+    )
+django.template.exceptions.TemplateSyntaxError: 'pessoas_extras' is not a registered tag library. Must be one of:
+admin_list
+admin_modify
+admin_urls
+cache
+custom_filters
+humanize
+i18n
+l10n
+log
+rest_framework
+static
+tz
+2026-05-26 17:00:33,040 ERROR django.server "GET /pessoas/ HTTP/1.1" 500 249881
+2026-05-26 17:01:02,536 ERROR django.request Internal Server Error: /pessoas/
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\defaulttags.py", line 1035, in find_library
+    return parser.libraries[name]
+           ~~~~~~~~~~~~~~~~^^^^^^
+KeyError: 'pessoas_extras'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\newway\intranet\apps\pessoas\views.py", line 41, in pessoa_list
+    return render(request, 'pessoas/pessoa_list.html', {
+        'pessoas':        pessoas,
+    ...<2 lines>...
+        'filtros_ativos': filtros_ativos,
+    })
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader.py", line 61, in render_to_string
+    template = get_template(template_name, using=using)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader.py", line 15, in get_template
+    return engine.get_template(template_name)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\backends\django.py", line 79, in get_template
+    return Template(self.engine.get_template(template_name), self)
+                    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\engine.py", line 177, in get_template
+    template, origin = self.find_template(template_name)
+                       ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\engine.py", line 159, in find_template
+    template = loader.get_template(name, skip=skip)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loaders\cached.py", line 57, in get_template
+    template = super().get_template(template_name, skip)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loaders\base.py", line 28, in get_template
+    return Template(
+        contents,
+    ...<2 lines>...
+        self.engine,
+    )
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 154, in __init__
+    self.nodelist = self.compile_nodelist()
+                    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 196, in compile_nodelist
+    nodelist = parser.parse()
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 518, in parse
+    raise self.error(token, e)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 516, in parse
+    compiled_result = compile_func(self, token)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader_tags.py", line 299, in do_extends
+    nodelist = parser.parse()
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 518, in parse
+    raise self.error(token, e)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 516, in parse
+    compiled_result = compile_func(self, token)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\defaulttags.py", line 1097, in load
+    lib = find_library(parser, name)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\defaulttags.py", line 1037, in find_library
+    raise TemplateSyntaxError(
+    ...<5 lines>...
+    )
+django.template.exceptions.TemplateSyntaxError: 'pessoas_extras' is not a registered tag library. Must be one of:
+admin_list
+admin_modify
+admin_urls
+cache
+custom_filters
+humanize
+i18n
+l10n
+log
+rest_framework
+static
+tz
+2026-05-26 17:01:02,543 ERROR django.server "GET /pessoas/ HTTP/1.1" 500 249877
+2026-05-26 17:01:12,208 ERROR django.request Internal Server Error: /pessoas/
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\defaulttags.py", line 1035, in find_library
+    return parser.libraries[name]
+           ~~~~~~~~~~~~~~~~^^^^^^
+KeyError: 'pessoas_extras'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\newway\intranet\apps\pessoas\views.py", line 41, in pessoa_list
+    return render(request, 'pessoas/pessoa_list.html', {
+        'pessoas':        pessoas,
+    ...<2 lines>...
+        'filtros_ativos': filtros_ativos,
+    })
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader.py", line 61, in render_to_string
+    template = get_template(template_name, using=using)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader.py", line 15, in get_template
+    return engine.get_template(template_name)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\backends\django.py", line 79, in get_template
+    return Template(self.engine.get_template(template_name), self)
+                    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\engine.py", line 177, in get_template
+    template, origin = self.find_template(template_name)
+                       ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\engine.py", line 159, in find_template
+    template = loader.get_template(name, skip=skip)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loaders\cached.py", line 57, in get_template
+    template = super().get_template(template_name, skip)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loaders\base.py", line 28, in get_template
+    return Template(
+        contents,
+    ...<2 lines>...
+        self.engine,
+    )
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 154, in __init__
+    self.nodelist = self.compile_nodelist()
+                    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 196, in compile_nodelist
+    nodelist = parser.parse()
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 518, in parse
+    raise self.error(token, e)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 516, in parse
+    compiled_result = compile_func(self, token)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader_tags.py", line 299, in do_extends
+    nodelist = parser.parse()
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 518, in parse
+    raise self.error(token, e)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 516, in parse
+    compiled_result = compile_func(self, token)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\defaulttags.py", line 1097, in load
+    lib = find_library(parser, name)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\defaulttags.py", line 1037, in find_library
+    raise TemplateSyntaxError(
+    ...<5 lines>...
+    )
+django.template.exceptions.TemplateSyntaxError: 'pessoas_extras' is not a registered tag library. Must be one of:
+admin_list
+admin_modify
+admin_urls
+cache
+custom_filters
+humanize
+i18n
+l10n
+log
+rest_framework
+static
+tz
+2026-05-26 17:01:12,213 ERROR django.server "GET /pessoas/ HTTP/1.1" 500 249727
+2026-05-27 07:33:37,298 WARNING django.request Not Found: /favicon.ico
+2026-05-27 07:33:37,300 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 4923
+2026-05-27 08:06:46,068 ERROR django.request Internal Server Error: /incorporadora/tabelas/1/
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: ERRO:  não existe a coluna incorporadora_seriepagamento.tipo
+LINE 1: ..."id", "incorporadora_seriepagamento"."tabela_id", "incorpora...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\newway\intranet\apps\incorporadora\views.py", line 1478, in tabela_detail
+    tabela = get_object_or_404(
+        TabelaVendas.objects.select_related('empreendimento__empresa').prefetch_related('series'),
+        pk=pk,
+    )
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 1951, in _fetch_all
+    self._prefetch_related_objects()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 1328, in _prefetch_related_objects
+    prefetch_related_objects(self._result_cache, *self._prefetch_related_lookups)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 2397, in prefetch_related_objects
+    obj_list, additional_lookups = prefetch_one_level(
+                                   ~~~~~~~~~~~~~~~~~~^
+        obj_to_fetch,
+        ^^^^^^^^^^^^^
+    ...<2 lines>...
+        level,
+        ^^^^^^
+    )
+    ^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 2561, in prefetch_one_level
+    ) = prefetcher.get_prefetch_querysets(
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        instances, lookup.get_current_querysets(level)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\fields\related_descriptors.py", line 800, in get_prefetch_querysets
+    for rel_obj in queryset:
+                   ^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 384, in __iter__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: ERRO:  não existe a coluna incorporadora_seriepagamento.tipo
+LINE 1: ..."id", "incorporadora_seriepagamento"."tabela_id", "incorpora...
+                                                             ^
+
+2026-05-27 08:06:46,087 ERROR django.server "GET /incorporadora/tabelas/1/ HTTP/1.1" 500 181932
+2026-05-27 08:07:12,630 ERROR django.request Internal Server Error: /incorporadora/tabelas/1/
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: ERRO:  não existe a coluna incorporadora_seriepagamento.tipo
+LINE 1: ..."id", "incorporadora_seriepagamento"."tabela_id", "incorpora...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\newway\intranet\apps\incorporadora\views.py", line 1478, in tabela_detail
+    tabela = get_object_or_404(
+        TabelaVendas.objects.select_related('empreendimento__empresa').prefetch_related('series'),
+        pk=pk,
+    )
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 1951, in _fetch_all
+    self._prefetch_related_objects()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 1328, in _prefetch_related_objects
+    prefetch_related_objects(self._result_cache, *self._prefetch_related_lookups)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 2397, in prefetch_related_objects
+    obj_list, additional_lookups = prefetch_one_level(
+                                   ~~~~~~~~~~~~~~~~~~^
+        obj_to_fetch,
+        ^^^^^^^^^^^^^
+    ...<2 lines>...
+        level,
+        ^^^^^^
+    )
+    ^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 2561, in prefetch_one_level
+    ) = prefetcher.get_prefetch_querysets(
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        instances, lookup.get_current_querysets(level)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\fields\related_descriptors.py", line 800, in get_prefetch_querysets
+    for rel_obj in queryset:
+                   ^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 384, in __iter__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: ERRO:  não existe a coluna incorporadora_seriepagamento.tipo
+LINE 1: ..."id", "incorporadora_seriepagamento"."tabela_id", "incorpora...
+                                                             ^
+
+2026-05-27 08:07:12,636 ERROR django.server "GET /incorporadora/tabelas/1/ HTTP/1.1" 500 181790
+2026-05-27 14:41:59,424 WARNING django.request Not Found: /propostas/workflow/
+2026-05-27 14:41:59,425 WARNING django.server "GET /propostas/workflow/ HTTP/1.1" 404 6063
+2026-05-27 15:02:53,522 ERROR django.request Internal Server Error: /propostas/workflow/
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\newway\intranet\apps\propostas\views.py", line 510, in proposta_workflow
+    return render(request, 'propostas/proposta_workflow.html', {
+        'drawflow_data': json.dumps(data),
+    })
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader.py", line 61, in render_to_string
+    template = get_template(template_name, using=using)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader.py", line 15, in get_template
+    return engine.get_template(template_name)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\backends\django.py", line 79, in get_template
+    return Template(self.engine.get_template(template_name), self)
+                    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\engine.py", line 177, in get_template
+    template, origin = self.find_template(template_name)
+                       ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\engine.py", line 159, in find_template
+    template = loader.get_template(name, skip=skip)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loaders\cached.py", line 57, in get_template
+    template = super().get_template(template_name, skip)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loaders\base.py", line 28, in get_template
+    return Template(
+        contents,
+    ...<2 lines>...
+        self.engine,
+    )
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 154, in __init__
+    self.nodelist = self.compile_nodelist()
+                    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 196, in compile_nodelist
+    nodelist = parser.parse()
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 518, in parse
+    raise self.error(token, e)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 516, in parse
+    compiled_result = compile_func(self, token)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader_tags.py", line 299, in do_extends
+    nodelist = parser.parse()
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 518, in parse
+    raise self.error(token, e)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 516, in parse
+    compiled_result = compile_func(self, token)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader_tags.py", line 234, in do_block
+    nodelist = parser.parse(("endblock",))
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 518, in parse
+    raise self.error(token, e)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 516, in parse
+    compiled_result = compile_func(self, token)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\defaulttags.py", line 861, in do_for
+    sequence = parser.compile_filter(bits[in_index + 1])
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 609, in compile_filter
+    return FilterExpression(token, self)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 705, in __init__
+    filter_func = parser.find_filter(filter_name)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 615, in find_filter
+    raise TemplateSyntaxError("Invalid filter: '%s'" % filter_name)
+django.template.exceptions.TemplateSyntaxError: Invalid filter: 'split'
+2026-05-27 15:02:53,534 ERROR django.server "GET /propostas/workflow/ HTTP/1.1" 500 243847
+2026-05-27 15:03:11,393 ERROR django.request Internal Server Error: /propostas/workflow/
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\newway\intranet\apps\propostas\views.py", line 510, in proposta_workflow
+    return render(request, 'propostas/proposta_workflow.html', {
+        'drawflow_data': json.dumps(data),
+    })
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader.py", line 61, in render_to_string
+    template = get_template(template_name, using=using)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader.py", line 15, in get_template
+    return engine.get_template(template_name)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\backends\django.py", line 79, in get_template
+    return Template(self.engine.get_template(template_name), self)
+                    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\engine.py", line 177, in get_template
+    template, origin = self.find_template(template_name)
+                       ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\engine.py", line 159, in find_template
+    template = loader.get_template(name, skip=skip)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loaders\cached.py", line 57, in get_template
+    template = super().get_template(template_name, skip)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loaders\base.py", line 28, in get_template
+    return Template(
+        contents,
+    ...<2 lines>...
+        self.engine,
+    )
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 154, in __init__
+    self.nodelist = self.compile_nodelist()
+                    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 196, in compile_nodelist
+    nodelist = parser.parse()
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 518, in parse
+    raise self.error(token, e)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 516, in parse
+    compiled_result = compile_func(self, token)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader_tags.py", line 299, in do_extends
+    nodelist = parser.parse()
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 518, in parse
+    raise self.error(token, e)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 516, in parse
+    compiled_result = compile_func(self, token)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\loader_tags.py", line 234, in do_block
+    nodelist = parser.parse(("endblock",))
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 518, in parse
+    raise self.error(token, e)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 516, in parse
+    compiled_result = compile_func(self, token)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\defaulttags.py", line 861, in do_for
+    sequence = parser.compile_filter(bits[in_index + 1])
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 609, in compile_filter
+    return FilterExpression(token, self)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 705, in __init__
+    filter_func = parser.find_filter(filter_name)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\template\base.py", line 615, in find_filter
+    raise TemplateSyntaxError("Invalid filter: '%s'" % filter_name)
+django.template.exceptions.TemplateSyntaxError: Invalid filter: 'split'
+2026-05-27 15:03:11,397 ERROR django.server "GET /propostas/workflow/ HTTP/1.1" 500 243847
+2026-05-27 16:27:57,063 INFO apps.cota365.views cota365 import ok | tipo=tabela arquivo=tabela.csv sha256=c390af917f92d1cc54cfc7a9ab1cfc4f217629c0ce0f4ff854cf622128c93941 registros=180
+2026-05-27 16:30:54,410 INFO apps.cota365.views cota365 import ok | tipo=vendas arquivo=vendas.csv sha256=9d1dbecce5d6caa4aa4ea3b938a25a386b7f8f3da331e6152ec84b0d8d2e54c7 registros=30
+2026-05-27 16:34:32,705 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=04695dbaf4dd9d57112b2218ef6884c27590e3e0b898edfa224576f12caee8da registros=1877
+2026-05-27 16:34:43,601 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=efc2d86e125792a2821508341b72d5cfc64afb384eeba7595046abc558eb70f2 registros=1674
+2026-05-27 16:43:59,060 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=4fe6646c5eee2f7b756e25e70ffa4ace63c819d966001b90fd06c1f066540088 registros=1320
+2026-05-27 16:44:09,350 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=efc2d86e125792a2821508341b72d5cfc64afb384eeba7595046abc558eb70f2 registros=1674
+2026-05-27 16:47:55,840 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=4fe6646c5eee2f7b756e25e70ffa4ace63c819d966001b90fd06c1f066540088 registros=1320
+2026-05-27 16:48:12,455 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=aa040c572ed47f92c86e4d1b9f85294c17c4c46a989c8aac8da37f779c6f82ba registros=43
+2026-05-27 16:53:36,411 INFO apps.cota365.views cota365 import ok | tipo=fluxo arquivo=fluxo.csv sha256=14f3ff54d8bc75d170b493a97ac14a93b156d687143c66ebdcfe3065ee1e9890 registros=30
+2026-05-27 17:05:35,291 INFO apps.cota365.views cota365 import ok | tipo=comissoes arquivo=comissoes.csv sha256=2b473ac165ca5aa6477ef26ef7bda777839dc4c4e2ff8fe375f16a1268603966 registros=5
+2026-05-28 07:28:00,332 WARNING django.request Not Found: /favicon.ico
+2026-05-28 07:28:00,333 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5076
+2026-05-28 07:45:15,184 WARNING django.request Not Found: /favicon.ico
+2026-05-28 07:45:15,185 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5076
+2026-05-28 08:04:18,911 WARNING django.request Not Found: /favicon.ico
+2026-05-28 08:04:18,912 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5076
+2026-05-28 08:30:35,979 WARNING django.request Not Found: /favicon.ico
+2026-05-28 08:30:35,980 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5076
+2026-05-28 13:42:00,539 ERROR django.request Internal Server Error: /contratos/gerar/PROP-2026-0001/
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2128, in get_prep_value
+    return int(value)
+ValueError: invalid literal for int() with base 10: ''
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\newway\intranet\apps\contratos\views.py", line 236, in contrato_gerar
+    minuta    = get_object_or_404(MinutaContrato, pk=minuta_pk, ativo=True)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 619, in get
+    clone = self._chain() if self.query.combinator else self.filter(*args, **kwargs)
+                                                        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 1493, in filter
+    return self._filter_or_exclude(False, args, kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 1511, in _filter_or_exclude
+    clone._filter_or_exclude_inplace(negate, args, kwargs)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 1518, in _filter_or_exclude_inplace
+    self._query.add_q(Q(*args, **kwargs))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1646, in add_q
+    clause, _ = self._add_q(q_object, can_reuse)
+                ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1678, in _add_q
+    child_clause, needed_inner = self.build_filter(
+                                 ~~~~~~~~~~~~~~~~~^
+        child,
+        ^^^^^^
+    ...<7 lines>...
+        update_join_types=update_join_types,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1588, in build_filter
+    condition = self.build_lookup(lookups, col, value)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1415, in build_lookup
+    lookup = lookup_class(lhs, rhs)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\lookups.py", line 38, in __init__
+    self.rhs = self.get_prep_lookup()
+               ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\lookups.py", line 410, in get_prep_lookup
+    return super().get_prep_lookup()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\lookups.py", line 96, in get_prep_lookup
+    return self.lhs.output_field.get_prep_value(self.rhs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2130, in get_prep_value
+    raise e.__class__(
+        "Field '%s' expected a number but got %r." % (self.name, value),
+    ) from e
+ValueError: Field 'id' expected a number but got ''.
+2026-05-28 13:42:00,548 ERROR django.server "POST /contratos/gerar/PROP-2026-0001/ HTTP/1.1" 500 152526

@@ -9,10 +9,14 @@ pip install djangorestframework
 python manage.py collectstatic --noinput
 sudo systemctl restart gunicorn-intranet
 
+sudo chown -R www-data:www-data /var/www/intranet/media /var/www/intranet/logs
 
-python manage.py shell -c "
-from django.contrib.auth.models import Group
-for nome in ['admin','manager','financeiro','incorporadora']:
-    g, created = Group.objects.get_or_create(name=nome)
-    print(('Criado' if created else 'Já existe') + ': ' + nome)
-"
+
+
+tabela x
+vendas
+fluxo
+comissoes
+
+areceber
+recebido

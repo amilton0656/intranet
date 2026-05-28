@@ -21,12 +21,17 @@
     background-image: radial-gradient(circle, #cdd2da 1px, transparent 1px);
     background-size: 22px 22px;
     position: relative; overflow: hidden; user-select: none;
+    cursor: grab;
   }
+  #drawflow.df-panning { cursor: grabbing; }
+  #drawflow .drawflow-node { cursor: grab; }
+  #drawflow .drawflow-node:active { cursor: grabbing; }
 
   .drawflow .drawflow-node {
     background: #fff; border: 1.5px solid #dee2e8; border-radius: 9px;
     padding: 0; min-width: 155px;
     box-shadow: 0 2px 8px rgba(0,0,0,.10); cursor: grab;
+    z-index: 2;
   }
   .drawflow .drawflow-node:active { cursor: grabbing; }
   .drawflow .drawflow-node.selected {
@@ -59,6 +64,14 @@
     border-radius: 7px; padding: 7px 12px; font-size: 0.7rem;
     color: #6c757d; line-height: 1.7; pointer-events: none; z-index: 10;
   }
+  #wf-dbg {
+    position: fixed; bottom: 10px; right: 10px; width: 270px;
+    background: rgba(0,0,0,.82); color: #0f0; font: 11px/1.7 monospace;
+    padding: 9px 12px; border-radius: 7px; z-index: 9999; pointer-events: none;
+  }
+  #wf-dbg .lbl { color: #aaa; }
+  #wf-dbg .ok  { color: #4eff91; font-weight: bold; }
+  #wf-dbg .err { color: #ff6b6b; font-weight: bold; }
 </style>
 {% endblock %}
 
@@ -85,11 +98,21 @@
   </div>
 </div>
 
+<div id="wf-dbg">
+  <div><span class="lbl">start:</span> <span id="d-start">—</span></div>
+  <div><span class="lbl">created:</span> <span id="d-created">—</span></div>
+  <div><span class="lbl">cancel:</span> <span id="d-cancel">—</span></div>
+  <div><span class="lbl">target:</span> <span id="d-target">—</span></div>
+  <div><span class="lbl">dest:</span> <span id="d-dest">—</span></div>
+  <div><span class="lbl">addConn:</span> <span id="d-add">—</span></div>
+</div>
+
 <div id="drawflow">
   <div class="wf-help">
     <strong>Como usar:</strong><br>
     Arraste um nó para mover<br>
     Arraste da porta → para conectar<br>
+    <strong>Espaço + arrastar</strong> para mover o canvas<br>
     Clique numa conexão + Delete para remover<br>
     Selecione um nó e clique "Excluir Etapa"
   </div>
@@ -144,62 +167,86 @@ editor.reroute = true;
 editor.reroute_fix_curvature = true;
 editor.force_first_input = true;
 editor.start();
-editor.import(DRAWFLOW_DATA);
 
-// ── connection fix ────────────────────────────────────────────────────────────
-// _conn is set by connectionStart (fired on mousedown) and cleared after.
-// The capture-phase listener on #drawflow runs BEFORE Drawflow's bubble-phase
-// dragEnd, so stopImmediatePropagation keeps Drawflow from cancelling.
-var _conn = null;
-
-editor.on('connectionStart', function(info) {
-  _conn = { id: info.output_id, cls: info.output_class };
-});
-editor.on('connectionCreated', function() { _conn = null; });
-editor.on('connectionCancel',  function() { _conn = null; });
-
-document.getElementById('drawflow').addEventListener('mouseup', function(e) {
-  if (!_conn) return;
-
-  // Intercept before Drawflow's dragEnd (bubble phase) can cancel the connection
-  e.stopImmediatePropagation();
-
-  // Find the temporary connection SVG (no node_in_* class yet) and hide it
-  var tempSvg = null;
-  document.querySelectorAll('#drawflow svg.connection').forEach(function(s) {
-    if (!s.className.baseVal.includes('node_in_')) tempSvg = s;
+// Reconstruct nodes with addNode() (same as the working test file —
+// import() was stopping script execution before listeners were registered)
+(function () {
+  var home = DRAWFLOW_DATA.drawflow.Home.data;
+  // Sort keys numerically so addNode IDs match connection references
+  var ids = Object.keys(home).sort(function (a, b) { return +a - +b; });
+  ids.forEach(function (nid) {
+    var n = home[nid];
+    editor.addNode(n.name,
+      Object.keys(n.inputs).length,
+      Object.keys(n.outputs).length,
+      n.pos_x, n.pos_y, n.class, n.data, n.html);
   });
-  if (tempSvg) tempSvg.style.display = 'none';
+  ids.forEach(function (nid) {
+    var n = home[nid];
+    (n.outputs.output_1 || { connections: [] }).connections.forEach(function (c) {
+      try { editor.addConnection(nid, c.node, 'output_1', 'input_1'); } catch (e) {}
+    });
+  });
+}());
 
-  // Find the real HTML element under the cursor
+// ── debug helpers ─────────────────────────────────────────────────────────────
+function _dbg(id, txt, cls) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = txt;
+  el.className = cls || '';
+}
+function _ts() { return new Date().toLocaleTimeString(); }
+
+editor.on('connectionStart',   function (i) { _dbg('d-start',   _ts()+' src='+i.output_id, ''); _dbg('d-created','—',''); _dbg('d-cancel','—',''); _dbg('d-target','—',''); _dbg('d-dest','—',''); _dbg('d-add','—',''); });
+editor.on('connectionCreated', function (i) { _dbg('d-created', _ts()+' '+i.output_id+'→'+i.input_id, 'ok'); });
+editor.on('connectionCancel',  function ()  { _dbg('d-cancel',  _ts()+' CANCELADO', 'err'); });
+
+// ── connection drag fix ───────────────────────────────────────────────────────
+document.getElementById('drawflow').addEventListener('mouseup', function (e) {
+  if (!editor.connection) return;
+
+  var tempSvg = editor.connection_ele;
+
+  if (tempSvg) tempSvg.style.display = 'none';
   var el = document.elementFromPoint(e.clientX, e.clientY);
   if (tempSvg) tempSvg.style.display = '';
 
-  // Walk up the DOM to find the destination drawflow-node
-  var node = el;
-  while (node && node !== this) {
-    if (node.classList && node.classList.contains('drawflow-node') &&
-        node.id && node.id.startsWith('node-')) break;
-    node = node.parentElement;
+  _dbg('d-target', el ? (el.className + ' | ' + el.id) : 'null', '');
+
+  var dest = el;
+  while (dest && dest !== this) {
+    if (dest.classList && dest.classList.contains('drawflow-node')) break;
+    dest = dest.parentElement;
   }
 
-  // Always remove the temp SVG (addConnection will draw the permanent one)
-  if (tempSvg) tempSvg.remove();
+  _dbg('d-dest', dest && dest.classList.contains('drawflow-node') ? dest.id : 'none', '');
 
-  var src = _conn;
-  _conn = null;
+  if (!dest || !dest.classList.contains('drawflow-node')) return;
 
-  if (!node || !node.classList || !node.classList.contains('drawflow-node')) return;
+  var sel = editor.ele_selected;
+  if (!sel || !sel.parentElement || !sel.parentElement.parentElement) return;
+  var srcId  = sel.parentElement.parentElement.id.slice(5);
+  var srcCls = sel.classList[1];
+  var dstId  = dest.id.slice(5);
 
-  var in_id = node.id.slice(5);
-  if (src.id === in_id) return;
+  if (!srcId || srcId === dstId) return;
 
-  var nd = editor.getNodeFromId(in_id);
+  var nd = editor.getNodeFromId(dstId);
   if (!nd || Object.keys(nd.inputs).length === 0) return;
 
-  try { editor.addConnection(src.id, in_id, src.cls, 'input_1'); } catch(ignored) {}
+  if (tempSvg) { tempSvg.remove(); editor.connection_ele = null; }
+  editor.connection = false;
 
-}, true); // ← capture phase: runs before Drawflow's bubble handler
+  try {
+    editor.addConnection(srcId, dstId, srcCls, 'input_1');
+    _dbg('d-add', _ts()+' '+srcId+'→'+dstId+' OK', 'ok');
+  } catch (err) {
+    _dbg('d-add', 'ERRO: '+err.message, 'err');
+    console.error('addConnection:', err);
+  }
+
+}, true);
 
 // ── selected node tracking ────────────────────────────────────────────────────
 let selectedNodeId   = null;
@@ -251,6 +298,53 @@ document.getElementById('btn-salvar').addEventListener('click', function () {
 document.getElementById('btn-zoom-in') .addEventListener('click', () => editor.zoom_in());
 document.getElementById('btn-zoom-out').addEventListener('click', () => editor.zoom_out());
 document.getElementById('btn-center')  .addEventListener('click', () => editor.zoom_reset());
+
+// ── canvas pan ───────────────────────────────────────────────────────────────
+// Três formas de mover o canvas:
+//  1. Espaço + arrastar  (funciona sobre qualquer elemento, padrão Figma/Miro)
+//  2. Botão do meio (roda pressionada) + arrastar
+//  3. Clique esquerdo no fundo vazio
+(function () {
+  var df = document.getElementById('drawflow');
+  var spaceDown = false;
+
+  // Rastreia tecla Espaço
+  document.addEventListener('keydown', function (e) {
+    if (e.code === 'Space' && e.target === document.body && !spaceDown) {
+      spaceDown = true;
+      df.classList.add('df-panning');
+      e.preventDefault();
+    }
+  });
+  document.addEventListener('keyup', function (e) {
+    if (e.code === 'Space') {
+      spaceDown = false;
+      if (!editor.editor_selected) df.classList.remove('df-panning');
+    }
+  });
+
+  df.addEventListener('mousedown', function (e) {
+    var onNode = e.target.closest && e.target.closest('.drawflow-node');
+    var onConn = e.target.closest && e.target.closest('.connection');
+    var onPort = e.target.classList.contains('output') || e.target.classList.contains('input');
+
+    var startPan = (e.button === 1) ||                          // roda pressionada
+                   (e.button === 0 && spaceDown) ||             // Espaço + clique
+                   (e.button === 0 && !onNode && !onConn && !onPort); // fundo vazio
+
+    if (!startPan) return;
+    e.preventDefault();
+    editor.editor_selected = true;
+    editor.pos_x = e.clientX;
+    editor.pos_y = e.clientY;
+    df.classList.add('df-panning');
+  });
+
+  document.addEventListener('mouseup', function () {
+    editor.editor_selected = false;
+    if (!spaceDown) df.classList.remove('df-panning');
+  });
+}());
 
 // ── keyboard delete connection ────────────────────────────────────────────────
 document.addEventListener('keydown', function (e) {
