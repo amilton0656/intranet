@@ -240,10 +240,11 @@ def _converter_para_pdf(docx_buffer):
                 )
             finally:
                 shutil.rmtree(profile_dir, ignore_errors=True)
-            if result.returncode != 0:
-                raise RuntimeError(f'LibreOffice: {result.stderr.strip()}')
-            if not os.path.exists(tmp_pdf_path):
-                raise RuntimeError('LibreOffice não gerou o PDF.')
+            if result.returncode != 0 or not os.path.exists(tmp_pdf_path):
+                detail = (result.stderr or result.stdout or '(sem output)').strip()
+                raise RuntimeError(
+                    f'LibreOffice rc={result.returncode} | {detail}'
+                )
 
         with open(tmp_pdf_path, 'rb') as f:
             return f.read()
