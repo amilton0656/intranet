@@ -29,6 +29,9 @@
     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalImportUnidades">
       <i class="bi bi-upload me-1"></i>Importar Unidades
     </button>
+    <a href="{% url 'incorporadora:empreendimento_resumo' pk=empreendimento.pk %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-bar-chart-line me-1"></i>Resumo
+    </a>
     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalImportVinculos">
       <i class="bi bi-link-45deg me-1"></i>Importar Vínculos
     </button>

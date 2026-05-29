@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Resumo — {{ empreendimento }}</title>
+  <style>
+    @page { size: A4 landscape; margin: 12mm 15mm; }
+    body  { font-family: Arial, sans-serif; font-size: 10px; color: #111; }
+    h2    { text-align: center; font-size: 14px; margin: 0 0 4px; }
+    h3    { font-size: 11px; margin: 14px 0 4px; }
+    p.sub { text-align: center; font-size: 9px; color: #666; margin: 0 0 10px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    th, td { border: 1px solid #ccc; padding: 3px 6px; }
+    th    { background: #f0f0f0; font-size: 9px; }
+    .tr   { text-align: right; }
+    .tc   { text-align: center; }
+    .bold { font-weight: bold; background: #e8e8e8; }
+  </style>
+</head>
+<body>
+  {% load humanize %}
+  {% load custom_filters %}
+
+  <h2>Resumo de Situações — {{ empreendimento }}</h2>
+  <p class="sub">Gerado em {{ data_geracao|date:"d/m/Y" }}</p>
+
+  <h3>Por Situação</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Situação</th>
+        <th class="tr">Unidades</th>
+        <th class="tr">% Unidades</th>
+        <th class="tr">Valor Tabela</th>
+        <th class="tr">% Valor</th>
+        <th class="tr">Área Privativa (m²)</th>
+        <th class="tr">% Área</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for grupo in grupos_status %}
+      <tr>
+        <td>{{ grupo.status }}</td>
+        <td class="tr">{{ grupo.dados.qtde }}</td>
+        <td class="tr">{{ grupo.dados.qtde_perc|floatformat:1 }}%</td>
+        <td class="tr">{{ grupo.dados.valor|format_real }}</td>
+        <td class="tr">{{ grupo.dados.valor_perc|floatformat:1 }}%</td>
+        <td class="tr">{{ grupo.dados.area|floatformat:2 }}</td>
+        <td class="tr">{{ grupo.dados.area_perc|floatformat:1 }}%</td>
+      </tr>
+      {% endfor %}
+      <tr class="bold">
+        <td>Total Geral</td>
+        <td class="tr">{{ total.qtde }}</td>
+        <td class="tr">100%</td>
+        <td class="tr">{{ total.valor|format_real }}</td>
+        <td class="tr">100%</td>
+        <td class="tr">{{ total.area|floatformat:2 }}</td>
+        <td class="tr">100%</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Por Tipo</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Tipo</th>
+        <th class="tr">Unidades</th>
+        <th class="tr">Área Privativa (m²)</th>
+        <th class="tr">Valor Tabela</th>
+        <th class="tr">R$/m²</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for grupo in grupos_tipo %}
+      <tr>
+        <td>{{ grupo.tipo }}</td>
+        <td class="tr">{{ grupo.dados.qtde }}</td>
+        <td class="tr">{{ grupo.dados.area|floatformat:2 }}</td>
+        <td class="tr">{{ grupo.dados.valor|format_real }}</td>
+        <td class="tr">{{ grupo.dados.valor_m2|format_real }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

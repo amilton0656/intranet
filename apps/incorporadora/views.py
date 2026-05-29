@@ -751,6 +751,152 @@ def empreendimento_vinculos_pdf(request, pk):
     return response
 
 
+# ── Resumo por Empreendimento ─────────────────────────────────────────────────
+
+def _build_empreendimento_resumo_context(empreendimento):
+    from decimal import Decimal
+
+    STATUS_LABELS = {
+        'disponivel': 'Disponível',
+        'reservado':  'Reservado',
+        'vendido':    'Vendido',
+        'permuta':    'Permuta',
+        'bloqueado':  'Bloqueado',
+    }
+    TIPO_LABELS = dict(Unidade.TIPO_CHOICES)
+
+    unidades_principais = list(
+        Unidade.objects
+        .filter(bloco__empreendimento=empreendimento, unidade_principal__isnull=True)
+        .select_related('bloco')
+        .order_by('bloco__nome', 'ordem', 'numero')
+    )
+
+    # ── por status ────────────────────────────────────────────────────────────
+    por_status = {v: {'qtde': 0, 'valor': Decimal('0'), 'area': Decimal('0'), 'unidades': []}
+                  for v in STATUS_LABELS.values()}
+    total_s = {'qtde': 0, 'valor': Decimal('0'), 'area': Decimal('0')}
+
+    for u in unidades_principais:
+        label = STATUS_LABELS.get(u.status, u.status.capitalize())
+        if label not in por_status:
+            por_status[label] = {'qtde': 0, 'valor': Decimal('0'), 'area': Decimal('0'), 'unidades': []}
+        v = u.valor_tabela or Decimal('0')
+        a = u.area_privativa or Decimal('0')
+        por_status[label]['qtde']   += 1
+        por_status[label]['valor']  += v
+        por_status[label]['area']   += a
+        por_status[label]['unidades'].append(u)
+        total_s['qtde']  += 1
+        total_s['valor'] += v
+        total_s['area']  += a
+
+    for dados in por_status.values():
+        dados['qtde_perc']  = (Decimal(dados['qtde'])  / Decimal(total_s['qtde'])  * 100) if total_s['qtde']  else Decimal('0')
+        dados['valor_perc'] = (dados['valor'] / total_s['valor'] * 100)                   if total_s['valor'] else Decimal('0')
+        dados['area_perc']  = (dados['area']  / total_s['area']  * 100)                   if total_s['area']  else Decimal('0')
+
+    total_s['qtde_perc'] = total_s['valor_perc'] = total_s['area_perc'] = Decimal('100') if total_s['qtde'] else Decimal('0')
+
+    grupos_status = [
+        {'status': label, 'dados': dados}
+        for label, dados in por_status.items()
+        if dados['qtde'] > 0
+    ]
+
+    # ── por tipo ──────────────────────────────────────────────────────────────
+    todas = list(
+        Unidade.objects
+        .filter(bloco__empreendimento=empreendimento)
+        .order_by('tipo')
+    )
+    por_tipo = {}
+    for u in todas:
+        label = TIPO_LABELS.get(u.tipo, u.tipo)
+        if label not in por_tipo:
+            por_tipo[label] = {'qtde': 0, 'valor': Decimal('0'), 'area': Decimal('0')}
+        por_tipo[label]['qtde']  += 1
+        por_tipo[label]['valor'] += u.valor_tabela or Decimal('0')
+        por_tipo[label]['area']  += u.area_privativa or Decimal('0')
+
+    for dados in por_tipo.values():
+        dados['valor_m2'] = (dados['valor'] / dados['area']) if dados['area'] else Decimal('0')
+
+    grupos_tipo = [{'tipo': t, 'dados': d} for t, d in por_tipo.items()]
+
+    return {
+        'empreendimento': empreendimento,
+        'grupos_status':  grupos_status,
+        'total':          total_s,
+        'grupos_tipo':    grupos_tipo,
+        'data_geracao':   date.today(),
+    }
+
+
+@login_required
+def empreendimento_resumo(request, pk):
+    empreendimento = get_object_or_404(Empreendimento, pk=pk)
+    ctx = _build_empreendimento_resumo_context(empreendimento)
+    email_enviado = request.session.pop('resumo_email_enviado', False)
+    ctx['email_enviado'] = email_enviado
+    return render(request, 'incorporadora/empreendimento_resumo.html', ctx)
+
+
+@login_required
+def empreendimento_resumo_pdf(request, pk):
+    from xhtml2pdf import pisa
+    from io import BytesIO
+    from django.template.loader import get_template
+
+    empreendimento = get_object_or_404(Empreendimento, pk=pk)
+    ctx = _build_empreendimento_resumo_context(empreendimento)
+    tpl = get_template('incorporadora/pdf/empreendimento_resumo_pdf.html')
+    html = tpl.render(ctx)
+    buf = BytesIO()
+    pisa.CreatePDF(html, dest=buf)
+    buf.seek(0)
+    nome = f'resumo_{empreendimento.nome.lower().replace(" ", "_")}.pdf'
+    response = HttpResponse(buf.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{nome}"'
+    return response
+
+
+@login_required
+def empreendimento_resumo_email(request, pk):
+    from django.core.mail import EmailMessage
+    from xhtml2pdf import pisa
+    from io import BytesIO
+    from django.template.loader import get_template
+
+    if request.method != 'POST':
+        return redirect('incorporadora:empreendimento_resumo', pk=pk)
+
+    empreendimento = get_object_or_404(Empreendimento, pk=pk)
+    destinatario = request.user.email
+    if not destinatario:
+        messages.error(request, 'Seu usuário não tem e-mail cadastrado.')
+        return redirect('incorporadora:empreendimento_resumo', pk=pk)
+
+    ctx = _build_empreendimento_resumo_context(empreendimento)
+    tpl = get_template('incorporadora/pdf/empreendimento_resumo_pdf.html')
+    html = tpl.render(ctx)
+    buf = BytesIO()
+    pisa.CreatePDF(html, dest=buf)
+
+    nome = f'resumo_{empreendimento.nome.lower().replace(" ", "_")}.pdf'
+    email = EmailMessage(
+        subject=f'Resumo — {empreendimento.nome}',
+        body=f'Segue em anexo o resumo de situações de {empreendimento.nome}.',
+        to=[destinatario],
+    )
+    email.attach(nome, buf.getvalue(), 'application/pdf')
+    email.send(fail_silently=False)
+
+    request.session['resumo_email_enviado'] = True
+    messages.success(request, f'Resumo enviado para {destinatario}.')
+    return redirect('incorporadora:empreendimento_resumo', pk=pk)
+
+
 @login_required
 def vinculo_list(request, bloco_pk):
     bloco = get_object_or_404(Bloco.objects.select_related('empreendimento'), pk=bloco_pk)

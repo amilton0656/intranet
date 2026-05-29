@@ -1,0 +1,199 @@
+{% extends "incorporadora/base.html" %}
+{% load humanize %}
+{% load custom_filters %}
+{% block title %}Resumo — {{ empreendimento }}{% endblock %}
+{% block nav_empreendimentos %}active{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-bar-chart-line me-2"></i>Resumo — {{ empreendimento }}</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'incorporadora:empreendimento_list' %}">Empreendimentos</a></li>
+        <li class="breadcrumb-item active">Resumo</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    {% if email_enviado %}<span class="badge bg-success">E-mail enviado</span>{% endif %}
+    <form method="post" action="{% url 'incorporadora:empreendimento_resumo_email' pk=empreendimento.pk %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-envelope me-1"></i>Enviar por e-mail
+      </button>
+    </form>
+    <a href="{% url 'incorporadora:empreendimento_resumo_pdf' pk=empreendimento.pk %}" class="btn btn-danger btn-sm" target="_blank">
+      <i class="bi bi-file-pdf me-1"></i>PDF
+    </a>
+  </div>
+</div>
+
+<div class="main-content">
+
+  {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show d-flex align-items-center gap-2">
+      <span>{{ msg }}</span>
+      <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- ── Resumo por Situação ── -->
+  <h5 class="mb-3">Resumo por Situação</h5>
+  <div class="data-table mb-5">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Situação</th>
+          <th class="text-end">Unidades</th>
+          <th class="text-end">% Unidades</th>
+          <th class="text-end">Valor Tabela</th>
+          <th class="text-end">% Valor</th>
+          <th class="text-end">Área Privativa (m²)</th>
+          <th class="text-end">% Área</th>
+          <th style="width:80px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for grupo in grupos_status %}
+        <tr class="align-middle">
+          <td>
+            <span class="badge rounded-pill
+              {% if grupo.status == 'Disponível' %}bg-success
+              {% elif grupo.status == 'Reservado' %}bg-warning text-dark
+              {% elif grupo.status == 'Vendido' %}bg-primary
+              {% elif grupo.status == 'Permuta' %}bg-info text-dark
+              {% else %}bg-secondary
+              {% endif %}">{{ grupo.status }}</span>
+          </td>
+          <td class="text-end fw-semibold">{{ grupo.dados.qtde }}</td>
+          <td class="text-end text-muted">{{ grupo.dados.qtde_perc|floatformat:1 }}%</td>
+          <td class="text-end fw-semibold">{{ grupo.dados.valor|format_real }}</td>
+          <td class="text-end text-muted">{{ grupo.dados.valor_perc|floatformat:1 }}%</td>
+          <td class="text-end">{{ grupo.dados.area|floatformat:2 }}</td>
+          <td class="text-end text-muted">{{ grupo.dados.area_perc|floatformat:1 }}%</td>
+          <td class="text-end">
+            <button class="btn btn-link btn-sm py-0 text-decoration-none open-detail"
+                    data-target="detail-{{ forloop.counter }}"
+                    data-title="{{ grupo.status }}">
+              Detalhes
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+        <tr class="fw-bold table-light">
+          <td>Total Geral</td>
+          <td class="text-end">{{ total.qtde }}</td>
+          <td class="text-end">100%</td>
+          <td class="text-end">{{ total.valor|format_real }}</td>
+          <td class="text-end">100%</td>
+          <td class="text-end">{{ total.area|floatformat:2 }}</td>
+          <td class="text-end">100%</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Resumo por Tipo ── -->
+  <h5 class="mb-3">Resumo por Tipo</h5>
+  <div class="data-table mb-5">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th class="text-end">Unidades</th>
+          <th class="text-end">Área Privativa (m²)</th>
+          <th class="text-end">Valor Tabela</th>
+          <th class="text-end">R$/m²</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for grupo in grupos_tipo %}
+        <tr>
+          <td>{{ grupo.tipo }}</td>
+          <td class="text-end">{{ grupo.dados.qtde }}</td>
+          <td class="text-end">{{ grupo.dados.area|floatformat:2 }}</td>
+          <td class="text-end fw-semibold">{{ grupo.dados.valor|format_real }}</td>
+          <td class="text-end text-muted">{{ grupo.dados.valor_m2|format_real }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- ── Templates de detalhe por status ── -->
+{% for grupo in grupos_status %}
+<template id="detail-{{ forloop.counter }}">
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-2">
+      <thead>
+        <tr class="text-muted small">
+          <th>Bloco</th>
+          <th>Número</th>
+          <th>Tipologia</th>
+          <th class="text-end">Área Priv. (m²)</th>
+          <th class="text-end">Valor Tabela</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in grupo.dados.unidades %}
+        <tr>
+          <td>{{ u.bloco.nome }}</td>
+          <td>{{ u.numero_display }}</td>
+          <td>{{ u.tipologia|default:"—" }}</td>
+          <td class="text-end">{{ u.area_privativa|floatformat:2 }}</td>
+          <td class="text-end">{{ u.valor_tabela|format_real }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-muted small">Nenhuma unidade.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="d-flex justify-content-end gap-4 small text-muted px-2">
+      <span><strong>Unidades:</strong> {{ grupo.dados.qtde }}</span>
+      <span><strong>Área:</strong> {{ grupo.dados.area|floatformat:2 }} m²</span>
+      <span><strong>Valor:</strong> {{ grupo.dados.valor|format_real }}</span>
+    </div>
+  </div>
+</template>
+{% endfor %}
+
+<!-- ── Modal detalhes ── -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title" id="detailModalTitle">Detalhes</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="detailModalBody"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const modalEl = document.getElementById('detailModal');
+  const modalBody = document.getElementById('detailModalBody');
+  const modalTitle = document.getElementById('detailModalTitle');
+  const modal = new bootstrap.Modal(modalEl);
+
+  document.querySelectorAll('.open-detail').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tpl = document.getElementById(btn.dataset.target);
+      if (!tpl) return;
+      modalBody.innerHTML = '';
+      modalBody.appendChild(tpl.content.cloneNode(true));
+      modalTitle.textContent = btn.dataset.title;
+      modal.show();
+    });
+  });
+  modalEl.addEventListener('hidden.bs.modal', () => { modalBody.innerHTML = ''; });
+});
+</script>
+{% endblock %}
