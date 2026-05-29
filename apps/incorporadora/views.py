@@ -2488,46 +2488,123 @@ def _import_tabela_cv(arquivo, empreendimento):
 
 
 def _import_unidades(arquivo, empreendimento):
-    """CSV completo de unidades: ordem;bloco;numero;tipo;tipologia;localizacao;area_privativa;..."""
-    import csv, io
+    """CSV completo de unidades. Aceita tanto o formato interno (snake_case)
+    quanto o formato de exportação do incorporadora (nomes com acentos e unidades).
+    Também aceita blocos 'Garagens' e 'Hobby Boxes' buscando a unidade pelo
+    número em todos os blocos do empreendimento."""
+    import csv, io, unicodedata
+
+    # Mapeamento de nomes de colunas do formato exportação → nome interno
+    COL_MAP = {
+        'numero': 'numero', 'número': 'numero',
+        'numeros_adicionais': 'numeros_adicionais',
+        'números adicionais': 'numeros_adicionais',
+        'numeros adicionais': 'numeros_adicionais',
+        'bloco': 'bloco', 'ordem': 'ordem', 'tipo': 'tipo',
+        'tipologia': 'tipologia',
+        'localizacao': 'localizacao', 'localização': 'localizacao',
+        'area_privativa': 'area_privativa',
+        'área privativa (m²)': 'area_privativa',
+        'area privativa (m2)': 'area_privativa',
+        'area_privativa_acessoria': 'area_privativa_acessoria',
+        'área priv. acess. (m²)': 'area_privativa_acessoria',
+        'area priv. acess. (m2)': 'area_privativa_acessoria',
+        'area_comum': 'area_comum',
+        'área comum (m²)': 'area_comum',
+        'area comum (m2)': 'area_comum',
+        'fracao_ideal': 'fracao_ideal', 'fração ideal': 'fracao_ideal',
+        'fracao ideal': 'fracao_ideal',
+        'valor_tabela': 'valor_tabela',
+        'valor tabela (r$)': 'valor_tabela',
+        'status': 'status',
+        'cliente': 'cliente_nome', 'cliente_nome': 'cliente_nome',
+        'descricao1': 'descricao1', 'descrição 1': 'descricao1', 'descricao 1': 'descricao1',
+        'descricao2': 'descricao2', 'descrição 2': 'descricao2', 'descricao 2': 'descricao2',
+        'descricao3': 'descricao3', 'descrição 3': 'descricao3', 'descricao 3': 'descricao3',
+    }
+
+    def strip_accents(s):
+        return ''.join(c for c in unicodedata.normalize('NFD', s)
+                       if unicodedata.category(c) != 'Mn')
+
+    def norm_col(k):
+        """Normaliza nome de coluna: minúsculo, sem acentos."""
+        return strip_accents(k.strip().lower())
+
+    # Blocos que na prática significam "buscar pelo número no empreendimento"
+    BLOCOS_GENERICOS = {'garagens', 'hobby boxes', 'hobby_boxes'}
+
     texto = _decode_csv(arquivo)
     reader = csv.DictReader(io.StringIO(texto), delimiter=';')
+
     criados = atualizados = erros = 0
     for i, row in enumerate(reader, 2):
-        row = {k.strip().lower(): (v or '').strip() for k, v in row.items()}
-        bloco_nome  = row.get('bloco', '').strip()
-        num         = row.get('numero', '').strip()
-        if not bloco_nome or not num:
+        # Normaliza chaves usando COL_MAP (com fallback para a chave normalizada)
+        row_n = {}
+        for k, v in row.items():
+            nk = norm_col(k)
+            interno = COL_MAP.get(nk) or COL_MAP.get(k.strip().lower()) or nk
+            row_n[interno] = (v or '').strip()
+
+        bloco_nome = row_n.get('bloco', '').strip()
+        num        = row_n.get('numero', '').strip()
+        if not num:
             continue
-        try:
-            bloco = Bloco.objects.get(empreendimento=empreendimento, nome__iexact=bloco_nome)
-        except Bloco.DoesNotExist:
-            erros += 1
-            continue
+
+        bloco = None
+        if bloco_nome and norm_col(bloco_nome) not in BLOCOS_GENERICOS:
+            try:
+                bloco = Bloco.objects.get(empreendimento=empreendimento, nome__iexact=bloco_nome)
+            except Bloco.DoesNotExist:
+                pass
+
         defaults = {}
-        for campo in ('tipo', 'tipologia', 'localizacao', 'descricao1', 'descricao2', 'descricao3'):
-            if campo in row:
-                defaults[campo] = row[campo]
-        for campo in ('ordem',):
-            if row.get(campo):
-                try:
-                    defaults[campo] = int(row[campo])
-                except ValueError:
-                    pass
-        for campo in ('area_privativa', 'area_privativa_acessoria', 'area_comum', 'fracao_ideal', 'valor_tabela'):
-            if row.get(campo):
-                v = _parse_valor_br(row[campo])
+        for campo in ('tipo', 'tipologia', 'localizacao',
+                      'descricao1', 'descricao2', 'descricao3',
+                      'cliente_nome', 'numeros_adicionais'):
+            if row_n.get(campo):
+                defaults[campo] = row_n[campo]
+
+        if row_n.get('ordem'):
+            try:
+                defaults['ordem'] = int(row_n['ordem'])
+            except ValueError:
+                pass
+
+        for campo in ('area_privativa', 'area_privativa_acessoria', 'area_comum',
+                      'fracao_ideal', 'valor_tabela'):
+            if row_n.get(campo):
+                v = _parse_valor_br(row_n[campo])
                 if v is not None:
                     defaults[campo] = v
-        if row.get('status') and row['status'].lower() in STATUS_CV_MAP:
-            defaults['status'] = STATUS_CV_MAP[row['status'].lower()]
-        _, criado = Unidade.objects.update_or_create(
-            bloco=bloco, numero=num, defaults=defaults,
-        )
-        if criado:
-            criados += 1
+
+        status_raw = strip_accents(row_n.get('status', '').lower())
+        if status_raw in STATUS_CV_MAP:
+            defaults['status'] = STATUS_CV_MAP[status_raw]
+        elif row_n.get('status'):
+            # Tenta sem acentos no mapa também
+            for k, v in STATUS_CV_MAP.items():
+                if strip_accents(k) == status_raw:
+                    defaults['status'] = v
+                    break
+
+        if bloco:
+            _, criado = Unidade.objects.update_or_create(
+                bloco=bloco, numero=num, defaults=defaults,
+            )
+            if criado: criados += 1
+            else: atualizados += 1
         else:
-            atualizados += 1
+            # Bloco genérico ou não encontrado: busca pelo número em todos os blocos
+            qs = Unidade.objects.filter(
+                bloco__empreendimento=empreendimento, numero=num,
+            )
+            if qs.exists():
+                qs.update(**defaults)
+                atualizados += qs.count()
+            else:
+                erros += 1
+
     return criados + atualizados, erros
 
 
