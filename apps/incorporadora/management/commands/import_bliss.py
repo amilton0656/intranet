@@ -30,8 +30,10 @@ STATUS_MAP = {
     'permuta':    'permuta',
     'bloqueada':  'bloqueado',
     'bloqueado':  'bloqueado',
-    'qa':         'bloqueado',
+    'qa':         'qa',
 }
+
+PERC_PERMUTA_LOJA = Decimal('0.12826')
 
 
 def _parse_garagens(raw):
@@ -136,32 +138,25 @@ class Command(BaseCommand):
                 erros += 1
                 continue
 
-            status = STATUS_MAP.get((reg.situacao or '').strip().lower(), 'disponivel')
-            tipo   = 'loja' if num.lower() == 'loja' else 'apartamento'
-            ordem  = ordem_por_bloco.get(bloco_nome, 0)
+            status      = STATUS_MAP.get((reg.situacao or '').strip().lower(), 'disponivel')
+            is_loja     = num.lower() == 'loja'
+            tipo        = 'loja' if is_loja else 'apartamento'
+            perc_perm   = PERC_PERMUTA_LOJA if is_loja else Decimal('0')
+            ordem       = ordem_por_bloco.get(bloco_nome, 0)
             ordem_por_bloco[bloco_nome] = ordem + 1
-
-            campos = dict(
-                tipo=tipo,
-                tipologia=(reg.tipologia or '').strip(),
-                area_privativa=reg.area_privativa or Decimal('0'),
-                area_total_bliss=None,
-                valor_tabela=reg.valor_tabela or Decimal('0'),
-                status=status,
-                ordem=ordem,
-            )
 
             if not dry_run:
                 principal, criado = Unidade.objects.update_or_create(
                     bloco=bloco,
                     numero=num,
                     defaults={
-                        'tipo':          campos['tipo'],
-                        'tipologia':     campos['tipologia'],
-                        'area_privativa': campos['area_privativa'],
-                        'valor_tabela':  campos['valor_tabela'],
-                        'status':        campos['status'],
-                        'ordem':         campos['ordem'],
+                        'tipo':           tipo,
+                        'tipologia':      (reg.tipologia or '').strip(),
+                        'area_privativa': reg.area_privativa or Decimal('0'),
+                        'valor_tabela':   reg.valor_tabela or Decimal('0'),
+                        'perc_permuta':   perc_perm,
+                        'status':         status,
+                        'ordem':          ordem,
                     },
                 )
                 if criado:

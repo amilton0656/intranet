@@ -762,6 +762,7 @@ def _build_empreendimento_resumo_context(empreendimento):
         'vendido':    'Vendido',
         'permuta':    'Permuta',
         'bloqueado':  'Bloqueado',
+        'qa':         'QA',
     }
     TIPO_LABELS = dict(Unidade.TIPO_CHOICES)
 
@@ -778,18 +779,43 @@ def _build_empreendimento_resumo_context(empreendimento):
     total_s = {'qtde': 0, 'valor': Decimal('0'), 'area': Decimal('0')}
 
     for u in unidades_principais:
-        label = STATUS_LABELS.get(u.status, u.status.capitalize())
+        label = STATUS_LABELS.get(u.status, u.status.upper())
         if label not in por_status:
             por_status[label] = {'qtde': 0, 'valor': Decimal('0'), 'area': Decimal('0'), 'unidades': []}
         v = u.valor_tabela or Decimal('0')
         a = u.area_privativa or Decimal('0')
-        por_status[label]['qtde']   += 1
-        por_status[label]['valor']  += v
-        por_status[label]['area']   += a
-        por_status[label]['unidades'].append(u)
-        total_s['qtde']  += 1
-        total_s['valor'] += v
-        total_s['area']  += a
+        perc = u.perc_permuta or Decimal('0')
+
+        if perc > 0:
+            # Permuta parcial: fraciona valor e área entre Permuta e o status real
+            v_perm = v * perc
+            a_perm = a * perc
+            v_rest = v * (1 - perc)
+            a_rest = a * (1 - perc)
+
+            label_perm = 'Permuta'
+            if label_perm not in por_status:
+                por_status[label_perm] = {'qtde': 0, 'valor': Decimal('0'), 'area': Decimal('0'), 'unidades': []}
+            por_status[label_perm]['qtde']  += 1
+            por_status[label_perm]['valor'] += v_perm
+            por_status[label_perm]['area']  += a_perm
+
+            por_status[label]['qtde']   += 1
+            por_status[label]['valor']  += v_rest
+            por_status[label]['area']   += a_rest
+            por_status[label]['unidades'].append(u)
+
+            total_s['qtde']  += 1
+            total_s['valor'] += v
+            total_s['area']  += a
+        else:
+            por_status[label]['qtde']   += 1
+            por_status[label]['valor']  += v
+            por_status[label]['area']   += a
+            por_status[label]['unidades'].append(u)
+            total_s['qtde']  += 1
+            total_s['valor'] += v
+            total_s['area']  += a
 
     for dados in por_status.values():
         dados['qtde_perc']  = (Decimal(dados['qtde'])  / Decimal(total_s['qtde'])  * 100) if total_s['qtde']  else Decimal('0')

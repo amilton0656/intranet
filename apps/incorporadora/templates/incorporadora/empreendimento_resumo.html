@@ -65,6 +65,7 @@
               {% elif grupo.status == 'Reservado' %}bg-warning text-dark
               {% elif grupo.status == 'Vendido' %}bg-primary
               {% elif grupo.status == 'Permuta' %}bg-info text-dark
+              {% elif grupo.status == 'QA' %}bg-danger
               {% else %}bg-secondary
               {% endif %}">{{ grupo.status }}</span>
           </td>

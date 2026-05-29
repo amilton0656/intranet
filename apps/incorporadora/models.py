@@ -70,6 +70,7 @@ class Unidade(models.Model):
         ('vendido',    'Vendido'),
         ('permuta',    'Permuta'),
         ('bloqueado',  'Bloqueado'),
+        ('qa',         'QA'),
     ]
 
     bloco                    = models.ForeignKey(Bloco, on_delete=models.PROTECT, related_name='unidades', verbose_name='Bloco')
@@ -85,6 +86,8 @@ class Unidade(models.Model):
     area_comum               = models.DecimalField('Área Comum (m²)', max_digits=10, decimal_places=2, default=0)
     fracao_ideal             = models.DecimalField('Fração Ideal', max_digits=12, decimal_places=6, default=0)
     valor_tabela             = models.DecimalField('Valor Tabela (R$)', max_digits=14, decimal_places=2, default=0)
+    perc_permuta             = models.DecimalField('% Permuta', max_digits=8, decimal_places=6, default=0,
+                                                   help_text='Fração do valor/área destinada à permuta (ex: 0.12826). 0 = sem permuta parcial.')
     status                   = models.CharField('Status', max_length=20, choices=STATUS_CHOICES, default='disponivel')
     pagina                   = models.PositiveIntegerField('Página', default=1)
     descricao1               = models.CharField('Descrição 1', max_length=255, blank=True)
