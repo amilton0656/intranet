@@ -1155,6 +1155,117 @@ def unidade_import_empreendimento_csv(request, empreendimento_pk):
 
 
 @login_required
+def vinculos_import_empreendimento_csv(request, empreendimento_pk):
+    import csv as csv_mod, io
+
+    empreendimento = get_object_or_404(Empreendimento, pk=empreendimento_pk)
+
+    if request.method != 'POST':
+        return redirect('incorporadora:bloco_list', empreendimento_pk=empreendimento_pk)
+
+    csv_file = request.FILES.get('arquivo')
+    if not csv_file:
+        messages.error(request, 'Selecione um arquivo CSV.')
+        return redirect('incorporadora:bloco_list', empreendimento_pk=empreendimento_pk)
+
+    try:
+        decoded = csv_file.read().decode('utf-8-sig')
+    except UnicodeDecodeError:
+        csv_file.seek(0)
+        decoded = csv_file.read().decode('latin-1')
+
+    reader = csv_mod.DictReader(io.StringIO(decoded), delimiter=';')
+    rows = [{k.strip().lower(): (v or '').strip() for k, v in row.items()} for row in reader]
+
+    todas_unidades = list(
+        Unidade.objects.filter(bloco__empreendimento=empreendimento)
+        .select_related('bloco')
+    )
+    por_numero = {}
+    for u in todas_unidades:
+        por_numero.setdefault(u.numero, []).append(u)
+        if u.numeros_adicionais:
+            for alias in [a.strip() for a in u.numeros_adicionais.split(',') if a.strip()]:
+                por_numero.setdefault(alias, []).append(u)
+
+    def buscar(numero):
+        matches = por_numero.get(numero, [])
+        if len(matches) == 1:
+            return matches[0], None
+        if len(matches) > 1:
+            blocos = ', '.join(u.bloco.nome for u in matches)
+            return None, f'número "{numero}" ambíguo (blocos: {blocos})'
+        return None, f'unidade "{numero}" não encontrada'
+
+    # Limpa vínculos anteriores de todo o empreendimento
+    Unidade.objects.filter(
+        bloco__empreendimento=empreendimento,
+        tipo__in=['garagem', 'hobby_box'],
+    ).update(unidade_principal=None)
+
+    erros = []
+    vinculados = 0
+
+    for i, row in enumerate(rows, 2):
+        if not any(row.values()):
+            continue
+
+        num_principal  = row.get('unidade', '').strip()
+        num_vinculada  = row.get('vinculada', '').strip()
+        nums_adicionais = row.get('numeros_adicionais', '').strip()
+
+        if not num_principal:
+            erros.append(f'Linha {i}: coluna "unidade" é obrigatória.')
+            continue
+
+        if not num_vinculada:
+            if nums_adicionais:
+                principal, err = buscar(num_principal)
+                if err:
+                    erros.append(f'Linha {i}: {err}.')
+                    continue
+                principal.numeros_adicionais = nums_adicionais
+                principal.save(update_fields=['numeros_adicionais'])
+                vinculados += 1
+            continue
+
+        principal, err = buscar(num_principal)
+        if err:
+            erros.append(f'Linha {i}: {err}.')
+            continue
+
+        vinculada, err = buscar(num_vinculada)
+        if err:
+            erros.append(f'Linha {i}: {err}.')
+            continue
+
+        if vinculada.pk == principal.pk:
+            erros.append(f'Linha {i}: uma unidade não pode ser vinculada a si mesma.')
+            continue
+
+        update_fields = ['unidade_principal']
+        vinculada.unidade_principal = principal
+        if nums_adicionais:
+            vinculada.numeros_adicionais = nums_adicionais
+            update_fields.append('numeros_adicionais')
+        vinculada.save(update_fields=update_fields)
+        vinculados += 1
+
+    if erros:
+        for e in erros[:10]:
+            messages.warning(request, e)
+        if len(erros) > 10:
+            messages.warning(request, f'... e mais {len(erros) - 10} erro(s) não exibidos.')
+
+    if vinculados:
+        messages.success(request, f'{vinculados} vínculo(s) importado(s) em "{empreendimento}".')
+    elif not erros:
+        messages.warning(request, 'Nenhum vínculo encontrado no arquivo.')
+
+    return redirect('incorporadora:bloco_list', empreendimento_pk=empreendimento_pk)
+
+
+@login_required
 def unidade_import_tabela_cv(request, empreendimento_pk):
     import csv as csv_mod, io, re
     from decimal import Decimal, InvalidOperation

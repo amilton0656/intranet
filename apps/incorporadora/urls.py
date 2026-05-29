@@ -40,6 +40,7 @@ urlpatterns = [
     path('empreendimentos/<int:empreendimento_pk>/unidades/importar-csv/',      views.unidade_import_empreendimento_csv,   name='unidade_import_empreendimento_csv'),
     path('empreendimentos/<int:empreendimento_pk>/unidades/template-csv/',      views.unidade_csv_template_empreendimento, name='unidade_csv_template_empreendimento'),
     path('empreendimentos/<int:empreendimento_pk>/unidades/importar-tabela-cv/', views.unidade_import_tabela_cv,            name='unidade_import_tabela_cv'),
+    path('empreendimentos/<int:empreendimento_pk>/vinculos/importar-csv/',      views.vinculos_import_empreendimento_csv,  name='vinculos_import_empreendimento_csv'),
 
     # Relatório completo por empreendimento
     path('empreendimentos/<int:pk>/relatorio/', views.empreendimento_relatorio_pdf, name='empreendimento_relatorio_pdf'),
