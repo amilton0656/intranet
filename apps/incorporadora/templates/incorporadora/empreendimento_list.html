@@ -77,6 +77,9 @@
               <a href="{% url 'incorporadora:empreendimento_vinculos_pdf' pk=emp.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2" target="_blank" title="Relatório de Vínculos PDF">
                 <i class="bi bi-link-45deg"></i>
               </a>
+              <a href="{% url 'incorporadora:empreendimento_importar' pk=emp.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2" title="Importar dados">
+                <i class="bi bi-cloud-upload"></i>
+              </a>
               <a href="{% url 'incorporadora:empreendimento_resumo' pk=emp.pk %}" class="btn btn-outline-primary btn-sm py-0 px-2" title="Resumo de situações">
                 <i class="bi bi-bar-chart-line"></i>
               </a>

@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 
-from .models import Empresa, Empreendimento, Bloco, Unidade, TabelaVendas, SeriePagamento, ItemTabelaVendas, ValorSerie
+from .models import Empresa, Empreendimento, Bloco, Unidade, TabelaVendas, SeriePagamento, ItemTabelaVendas, ValorSerie, ImportLog
 from .forms import EmpresaForm, EmpreendimentoForm, BlocoForm, UnidadeForm, TabelaVendasForm, SeriePagamentoForm
 from .utils import render_to_pdf
 
@@ -2393,3 +2393,298 @@ def tabela_pdf(request, pk):
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = f'inline; filename="tabela_{pk}.pdf"'
     return response
+
+
+# ── Página de Importação por Empreendimento ───────────────────────────────────
+
+def _decode_csv(file_obj):
+    """Decodifica arquivo CSV respeitando BOM e encoding."""
+    raw = file_obj.read()
+    for enc in ('utf-8-sig', 'latin-1'):
+        try:
+            return raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode('utf-8', errors='replace')
+
+
+def _csv_reader(texto, delimiter=None):
+    import csv, io
+    if delimiter is None:
+        try:
+            dialect = csv.Sniffer().sniff(texto[:2048], delimiters=';,|\t')
+            delimiter = dialect.delimiter
+        except csv.Error:
+            delimiter = ';'
+    reader = csv.DictReader(io.StringIO(texto), delimiter=delimiter)
+    return reader
+
+
+STATUS_CV_MAP = {
+    'disponível': 'disponivel', 'disponivel': 'disponivel',
+    'bloqueada':  'bloqueado',  'bloqueado':  'bloqueado',
+    'reservada':  'reservado',  'reservado':  'reservado',
+    'vendida':    'vendido',    'vendido':    'vendido',
+    'permuta':    'permuta',
+    'qa':         'qa',
+}
+
+
+def _parse_valor_br(raw):
+    import re
+    s = re.sub(r'[R$\s]', '', str(raw or '')).strip()
+    s = s.replace('.', '').replace(',', '.')
+    try:
+        from decimal import Decimal
+        return Decimal(s) if s else Decimal('0')
+    except Exception:
+        return None
+
+
+def _import_tabela_cv(arquivo, empreendimento):
+    """UNIDADE ; SITUAÇÃO ; VALOR TOTAL — atualiza status e valor_tabela."""
+    texto = _decode_csv(arquivo)
+    reader = _csv_reader(texto, delimiter=';')
+    fieldnames = [f.strip() for f in (reader.fieldnames or [])]
+    atualizados = erros = 0
+    for i, row in enumerate(reader, 2):
+        row = {k.strip(): v for k, v in row.items()}
+        num = row.get('UNIDADE', '').strip()
+        if not num:
+            continue
+        status_raw = row.get('SITUAÇÃO', '').strip()
+        valor_raw  = row.get('VALOR TOTAL', '').strip()
+        status = STATUS_CV_MAP.get(status_raw.lower(), None)
+        valor  = _parse_valor_br(valor_raw)
+        try:
+            u = Unidade.objects.get(bloco__empreendimento=empreendimento, numero=num)
+            fields = {}
+            if status:
+                fields['status'] = status
+            if valor is not None:
+                fields['valor_tabela'] = valor
+            if fields:
+                Unidade.objects.filter(pk=u.pk).update(**fields)
+            atualizados += 1
+        except Unidade.DoesNotExist:
+            erros += 1
+        except Unidade.MultipleObjectsReturned:
+            erros += 1
+    return atualizados, erros
+
+
+def _import_unidades(arquivo, empreendimento):
+    """CSV completo de unidades: ordem;bloco;numero;tipo;tipologia;localizacao;area_privativa;..."""
+    import csv, io
+    texto = _decode_csv(arquivo)
+    reader = csv.DictReader(io.StringIO(texto), delimiter=';')
+    criados = atualizados = erros = 0
+    for i, row in enumerate(reader, 2):
+        row = {k.strip().lower(): (v or '').strip() for k, v in row.items()}
+        bloco_nome  = row.get('bloco', '').strip()
+        num         = row.get('numero', '').strip()
+        if not bloco_nome or not num:
+            continue
+        try:
+            bloco = Bloco.objects.get(empreendimento=empreendimento, nome__iexact=bloco_nome)
+        except Bloco.DoesNotExist:
+            erros += 1
+            continue
+        defaults = {}
+        for campo in ('tipo', 'tipologia', 'localizacao', 'descricao1', 'descricao2', 'descricao3'):
+            if campo in row:
+                defaults[campo] = row[campo]
+        for campo in ('ordem',):
+            if row.get(campo):
+                try:
+                    defaults[campo] = int(row[campo])
+                except ValueError:
+                    pass
+        for campo in ('area_privativa', 'area_privativa_acessoria', 'area_comum', 'fracao_ideal', 'valor_tabela'):
+            if row.get(campo):
+                v = _parse_valor_br(row[campo])
+                if v is not None:
+                    defaults[campo] = v
+        if row.get('status') and row['status'].lower() in STATUS_CV_MAP:
+            defaults['status'] = STATUS_CV_MAP[row['status'].lower()]
+        _, criado = Unidade.objects.update_or_create(
+            bloco=bloco, numero=num, defaults=defaults,
+        )
+        if criado:
+            criados += 1
+        else:
+            atualizados += 1
+    return criados + atualizados, erros
+
+
+def _import_vinculos_emp(arquivo, empreendimento):
+    """unidade ; vinculada ; numeros_adicionais — atualiza unidade_principal."""
+    import csv, io
+    texto = _decode_csv(arquivo)
+    reader = csv.DictReader(io.StringIO(texto), delimiter=';')
+    todas = list(Unidade.objects.filter(bloco__empreendimento=empreendimento).select_related('bloco'))
+    por_numero = {}
+    for u in todas:
+        por_numero.setdefault(u.numero, []).append(u)
+        for alias in [a.strip() for a in (u.numeros_adicionais or '').split(',') if a.strip()]:
+            por_numero.setdefault(alias, []).append(u)
+
+    def buscar(num):
+        matches = por_numero.get(num, [])
+        if len(matches) == 1:
+            return matches[0], None
+        if len(matches) > 1:
+            return None, f'ambíguo'
+        return None, f'não encontrado'
+
+    Unidade.objects.filter(bloco__empreendimento=empreendimento, tipo__in=['garagem', 'hobby_box']).update(unidade_principal=None)
+    vinculados = erros = 0
+    for i, row in enumerate(reader, 2):
+        row = {k.strip().lower(): (v or '').strip() for k, v in row.items()}
+        num_p = row.get('unidade', '').strip()
+        num_v = row.get('vinculada', '').strip()
+        if not num_p or not num_v:
+            continue
+        principal, err = buscar(num_p)
+        if err:
+            erros += 1
+            continue
+        vinculada, err = buscar(num_v)
+        if err:
+            erros += 1
+            continue
+        vinculada.unidade_principal = principal
+        update_fields = ['unidade_principal']
+        if row.get('numeros_adicionais'):
+            vinculada.numeros_adicionais = row['numeros_adicionais']
+            update_fields.append('numeros_adicionais')
+        vinculada.save(update_fields=update_fields)
+        vinculados += 1
+    return vinculados, erros
+
+
+def _import_atualizacao_mensal(arquivo, empreendimento):
+    """bloco ; unidade ; situação ; valor total — atualiza status e valor_tabela por bloco+unidade."""
+    import csv, io
+    texto = _decode_csv(arquivo)
+    try:
+        import csv as _csv
+        dialect = _csv.Sniffer().sniff(texto[:2048], delimiters=';,|\t')
+        delim = dialect.delimiter
+    except Exception:
+        delim = ';'
+    reader = csv.DictReader(io.StringIO(texto), delimiter=delim)
+    atualizados = erros = 0
+    for i, row in enumerate(reader, 2):
+        row = {k.strip().lower(): (v or '').strip() for k, v in row.items()}
+        bloco_nome = row.get('bloco', '').strip()
+        num        = row.get('unidade', '').strip()
+        if not bloco_nome or not num:
+            continue
+        status_raw = row.get('situação', row.get('situacao', '')).strip()
+        valor_raw  = row.get('valor total', row.get('valor_total', '')).strip()
+        status = STATUS_CV_MAP.get(status_raw.lower(), None)
+        valor  = _parse_valor_br(valor_raw)
+        try:
+            u = Unidade.objects.get(bloco__empreendimento=empreendimento, bloco__nome__iexact=bloco_nome, numero=num)
+            fields = {}
+            if status:
+                fields['status'] = status
+            if valor is not None:
+                fields['valor_tabela'] = valor
+            if fields:
+                Unidade.objects.filter(pk=u.pk).update(**fields)
+            atualizados += 1
+        except Unidade.DoesNotExist:
+            erros += 1
+    return atualizados, erros
+
+
+def _import_vendas_emp(arquivo, empreendimento):
+    """Reserva ; Unidade ; Situação ; Cliente ; Imobiliária — atualiza cliente_nome e status."""
+    import csv, io
+    texto = _decode_csv(arquivo)
+    reader = csv.DictReader(io.StringIO(texto), delimiter=';')
+    atualizados = erros = 0
+    for i, row in enumerate(reader, 2):
+        row = {k.strip(): (v or '').strip() for k, v in row.items()}
+        # busca case-insensitive pelas colunas-chave
+        get = lambda *keys: next((row[k] for k in row if k.lower().strip() in [x.lower() for x in keys]), '')
+        num        = get('Unidade', 'UNIDADE').strip()
+        cliente    = get('Cliente', 'CLIENTE').strip()
+        status_raw = get('Situação', 'Situacao', 'SITUAÇÃO').strip()
+        email      = get('Email', 'E-mail', 'EMAIL').strip()
+        if not num:
+            continue
+        status = STATUS_CV_MAP.get(status_raw.lower(), None)
+        try:
+            u = Unidade.objects.get(bloco__empreendimento=empreendimento, numero=num)
+            fields = {}
+            if cliente:
+                fields['cliente_nome'] = cliente
+            if email:
+                fields['cliente_email'] = email
+            if status:
+                fields['status'] = status
+            if fields:
+                Unidade.objects.filter(pk=u.pk).update(**fields)
+            atualizados += 1
+        except Unidade.DoesNotExist:
+            erros += 1
+        except Unidade.MultipleObjectsReturned:
+            erros += 1
+    return atualizados, erros
+
+
+_IMPORTADORES = {
+    'tabela_cv':          _import_tabela_cv,
+    'unidades':           _import_unidades,
+    'vinculos':           _import_vinculos_emp,
+    'atualizacao_mensal': _import_atualizacao_mensal,
+    'vendas':             _import_vendas_emp,
+}
+
+
+@login_required
+def empreendimento_importar(request, pk):
+    empreendimento = get_object_or_404(Empreendimento, pk=pk)
+
+    if request.method == 'POST':
+        tipo    = request.POST.get('tipo', '').strip()
+        arquivo = request.FILES.get('arquivo')
+
+        if tipo not in _IMPORTADORES:
+            messages.error(request, 'Tipo de importação inválido.')
+            return redirect('incorporadora:empreendimento_importar', pk=pk)
+        if not arquivo:
+            messages.error(request, 'Nenhum arquivo enviado.')
+            return redirect('incorporadora:empreendimento_importar', pk=pk)
+
+        try:
+            total, erros = _IMPORTADORES[tipo](arquivo, empreendimento)
+            ImportLog.objects.create(
+                empreendimento=empreendimento,
+                tipo=tipo,
+                nome_arquivo=arquivo.name,
+                total_registros=total,
+                importado_por=request.user,
+            )
+            msg = f'Importação concluída: {total} registro(s) processado(s).'
+            if erros:
+                msg += f' {erros} não encontrado(s).'
+            messages.success(request, msg)
+        except Exception as e:
+            messages.error(request, f'Erro na importação: {e}')
+
+        return redirect('incorporadora:empreendimento_importar', pk=pk)
+
+    # Último log por tipo
+    logs = {}
+    for log in ImportLog.objects.filter(empreendimento=empreendimento):
+        if log.tipo not in logs:
+            logs[log.tipo] = log
+
+    return render(request, 'incorporadora/empreendimento_importar.html', {
+        'empreendimento': empreendimento,
+        'logs': logs,
+    })

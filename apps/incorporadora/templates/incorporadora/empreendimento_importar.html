@@ -1,0 +1,232 @@
+{% extends "incorporadora/base.html" %}
+{% block title %}Importar — {{ empreendimento }}{% endblock %}
+{% block nav_empreendimentos %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  .import-card { border: 1px solid #e2e6ea; border-radius: 8px; padding: 1.25rem; background: #fff; height: 100%; }
+  .import-card .icon { font-size: 2rem; margin-bottom: .5rem; }
+  .import-card .last-import { font-size: 0.75rem; color: #6c757d; margin-bottom: .75rem; min-height: 2.5rem; }
+  .import-card label { font-weight: 600; font-size: 0.82rem; }
+  .doc-table { font-size: 0.78rem; }
+  .doc-table td, .doc-table th { padding: 3px 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-cloud-upload me-2"></i>Importar — {{ empreendimento }}</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'incorporadora:empreendimento_list' %}">Empreendimentos</a></li>
+        <li class="breadcrumb-item active">Importar</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<div class="main-content">
+
+  {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show d-flex align-items-center gap-2">
+      <i class="bi bi-{% if msg.tags == 'error' %}exclamation-triangle-fill{% else %}check-circle-fill{% endif %}"></i>
+      <span>{{ msg }}</span>
+      <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="row g-3">
+
+    <!-- ── Tabela CV ── -->
+    <div class="col-md-4">
+      <div class="import-card">
+        <div class="icon text-primary"><i class="bi bi-table"></i></div>
+        <h6 class="fw-bold mb-1">Tabela CV</h6>
+        <p class="text-muted small mb-2">Atualiza <strong>situação</strong> e <strong>valor de tabela</strong> de cada unidade.</p>
+        <div class="last-import">
+          {% with log=logs.tabela_cv %}
+          {% if log %}
+            <i class="bi bi-check-circle-fill text-success me-1"></i>
+            {{ log.importado_em|date:"d/m/Y H:i" }} — {{ log.total_registros }} registro(s)<br>
+            <span class="text-truncate d-block">{{ log.nome_arquivo }}</span>
+          {% else %}
+            <span class="text-muted fst-italic">Nenhuma importação registrada</span>
+          {% endif %}
+          {% endwith %}
+        </div>
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="tipo" value="tabela_cv">
+          <label class="form-label">Arquivo CSV</label>
+          <input type="file" name="arquivo" class="form-control form-control-sm mb-2" accept=".csv" required>
+          <button type="submit" class="btn btn-primary btn-sm w-100">
+            <i class="bi bi-upload me-1"></i>Importar
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Unidades ── -->
+    <div class="col-md-4">
+      <div class="import-card">
+        <div class="icon text-success"><i class="bi bi-door-open"></i></div>
+        <h6 class="fw-bold mb-1">Unidades</h6>
+        <p class="text-muted small mb-2">Importa/atualiza <strong>dados completos</strong> das unidades (áreas, tipologia, valores).</p>
+        <div class="last-import">
+          {% with log=logs.unidades %}
+          {% if log %}
+            <i class="bi bi-check-circle-fill text-success me-1"></i>
+            {{ log.importado_em|date:"d/m/Y H:i" }} — {{ log.total_registros }} registro(s)<br>
+            <span class="text-truncate d-block">{{ log.nome_arquivo }}</span>
+          {% else %}
+            <span class="text-muted fst-italic">Nenhuma importação registrada</span>
+          {% endif %}
+          {% endwith %}
+        </div>
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="tipo" value="unidades">
+          <label class="form-label">Arquivo CSV</label>
+          <input type="file" name="arquivo" class="form-control form-control-sm mb-2" accept=".csv" required>
+          <button type="submit" class="btn btn-success btn-sm w-100">
+            <i class="bi bi-upload me-1"></i>Importar
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Vínculos ── -->
+    <div class="col-md-4">
+      <div class="import-card">
+        <div class="icon text-info"><i class="bi bi-link-45deg"></i></div>
+        <h6 class="fw-bold mb-1">Vínculos</h6>
+        <p class="text-muted small mb-2">Vincula <strong>garagens e hobby boxes</strong> às unidades principais.</p>
+        <div class="last-import">
+          {% with log=logs.vinculos %}
+          {% if log %}
+            <i class="bi bi-check-circle-fill text-success me-1"></i>
+            {{ log.importado_em|date:"d/m/Y H:i" }} — {{ log.total_registros }} registro(s)<br>
+            <span class="text-truncate d-block">{{ log.nome_arquivo }}</span>
+          {% else %}
+            <span class="text-muted fst-italic">Nenhuma importação registrada</span>
+          {% endif %}
+          {% endwith %}
+        </div>
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="tipo" value="vinculos">
+          <label class="form-label">Arquivo CSV</label>
+          <input type="file" name="arquivo" class="form-control form-control-sm mb-2" accept=".csv" required>
+          <button type="submit" class="btn btn-info btn-sm w-100 text-white">
+            <i class="bi bi-upload me-1"></i>Importar
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Atualização Mensal ── -->
+    <div class="col-md-4">
+      <div class="import-card">
+        <div class="icon text-warning"><i class="bi bi-arrow-clockwise"></i></div>
+        <h6 class="fw-bold mb-1">Atualização Mensal</h6>
+        <p class="text-muted small mb-2">Atualiza <strong>situação e valor</strong> identificando unidade por bloco + número.</p>
+        <div class="last-import">
+          {% with log=logs.atualizacao_mensal %}
+          {% if log %}
+            <i class="bi bi-check-circle-fill text-success me-1"></i>
+            {{ log.importado_em|date:"d/m/Y H:i" }} — {{ log.total_registros }} registro(s)<br>
+            <span class="text-truncate d-block">{{ log.nome_arquivo }}</span>
+          {% else %}
+            <span class="text-muted fst-italic">Nenhuma importação registrada</span>
+          {% endif %}
+          {% endwith %}
+        </div>
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="tipo" value="atualizacao_mensal">
+          <label class="form-label">Arquivo CSV</label>
+          <input type="file" name="arquivo" class="form-control form-control-sm mb-2" accept=".csv" required>
+          <button type="submit" class="btn btn-warning btn-sm w-100">
+            <i class="bi bi-upload me-1"></i>Importar
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Vendas ── -->
+    <div class="col-md-4">
+      <div class="import-card">
+        <div class="icon text-danger"><i class="bi bi-person-check"></i></div>
+        <h6 class="fw-bold mb-1">Vendas</h6>
+        <p class="text-muted small mb-2">Importa <strong>cliente, e-mail e situação</strong> de cada unidade (formato CV CRM).</p>
+        <div class="last-import">
+          {% with log=logs.vendas %}
+          {% if log %}
+            <i class="bi bi-check-circle-fill text-success me-1"></i>
+            {{ log.importado_em|date:"d/m/Y H:i" }} — {{ log.total_registros }} registro(s)<br>
+            <span class="text-truncate d-block">{{ log.nome_arquivo }}</span>
+          {% else %}
+            <span class="text-muted fst-italic">Nenhuma importação registrada</span>
+          {% endif %}
+          {% endwith %}
+        </div>
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="tipo" value="vendas">
+          <label class="form-label">Arquivo CSV</label>
+          <input type="file" name="arquivo" class="form-control form-control-sm mb-2" accept=".csv" required>
+          <button type="submit" class="btn btn-danger btn-sm w-100">
+            <i class="bi bi-upload me-1"></i>Importar
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Documentação dos formatos ── -->
+  <h5 class="mt-5 mb-3">Formatos esperados</h5>
+  <div class="data-table">
+    <table class="table table-sm doc-table mb-0">
+      <thead>
+        <tr>
+          <th style="width:180px">Tipo</th>
+          <th>Colunas (separadas por <code>;</code>)</th>
+          <th>Observação</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Tabela CV</strong></td>
+          <td><code>UNIDADE; SITUAÇÃO; VALOR TOTAL</code></td>
+          <td>Exportação direta do CV CRM</td>
+        </tr>
+        <tr>
+          <td><strong>Unidades</strong></td>
+          <td><code>ordem; bloco; numero; tipo; tipologia; localizacao; area_privativa; area_privativa_acessoria; area_comum; fracao_ideal; valor_tabela; status</code></td>
+          <td>O bloco deve existir no empreendimento</td>
+        </tr>
+        <tr>
+          <td><strong>Vínculos</strong></td>
+          <td><code>unidade; vinculada; numeros_adicionais</code></td>
+          <td>Substitui todos os vínculos existentes</td>
+        </tr>
+        <tr>
+          <td><strong>Atualização Mensal</strong></td>
+          <td><code>bloco; unidade; situação; valor total</code></td>
+          <td>Identifica por bloco + número</td>
+        </tr>
+        <tr>
+          <td><strong>Vendas</strong></td>
+          <td><code>Reserva; Unidade; Situação; Cliente; Imobiliária</code></td>
+          <td>Exportação de vendas do CV CRM</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.core.validators import RegexValidator
 
@@ -90,6 +91,8 @@ class Unidade(models.Model):
                                                    help_text='Fração do valor/área destinada à permuta (ex: 0.12826). 0 = sem permuta parcial.')
     status                   = models.CharField('Status', max_length=20, choices=STATUS_CHOICES, default='disponivel')
     pagina                   = models.PositiveIntegerField('Página', default=1)
+    cliente_nome             = models.CharField('Cliente', max_length=200, blank=True)
+    cliente_email            = models.CharField('E-mail do Cliente', max_length=200, blank=True)
     descricao1               = models.CharField('Descrição 1', max_length=255, blank=True)
     descricao2               = models.CharField('Descrição 2', max_length=255, blank=True)
     descricao3               = models.CharField('Descrição 3', max_length=255, blank=True)
@@ -233,3 +236,30 @@ class ValorSerie(models.Model):
 
     def __str__(self):
         return f'{self.serie} — R$ {self.valor_parcela}'
+
+
+class ImportLog(models.Model):
+    TIPO_CHOICES = [
+        ('tabela_cv',          'Tabela CV (situação + valor)'),
+        ('unidades',           'Unidades (dados completos)'),
+        ('vinculos',           'Vínculos (garagens/HBs)'),
+        ('atualizacao_mensal', 'Atualização Mensal'),
+        ('vendas',             'Vendas (cliente/imobiliária)'),
+    ]
+
+    empreendimento  = models.ForeignKey(Empreendimento, on_delete=models.CASCADE,
+                                        related_name='import_logs', verbose_name='Empreendimento')
+    tipo            = models.CharField('Tipo', max_length=30, choices=TIPO_CHOICES, db_index=True)
+    nome_arquivo    = models.CharField('Arquivo', max_length=255)
+    total_registros = models.IntegerField('Registros', default=0)
+    importado_em    = models.DateTimeField('Importado em', auto_now_add=True)
+    importado_por   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                        null=True, blank=True, verbose_name='Usuário')
+
+    class Meta:
+        ordering = ['-importado_em']
+        verbose_name = 'Log de Importação'
+        verbose_name_plural = 'Logs de Importação'
+
+    def __str__(self):
+        return f'{self.get_tipo_display()} — {self.empreendimento} — {self.importado_em:%d/%m/%Y %H:%M}'
