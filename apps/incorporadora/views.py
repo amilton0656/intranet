@@ -251,6 +251,16 @@ def unidade_delete(request, pk):
 
 @login_required
 def empreendimento_export_excel(request):
+    return _empreendimento_excel(request, empreendimento=None)
+
+
+@login_required
+def empreendimento_export_excel_pk(request, pk):
+    empreendimento = get_object_or_404(Empreendimento, pk=pk)
+    return _empreendimento_excel(request, empreendimento=empreendimento)
+
+
+def _empreendimento_excel(request, empreendimento):
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment
 
@@ -261,7 +271,7 @@ def empreendimento_export_excel(request):
     headers = [
         'Empreendimento', 'Bloco', 'Ordem', 'Número', 'Números Adicionais', 'Tipo', 'Tipologia', 'Localização',
         'Área Privativa (m²)', 'Área Priv. Acess. (m²)', 'Área Comum (m²)',
-        'Fração Ideal', 'Valor Tabela (R$)', 'Status',
+        'Fração Ideal', 'Valor Tabela (R$)', 'Status', 'Cliente',
         'Descrição 1', 'Descrição 2', 'Descrição 3',
     ]
     hdr_font = Font(bold=True, color='FFFFFF')
@@ -272,10 +282,12 @@ def empreendimento_export_excel(request):
         cell.fill = hdr_fill
         cell.alignment = Alignment(horizontal='center')
 
-    unidades = Unidade.objects.select_related('bloco__empreendimento').order_by(
-        'bloco__empreendimento__nome', 'bloco__nome', 'ordem', 'numero'
-    )
-    for row, u in enumerate(unidades, 2):
+    qs = Unidade.objects.select_related('bloco__empreendimento')
+    if empreendimento:
+        qs = qs.filter(bloco__empreendimento=empreendimento)
+    qs = qs.order_by('bloco__empreendimento__nome', 'bloco__nome', 'ordem', 'numero')
+
+    for row, u in enumerate(qs, 2):
         ws.cell(row=row, column=1,  value=u.bloco.empreendimento.nome)
         ws.cell(row=row, column=2,  value=u.bloco.nome)
         ws.cell(row=row, column=3,  value=u.ordem)
@@ -290,18 +302,20 @@ def empreendimento_export_excel(request):
         ws.cell(row=row, column=12, value=float(u.fracao_ideal))
         ws.cell(row=row, column=13, value=float(u.valor_tabela))
         ws.cell(row=row, column=14, value=u.get_status_display())
-        ws.cell(row=row, column=15, value=u.descricao1)
-        ws.cell(row=row, column=16, value=u.descricao2)
-        ws.cell(row=row, column=17, value=u.descricao3)
+        ws.cell(row=row, column=15, value=u.cliente_nome)
+        ws.cell(row=row, column=16, value=u.descricao1)
+        ws.cell(row=row, column=17, value=u.descricao2)
+        ws.cell(row=row, column=18, value=u.descricao3)
 
     for col in ws.columns:
         width = max(len(str(cell.value or '')) for cell in col)
         ws.column_dimensions[col[0].column_letter].width = min(width + 3, 40)
 
+    nome_emp = empreendimento.nome.lower().replace(' ', '_') if empreendimento else 'todos'
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = f'attachment; filename="unidades_{date.today().strftime("%Y%m%d")}.xlsx"'
+    response['Content-Disposition'] = f'attachment; filename="unidades_{nome_emp}_{date.today().strftime("%Y%m%d")}.xlsx"'
     wb.save(response)
     return response
 

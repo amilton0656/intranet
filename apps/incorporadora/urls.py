@@ -51,7 +51,8 @@ urlpatterns = [
     path('empreendimentos/<int:pk>/importar/',    views.empreendimento_importar,     name='empreendimento_importar'),
 
     # Excel / CSV
-    path('empreendimentos/exportar-excel/',   views.empreendimento_export_excel, name='empreendimento_export_excel'),
+    path('empreendimentos/exportar-excel/',          views.empreendimento_export_excel,    name='empreendimento_export_excel'),
+    path('empreendimentos/<int:pk>/exportar-excel/', views.empreendimento_export_excel_pk, name='empreendimento_export_excel_pk'),
     path('empreendimentos/importar-csv/',     views.empreendimento_import_csv,   name='empreendimento_import_csv'),
     path('empreendimentos/template-csv/',     views.empreendimento_csv_template, name='empreendimento_csv_template'),
 
