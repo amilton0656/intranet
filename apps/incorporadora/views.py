@@ -830,10 +830,15 @@ def _build_empreendimento_resumo_context(empreendimento):
         if dados['qtde'] > 0
     ]
 
-    # ── por tipo ──────────────────────────────────────────────────────────────
+    # ── por tipo (só disponíveis, só apartamento e loja) ─────────────────────
     todas = list(
         Unidade.objects
-        .filter(bloco__empreendimento=empreendimento)
+        .filter(
+            bloco__empreendimento=empreendimento,
+            status='disponivel',
+            tipo__in=['apartamento', 'loja'],
+            unidade_principal__isnull=True,
+        )
         .order_by('tipo')
     )
     por_tipo = {}
@@ -841,9 +846,16 @@ def _build_empreendimento_resumo_context(empreendimento):
         label = TIPO_LABELS.get(u.tipo, u.tipo)
         if label not in por_tipo:
             por_tipo[label] = {'qtde': 0, 'valor': Decimal('0'), 'area': Decimal('0')}
+        v = u.valor_tabela or Decimal('0')
+        a = u.area_privativa or Decimal('0')
+        perc = u.perc_permuta or Decimal('0')
+        # Para loja com permuta parcial, usa apenas a fração disponível
+        if perc > 0:
+            v = v * (1 - perc)
+            a = a * (1 - perc)
         por_tipo[label]['qtde']  += 1
-        por_tipo[label]['valor'] += u.valor_tabela or Decimal('0')
-        por_tipo[label]['area']  += u.area_privativa or Decimal('0')
+        por_tipo[label]['valor'] += v
+        por_tipo[label]['area']  += a
 
     for dados in por_tipo.values():
         dados['valor_m2'] = (dados['valor'] / dados['area']) if dados['area'] else Decimal('0')
