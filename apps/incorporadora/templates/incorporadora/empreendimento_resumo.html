@@ -121,6 +121,13 @@
           <td class="text-end text-muted">{{ grupo.dados.valor_m2|format_real }}</td>
         </tr>
         {% endfor %}
+        <tr class="fw-bold table-light">
+          <td>Total</td>
+          <td class="text-end">{{ total_tipo.qtde }}</td>
+          <td class="text-end">{{ total_tipo.area|floatformat:2 }}</td>
+          <td class="text-end">{{ total_tipo.valor|format_real }}</td>
+          <td class="text-end">{{ total_tipo.valor_m2|format_real }}</td>
+        </tr>
       </tbody>
     </table>
   </div>

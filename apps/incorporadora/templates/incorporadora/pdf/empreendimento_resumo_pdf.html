@@ -82,6 +82,13 @@
         <td class="tr">{{ grupo.dados.valor_m2|format_real }}</td>
       </tr>
       {% endfor %}
+      <tr class="bold">
+        <td>Total</td>
+        <td class="tr">{{ total_tipo.qtde }}</td>
+        <td class="tr">{{ total_tipo.area|floatformat:2 }}</td>
+        <td class="tr">{{ total_tipo.valor|format_real }}</td>
+        <td class="tr">{{ total_tipo.valor_m2|format_real }}</td>
+      </tr>
     </tbody>
   </table>
 </body>

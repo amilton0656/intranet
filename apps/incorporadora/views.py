@@ -862,11 +862,19 @@ def _build_empreendimento_resumo_context(empreendimento):
 
     grupos_tipo = [{'tipo': t, 'dados': d} for t, d in por_tipo.items()]
 
+    total_tipo = {
+        'qtde':  sum(d['dados']['qtde']  for d in grupos_tipo),
+        'valor': sum(d['dados']['valor'] for d in grupos_tipo),
+        'area':  sum(d['dados']['area']  for d in grupos_tipo),
+    }
+    total_tipo['valor_m2'] = (total_tipo['valor'] / total_tipo['area']) if total_tipo['area'] else Decimal('0')
+
     return {
         'empreendimento': empreendimento,
         'grupos_status':  grupos_status,
         'total':          total_s,
         'grupos_tipo':    grupos_tipo,
+        'total_tipo':     total_tipo,
         'data_geracao':   date.today(),
     }
 
