@@ -82,9 +82,9 @@ class Unidade(models.Model):
     tipo                     = models.CharField('Tipo', max_length=20, choices=TIPO_CHOICES, default='apartamento')
     tipologia                = models.CharField('Tipologia', max_length=100, blank=True)
     localizacao              = models.CharField('Localização', max_length=100, blank=True)
-    area_privativa           = models.DecimalField('Área Privativa (m²)', max_digits=10, decimal_places=2, default=0)
-    area_privativa_acessoria = models.DecimalField('Área Priv. Acessória (m²)', max_digits=10, decimal_places=2, default=0)
-    area_comum               = models.DecimalField('Área Comum (m²)', max_digits=10, decimal_places=2, default=0)
+    area_privativa           = models.DecimalField('Área Privativa (m²)', max_digits=10, decimal_places=4, default=0)
+    area_privativa_acessoria = models.DecimalField('Área Priv. Acessória (m²)', max_digits=10, decimal_places=4, default=0)
+    area_comum               = models.DecimalField('Área Comum (m²)', max_digits=10, decimal_places=4, default=0)
     fracao_ideal             = models.DecimalField('Fração Ideal', max_digits=12, decimal_places=6, default=0)
     valor_tabela             = models.DecimalField('Valor Tabela (R$)', max_digits=14, decimal_places=2, default=0)
     perc_permuta             = models.DecimalField('% Permuta', max_digits=8, decimal_places=6, default=0,

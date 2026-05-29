@@ -2460,7 +2460,8 @@ def _import_tabela_cv(arquivo, empreendimento):
     texto = _decode_csv(arquivo)
     reader = _csv_reader(texto, delimiter=';')
     fieldnames = [f.strip() for f in (reader.fieldnames or [])]
-    atualizados = erros = 0
+    atualizados = 0
+    nao_encontrados = []
     for i, row in enumerate(reader, 2):
         row = {k.strip(): v for k, v in row.items()}
         num = row.get('UNIDADE', '').strip()
@@ -2481,10 +2482,10 @@ def _import_tabela_cv(arquivo, empreendimento):
                 Unidade.objects.filter(pk=u.pk).update(**fields)
             atualizados += 1
         except Unidade.DoesNotExist:
-            erros += 1
+            nao_encontrados.append(num)
         except Unidade.MultipleObjectsReturned:
-            erros += 1
-    return atualizados, erros
+            nao_encontrados.append(num)
+    return atualizados, nao_encontrados
 
 
 def _import_unidades(arquivo, empreendimento):
@@ -2531,13 +2532,21 @@ def _import_unidades(arquivo, empreendimento):
         """Normaliza nome de coluna: minúsculo, sem acentos."""
         return strip_accents(k.strip().lower())
 
-    # Blocos que na prática significam "buscar pelo número no empreendimento"
-    BLOCOS_GENERICOS = {'garagens', 'hobby boxes', 'hobby_boxes'}
-
     texto = _decode_csv(arquivo)
     reader = csv.DictReader(io.StringIO(texto), delimiter=';')
 
-    criados = atualizados = erros = 0
+    # Zera unidades existentes antes de importar
+    ItemTabelaVendas.objects.filter(unidade__bloco__empreendimento=empreendimento).delete()
+    Unidade.objects.filter(bloco__empreendimento=empreendimento).delete()
+
+    TIPO_MAP = {
+        'apartamento': 'apartamento', 'garagem': 'garagem',
+        'hobby box': 'hobby_box', 'hobby_box': 'hobby_box',
+        'loja': 'loja', 'sala': 'sala',
+    }
+
+    criados = atualizados = 0
+    blocos_nao_encontrados = set()
     for i, row in enumerate(reader, 2):
         # Normaliza chaves usando COL_MAP (com fallback para a chave normalizada)
         row_n = {}
@@ -2552,14 +2561,18 @@ def _import_unidades(arquivo, empreendimento):
             continue
 
         bloco = None
-        if bloco_nome and norm_col(bloco_nome) not in BLOCOS_GENERICOS:
+        if bloco_nome:
             try:
                 bloco = Bloco.objects.get(empreendimento=empreendimento, nome__iexact=bloco_nome)
             except Bloco.DoesNotExist:
                 pass
 
         defaults = {}
-        for campo in ('tipo', 'tipologia', 'localizacao',
+        tipo_raw = row_n.get('tipo', '').strip().lower()
+        if tipo_raw:
+            defaults['tipo'] = TIPO_MAP.get(tipo_raw, tipo_raw)
+
+        for campo in ('tipologia', 'localizacao',
                       'descricao1', 'descricao2', 'descricao3',
                       'cliente_nome', 'numeros_adicionais'):
             if row_n.get(campo):
@@ -2595,17 +2608,9 @@ def _import_unidades(arquivo, empreendimento):
             if criado: criados += 1
             else: atualizados += 1
         else:
-            # Bloco genérico ou não encontrado: busca pelo número em todos os blocos
-            qs = Unidade.objects.filter(
-                bloco__empreendimento=empreendimento, numero=num,
-            )
-            if qs.exists():
-                qs.update(**defaults)
-                atualizados += qs.count()
-            else:
-                erros += 1
+            blocos_nao_encontrados.add(bloco_nome or '(sem bloco)')
 
-    return criados + atualizados, erros
+    return criados + atualizados, sorted(blocos_nao_encontrados)
 
 
 def _import_vinculos_emp(arquivo, empreendimento):
@@ -2629,7 +2634,8 @@ def _import_vinculos_emp(arquivo, empreendimento):
         return None, f'não encontrado'
 
     Unidade.objects.filter(bloco__empreendimento=empreendimento, tipo__in=['garagem', 'hobby_box']).update(unidade_principal=None)
-    vinculados = erros = 0
+    vinculados = 0
+    nao_encontrados = []
     for i, row in enumerate(reader, 2):
         row = {k.strip().lower(): (v or '').strip() for k, v in row.items()}
         num_p = row.get('unidade', '').strip()
@@ -2638,11 +2644,11 @@ def _import_vinculos_emp(arquivo, empreendimento):
             continue
         principal, err = buscar(num_p)
         if err:
-            erros += 1
+            nao_encontrados.append(num_p)
             continue
         vinculada, err = buscar(num_v)
         if err:
-            erros += 1
+            nao_encontrados.append(num_v)
             continue
         vinculada.unidade_principal = principal
         update_fields = ['unidade_principal']
@@ -2651,7 +2657,7 @@ def _import_vinculos_emp(arquivo, empreendimento):
             update_fields.append('numeros_adicionais')
         vinculada.save(update_fields=update_fields)
         vinculados += 1
-    return vinculados, erros
+    return vinculados, nao_encontrados
 
 
 def _import_atualizacao_mensal(arquivo, empreendimento):
@@ -2665,7 +2671,8 @@ def _import_atualizacao_mensal(arquivo, empreendimento):
     except Exception:
         delim = ';'
     reader = csv.DictReader(io.StringIO(texto), delimiter=delim)
-    atualizados = erros = 0
+    atualizados = 0
+    nao_encontrados = []
     for i, row in enumerate(reader, 2):
         row = {k.strip().lower(): (v or '').strip() for k, v in row.items()}
         bloco_nome = row.get('bloco', '').strip()
@@ -2687,8 +2694,8 @@ def _import_atualizacao_mensal(arquivo, empreendimento):
                 Unidade.objects.filter(pk=u.pk).update(**fields)
             atualizados += 1
         except Unidade.DoesNotExist:
-            erros += 1
-    return atualizados, erros
+            nao_encontrados.append(f'{bloco_nome}/{num}')
+    return atualizados, nao_encontrados
 
 
 def _import_vendas_emp(arquivo, empreendimento):
@@ -2696,7 +2703,8 @@ def _import_vendas_emp(arquivo, empreendimento):
     import csv, io
     texto = _decode_csv(arquivo)
     reader = csv.DictReader(io.StringIO(texto), delimiter=';')
-    atualizados = erros = 0
+    atualizados = 0
+    nao_encontrados = []
     for i, row in enumerate(reader, 2):
         row = {k.strip(): (v or '').strip() for k, v in row.items()}
         # busca case-insensitive pelas colunas-chave
@@ -2721,10 +2729,10 @@ def _import_vendas_emp(arquivo, empreendimento):
                 Unidade.objects.filter(pk=u.pk).update(**fields)
             atualizados += 1
         except Unidade.DoesNotExist:
-            erros += 1
+            nao_encontrados.append(num)
         except Unidade.MultipleObjectsReturned:
-            erros += 1
-    return atualizados, erros
+            nao_encontrados.append(num)
+    return atualizados, nao_encontrados
 
 
 _IMPORTADORES = {
@@ -2752,7 +2760,7 @@ def empreendimento_importar(request, pk):
             return redirect('incorporadora:empreendimento_importar', pk=pk)
 
         try:
-            total, erros = _IMPORTADORES[tipo](arquivo, empreendimento)
+            total, nao_encontrados = _IMPORTADORES[tipo](arquivo, empreendimento)
             ImportLog.objects.create(
                 empreendimento=empreendimento,
                 tipo=tipo,
@@ -2761,8 +2769,9 @@ def empreendimento_importar(request, pk):
                 importado_por=request.user,
             )
             msg = f'Importação concluída: {total} registro(s) processado(s).'
-            if erros:
-                msg += f' {erros} não encontrado(s).'
+            if nao_encontrados:
+                lista = ', '.join(nao_encontrados)
+                msg += f' Bloco(s) não encontrado(s): {lista}.'
             messages.success(request, msg)
         except Exception as e:
             messages.error(request, f'Erro na importação: {e}')
