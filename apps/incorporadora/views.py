@@ -2488,7 +2488,7 @@ def _import_tabela_cv(arquivo, empreendimento):
     return atualizados, nao_encontrados
 
 
-def _import_unidades(arquivo, empreendimento):
+def _import_unidades(arquivo, empreendimento, substituir=False):
     """CSV completo de unidades. Aceita tanto o formato interno (snake_case)
     quanto o formato de exportação do incorporadora (nomes com acentos e unidades).
     Também aceita blocos 'Garagens' e 'Hobby Boxes' buscando a unidade pelo
@@ -2535,9 +2535,9 @@ def _import_unidades(arquivo, empreendimento):
     texto = _decode_csv(arquivo)
     reader = csv.DictReader(io.StringIO(texto), delimiter=';')
 
-    # Zera unidades existentes antes de importar
-    ItemTabelaVendas.objects.filter(unidade__bloco__empreendimento=empreendimento).delete()
-    Unidade.objects.filter(bloco__empreendimento=empreendimento).delete()
+    if substituir:
+        ItemTabelaVendas.objects.filter(unidade__bloco__empreendimento=empreendimento).delete()
+        Unidade.objects.filter(bloco__empreendimento=empreendimento).delete()
 
     TIPO_MAP = {
         'apartamento': 'apartamento', 'garagem': 'garagem',
@@ -2760,7 +2760,10 @@ def empreendimento_importar(request, pk):
             return redirect('incorporadora:empreendimento_importar', pk=pk)
 
         try:
-            total, nao_encontrados = _IMPORTADORES[tipo](arquivo, empreendimento)
+            kwargs = {}
+            if tipo == 'unidades':
+                kwargs['substituir'] = request.POST.get('substituir') == '1'
+            total, nao_encontrados = _IMPORTADORES[tipo](arquivo, empreendimento, **kwargs)
             ImportLog.objects.create(
                 empreendimento=empreendimento,
                 tipo=tipo,
