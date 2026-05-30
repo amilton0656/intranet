@@ -180,7 +180,7 @@ def bloco_delete(request, pk):
 @login_required
 def unidade_list(request, bloco_pk):
     bloco    = get_object_or_404(Bloco.objects.select_related('empreendimento'), pk=bloco_pk)
-    unidades = bloco.unidades.all()
+    unidades = bloco.unidades.order_by('ordem')
 
     f_numero    = request.GET.get('numero', '').strip()
     f_tipo      = request.GET.get('tipo', '').strip()
@@ -1139,7 +1139,7 @@ def unidade_export_excel(request, bloco_pk):
     from openpyxl.styles import Font, PatternFill, Alignment
 
     bloco = get_object_or_404(Bloco.objects.select_related('empreendimento'), pk=bloco_pk)
-    unidades = bloco.unidades.all()
+    unidades = bloco.unidades.order_by('ordem')
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -1720,7 +1720,7 @@ def unidade_list_pdf(request, bloco_pk):
     from reportlab.lib.enums import TA_RIGHT, TA_LEFT
 
     bloco = get_object_or_404(Bloco.objects.select_related('empreendimento__empresa'), pk=bloco_pk)
-    unidades = list(bloco.unidades.all())
+    unidades = list(bloco.unidades.order_by('ordem'))
 
     zero = Decimal('0')
     campos = ['area_privativa', 'area_privativa_acessoria', 'area_comum', 'fracao_ideal', 'valor_tabela']
