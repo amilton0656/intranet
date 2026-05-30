@@ -480,7 +480,7 @@ def empreendimento_relatorio_pdf(request, pk):
     empreendimento = get_object_or_404(
         Empreendimento.objects.select_related('empresa'), pk=pk
     )
-    blocos = empreendimento.blocos.prefetch_related('unidades').order_by('nome')
+    blocos = empreendimento.blocos.order_by('nome')
 
     zero = Decimal('0')
     campos = ['area_privativa', 'area_privativa_acessoria', 'area_comum', 'fracao_ideal', 'valor_tabela']
