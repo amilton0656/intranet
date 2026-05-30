@@ -490,7 +490,7 @@ def empreendimento_relatorio_pdf(request, pk):
 
     blocos_data = []
     for bloco in blocos:
-        uns = list(bloco.unidades.order_by('ordem').all())
+        uns = list(Unidade.objects.filter(bloco=bloco).order_by('ordem'))
         blocos_data.append({'bloco': bloco, 'unidades': uns, 'totais': calcular_totais(uns)})
     todas = [u for b in blocos_data for u in b['unidades']]
 
