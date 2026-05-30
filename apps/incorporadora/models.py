@@ -46,9 +46,10 @@ class Empreendimento(models.Model):
 class Bloco(models.Model):
     empreendimento = models.ForeignKey(Empreendimento, on_delete=models.PROTECT, related_name='blocos', verbose_name='Empreendimento')
     nome           = models.CharField('Nome', max_length=100)
+    ordem          = models.PositiveIntegerField('Ordem', default=0)
 
     class Meta:
-        ordering = ['empreendimento', 'nome']
+        ordering = ['empreendimento', 'ordem', 'nome']
         verbose_name = 'Bloco'
         verbose_name_plural = 'Blocos'
         unique_together = [('empreendimento', 'nome')]

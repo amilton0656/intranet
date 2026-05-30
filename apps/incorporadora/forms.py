@@ -36,10 +36,11 @@ class EmpreendimentoForm(forms.ModelForm):
 class BlocoForm(forms.ModelForm):
     class Meta:
         model = Bloco
-        fields = ['empreendimento', 'nome']
+        fields = ['empreendimento', 'nome', 'ordem']
         widgets = {
             'empreendimento': forms.Select(attrs={'class': 'form-select'}),
             'nome':           forms.TextInput(attrs={'class': 'form-control', 'autofocus': True}),
+            'ordem':          forms.NumberInput(attrs={'class': 'form-control text-end'}),
         }
 
 

@@ -129,7 +129,7 @@ def _build_vinculos_rows(bloco):
 @login_required
 def bloco_list(request, empreendimento_pk):
     empreendimento = get_object_or_404(Empreendimento, pk=empreendimento_pk)
-    blocos = empreendimento.blocos.prefetch_related('unidades__vinculadas').all()
+    blocos = empreendimento.blocos.prefetch_related('unidades__vinculadas').order_by('ordem', 'nome')
     blocos_data = [{'bloco': b, 'vinculos': _build_vinculos_rows(b)} for b in blocos]
     return render(request, 'incorporadora/bloco_list.html', {
         'empreendimento': empreendimento,
@@ -285,7 +285,7 @@ def _empreendimento_excel(request, empreendimento):
     qs = Unidade.objects.select_related('bloco__empreendimento')
     if empreendimento:
         qs = qs.filter(bloco__empreendimento=empreendimento)
-    qs = qs.order_by('bloco__empreendimento__nome', 'bloco__nome', 'ordem', 'numero')
+    qs = qs.order_by('bloco__empreendimento__nome', 'bloco__ordem', 'bloco__nome', 'ordem', 'numero')
 
     for row, u in enumerate(qs, 2):
         ws.cell(row=row, column=1,  value=u.bloco.empreendimento.nome)
@@ -480,7 +480,7 @@ def empreendimento_relatorio_pdf(request, pk):
     empreendimento = get_object_or_404(
         Empreendimento.objects.select_related('empresa'), pk=pk
     )
-    blocos = empreendimento.blocos.order_by('nome')
+    blocos = empreendimento.blocos.order_by('ordem', 'nome')
 
     zero = Decimal('0')
     campos = ['area_privativa', 'area_privativa_acessoria', 'area_comum', 'fracao_ideal', 'valor_tabela']
@@ -654,7 +654,7 @@ def empreendimento_vinculos_pdf(request, pk):
     empreendimento = get_object_or_404(
         Empreendimento.objects.select_related('empresa'), pk=pk
     )
-    blocos = empreendimento.blocos.prefetch_related('unidades__vinculadas').order_by('nome')
+    blocos = empreendimento.blocos.prefetch_related('unidades__vinculadas').order_by('ordem', 'nome')
 
     C_HDR   = colors.HexColor('#A7A3AB')
     C_ALT   = colors.HexColor('#f7f7f7')
@@ -784,7 +784,7 @@ def _build_empreendimento_resumo_context(empreendimento):
         Unidade.objects
         .filter(bloco__empreendimento=empreendimento, unidade_principal__isnull=True)
         .select_related('bloco')
-        .order_by('bloco__nome', 'ordem', 'numero')
+        .order_by('bloco__ordem', 'bloco__nome', 'ordem', 'numero')
     )
 
     # ── por status ────────────────────────────────────────────────────────────
@@ -1699,7 +1699,7 @@ def empreendimento_list_pdf(request):
 @login_required
 def bloco_list_pdf(request, empreendimento_pk):
     empreendimento = get_object_or_404(Empreendimento.objects.select_related('empresa'), pk=empreendimento_pk)
-    blocos = list(empreendimento.blocos.all())
+    blocos = list(empreendimento.blocos.order_by('ordem', 'nome'))
     return render_to_pdf('incorporadora/pdf/bloco_list.html', {
         'empreendimento': empreendimento,
         'blocos': blocos,
@@ -2167,7 +2167,7 @@ def tabela_pdf(request, pk):
                 .filter(tabela=tabela)
                 .select_related('unidade__bloco')
                 .prefetch_related('valores__serie', 'unidade__vinculadas')
-                .order_by('unidade__bloco__nome', 'unidade__pagina', 'unidade__ordem', 'unidade__numero'))
+                .order_by('unidade__bloco__ordem', 'unidade__bloco__nome', 'unidade__pagina', 'unidade__ordem', 'unidade__numero'))
     if apenas_disponiveis:
         itens_qs = itens_qs.filter(unidade__status='disponivel')
 
