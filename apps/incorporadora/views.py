@@ -269,9 +269,11 @@ def _empreendimento_excel(request, empreendimento):
     ws.title = 'Unidades'
 
     headers = [
-        'Empreendimento', 'Bloco', 'Ordem', 'Número', 'Números Adicionais', 'Tipo', 'Tipologia', 'Localização',
-        'Área Privativa (m²)', 'Área Priv. Acess. (m²)', 'Área Comum (m²)',
-        'Fração Ideal', 'Valor Tabela (R$)', 'Status', 'Cliente',
+        'Empreendimento', 'Bloco', 'Página', 'Ordem', 'Número', 'Números Adicionais', 'Unidade Principal',
+        'Tipo', 'Tipologia', 'Localização',
+        'Área Privativa (m²)', 'Área Priv. Acess. (m²)', 'Área Comum (m²)', 'Área Total (m²)',
+        'Fração Ideal', '% Permuta', 'Valor Tabela (R$)', 'Status',
+        'Cliente', 'E-mail do Cliente',
         'Descrição 1', 'Descrição 2', 'Descrição 3',
     ]
     hdr_font = Font(bold=True, color='FFFFFF')
@@ -282,7 +284,7 @@ def _empreendimento_excel(request, empreendimento):
         cell.fill = hdr_fill
         cell.alignment = Alignment(horizontal='center')
 
-    qs = Unidade.objects.select_related('bloco__empreendimento')
+    qs = Unidade.objects.select_related('bloco__empreendimento', 'unidade_principal')
     if empreendimento:
         qs = qs.filter(bloco__empreendimento=empreendimento)
     qs = qs.order_by('bloco__empreendimento__nome', 'bloco__ordem', 'bloco__nome', 'ordem', 'numero')
@@ -290,22 +292,27 @@ def _empreendimento_excel(request, empreendimento):
     for row, u in enumerate(qs, 2):
         ws.cell(row=row, column=1,  value=u.bloco.empreendimento.nome)
         ws.cell(row=row, column=2,  value=u.bloco.nome)
-        ws.cell(row=row, column=3,  value=u.ordem)
-        ws.cell(row=row, column=4,  value=u.numero)
-        ws.cell(row=row, column=5,  value=u.numeros_adicionais)
-        ws.cell(row=row, column=6,  value=u.get_tipo_display())
-        ws.cell(row=row, column=7,  value=u.tipologia)
-        ws.cell(row=row, column=8,  value=u.localizacao)
-        ws.cell(row=row, column=9,  value=float(u.area_privativa))
-        ws.cell(row=row, column=10, value=float(u.area_privativa_acessoria))
-        ws.cell(row=row, column=11, value=float(u.area_comum))
-        ws.cell(row=row, column=12, value=float(u.fracao_ideal))
-        ws.cell(row=row, column=13, value=float(u.valor_tabela))
-        ws.cell(row=row, column=14, value=u.get_status_display())
-        ws.cell(row=row, column=15, value=u.cliente_nome)
-        ws.cell(row=row, column=16, value=u.descricao1)
-        ws.cell(row=row, column=17, value=u.descricao2)
-        ws.cell(row=row, column=18, value=u.descricao3)
+        ws.cell(row=row, column=3,  value=u.pagina)
+        ws.cell(row=row, column=4,  value=u.ordem)
+        ws.cell(row=row, column=5,  value=u.numero)
+        ws.cell(row=row, column=6,  value=u.numeros_adicionais)
+        ws.cell(row=row, column=7,  value=u.unidade_principal.numero if u.unidade_principal else '')
+        ws.cell(row=row, column=8,  value=u.get_tipo_display())
+        ws.cell(row=row, column=9,  value=u.tipologia)
+        ws.cell(row=row, column=10, value=u.localizacao)
+        ws.cell(row=row, column=11, value=float(u.area_privativa))
+        ws.cell(row=row, column=12, value=float(u.area_privativa_acessoria))
+        ws.cell(row=row, column=13, value=float(u.area_comum))
+        ws.cell(row=row, column=14, value=float(u.area_total))
+        ws.cell(row=row, column=15, value=float(u.fracao_ideal))
+        ws.cell(row=row, column=16, value=float(u.perc_permuta))
+        ws.cell(row=row, column=17, value=float(u.valor_tabela))
+        ws.cell(row=row, column=18, value=u.get_status_display())
+        ws.cell(row=row, column=19, value=u.cliente_nome)
+        ws.cell(row=row, column=20, value=u.cliente_email)
+        ws.cell(row=row, column=21, value=u.descricao1)
+        ws.cell(row=row, column=22, value=u.descricao2)
+        ws.cell(row=row, column=23, value=u.descricao3)
 
     for col in ws.columns:
         width = max(len(str(cell.value or '')) for cell in col)
@@ -483,10 +490,12 @@ def empreendimento_relatorio_pdf(request, pk):
     blocos = empreendimento.blocos.order_by('ordem', 'nome')
 
     zero = Decimal('0')
-    campos = ['area_privativa', 'area_comum', 'fracao_ideal', 'valor_tabela']
+    campos = ['area_privativa', 'area_privativa_acessoria', 'area_comum', 'fracao_ideal', 'valor_tabela']
 
     def calcular_totais(uns):
-        return {c: sum((getattr(u, c) for u in uns), zero) for c in campos}
+        tots = {c: sum((getattr(u, c) for u in uns), zero) for c in campos}
+        tots['area_total'] = tots['area_privativa'] + tots['area_privativa_acessoria'] + tots['area_comum']
+        return tots
 
     blocos_data = []
     for bloco in blocos:
@@ -517,9 +526,9 @@ def empreendimento_relatorio_pdf(request, pk):
     sTR = ps('tr', font='Helvetica-Bold', size=9,  color=C_WHITE, align=TA_RIGHT)
 
     # ── larguras das colunas (total = 267mm) ──
-    # Nº | Tipo | Tipologia | Localização | ÁPriv | ÁComum | Fração | Valor | Status
-    CW = [19*mm, 20*mm, 45*mm, 48*mm, 23*mm, 23*mm, 24*mm, 37*mm, 28*mm]
-    # 19+20+45+48+23+23+24+37+28 = 267mm
+    # Nº | Tipo | Tipologia | Localização | ÁPriv | ÁPrivAcess | ÁComum | ÁTotal | Fração | Valor | Status
+    CW = [19*mm, 20*mm, 33*mm, 35*mm, 20*mm, 20*mm, 20*mm, 20*mm, 22*mm, 30*mm, 28*mm]
+    # 19+20+33+35+20+20+20+20+22+30+28 = 267mm
 
     def fmt_dec(v, places=2):
         return f'{float(v):.{places}f}'
@@ -531,7 +540,9 @@ def empreendimento_relatorio_pdf(request, pk):
             Paragraph('Tipologia', sH),
             Paragraph('Localização', sH),
             Paragraph('Área Priv. (m²)', sHR),
+            Paragraph('Área Priv. Acess. (m²)', sHR),
             Paragraph('Área Comum (m²)', sHR),
+            Paragraph('Área Total (m²)', sHR),
             Paragraph('Fração Ideal', sHR),
             Paragraph('Valor Tabela (R$)', sHR),
             Paragraph('Status', sH),
@@ -573,7 +584,9 @@ def empreendimento_relatorio_pdf(request, pk):
                 Paragraph(u.tipologia or '', sN),
                 Paragraph(u.localizacao or '', sN),
                 Paragraph(fmt_dec(u.area_privativa), sR),
+                Paragraph(fmt_dec(u.area_privativa_acessoria), sR),
                 Paragraph(fmt_dec(u.area_comum), sR),
+                Paragraph(fmt_dec(u.area_total), sR),
                 Paragraph(fmt_dec(u.fracao_ideal, 6), sR),
                 Paragraph(fmt_dec(u.valor_tabela), sR),
                 Paragraph(u.get_status_display(), sN),
@@ -582,7 +595,9 @@ def empreendimento_relatorio_pdf(request, pk):
         data.append([
             Paragraph(f'Subtotal — {bloco.nome}', sSL), '', '', '',
             Paragraph(fmt_dec(tots['area_privativa']), sSR),
+            Paragraph(fmt_dec(tots['area_privativa_acessoria']), sSR),
             Paragraph(fmt_dec(tots['area_comum']), sSR),
+            Paragraph(fmt_dec(tots['area_total']), sSR),
             Paragraph(fmt_dec(tots['fracao_ideal'], 6), sSR),
             Paragraph(fmt_dec(tots['valor_tabela']), sSR),
             '',
@@ -613,7 +628,9 @@ def empreendimento_relatorio_pdf(request, pk):
         tdata = [[
             Paragraph(f'TOTAL GERAL — {len(todas)} unidade(s)', sTL), '', '', '',
             Paragraph(fmt_dec(tg['area_privativa']), sTR),
+            Paragraph(fmt_dec(tg['area_privativa_acessoria']), sTR),
             Paragraph(fmt_dec(tg['area_comum']), sTR),
+            Paragraph(fmt_dec(tg['area_total']), sTR),
             Paragraph(fmt_dec(tg['fracao_ideal'], 6), sTR),
             Paragraph(fmt_dec(tg['valor_tabela']), sTR),
             '',
@@ -1135,16 +1152,18 @@ def unidade_export_excel(request, bloco_pk):
     from openpyxl.styles import Font, PatternFill, Alignment
 
     bloco = get_object_or_404(Bloco.objects.select_related('empreendimento'), pk=bloco_pk)
-    unidades = bloco.unidades.order_by('ordem')
+    unidades = bloco.unidades.select_related('unidade_principal').order_by('ordem')
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = 'Unidades'
 
     headers = [
-        'Ordem', 'Número', 'Números Adicionais', 'Tipo', 'Tipologia', 'Localização',
-        'Área Privativa (m²)', 'Área Priv. Acess. (m²)', 'Área Comum (m²)',
-        'Fração Ideal', 'Valor Tabela (R$)', 'Status',
+        'Página', 'Ordem', 'Número', 'Números Adicionais', 'Unidade Principal',
+        'Tipo', 'Tipologia', 'Localização',
+        'Área Privativa (m²)', 'Área Priv. Acess. (m²)', 'Área Comum (m²)', 'Área Total (m²)',
+        'Fração Ideal', '% Permuta', 'Valor Tabela (R$)', 'Status',
+        'Cliente', 'E-mail do Cliente',
         'Descrição 1', 'Descrição 2', 'Descrição 3',
     ]
     hdr_font = Font(bold=True, color='FFFFFF')
@@ -1156,21 +1175,27 @@ def unidade_export_excel(request, bloco_pk):
         cell.alignment = Alignment(horizontal='center')
 
     for row, u in enumerate(unidades, 2):
-        ws.cell(row=row, column=1,  value=u.ordem)
-        ws.cell(row=row, column=2,  value=u.numero)
-        ws.cell(row=row, column=3,  value=u.numeros_adicionais)
-        ws.cell(row=row, column=4,  value=u.get_tipo_display())
-        ws.cell(row=row, column=5,  value=u.tipologia)
-        ws.cell(row=row, column=6,  value=u.localizacao)
-        ws.cell(row=row, column=7,  value=float(u.area_privativa))
-        ws.cell(row=row, column=8,  value=float(u.area_privativa_acessoria))
-        ws.cell(row=row, column=9,  value=float(u.area_comum))
-        ws.cell(row=row, column=10, value=float(u.fracao_ideal))
-        ws.cell(row=row, column=11, value=float(u.valor_tabela))
-        ws.cell(row=row, column=12, value=u.get_status_display())
-        ws.cell(row=row, column=13, value=u.descricao1)
-        ws.cell(row=row, column=14, value=u.descricao2)
-        ws.cell(row=row, column=15, value=u.descricao3)
+        ws.cell(row=row, column=1,  value=u.pagina)
+        ws.cell(row=row, column=2,  value=u.ordem)
+        ws.cell(row=row, column=3,  value=u.numero)
+        ws.cell(row=row, column=4,  value=u.numeros_adicionais)
+        ws.cell(row=row, column=5,  value=u.unidade_principal.numero if u.unidade_principal else '')
+        ws.cell(row=row, column=6,  value=u.get_tipo_display())
+        ws.cell(row=row, column=7,  value=u.tipologia)
+        ws.cell(row=row, column=8,  value=u.localizacao)
+        ws.cell(row=row, column=9,  value=float(u.area_privativa))
+        ws.cell(row=row, column=10, value=float(u.area_privativa_acessoria))
+        ws.cell(row=row, column=11, value=float(u.area_comum))
+        ws.cell(row=row, column=12, value=float(u.area_total))
+        ws.cell(row=row, column=13, value=float(u.fracao_ideal))
+        ws.cell(row=row, column=14, value=float(u.perc_permuta))
+        ws.cell(row=row, column=15, value=float(u.valor_tabela))
+        ws.cell(row=row, column=16, value=u.get_status_display())
+        ws.cell(row=row, column=17, value=u.cliente_nome)
+        ws.cell(row=row, column=18, value=u.cliente_email)
+        ws.cell(row=row, column=19, value=u.descricao1)
+        ws.cell(row=row, column=20, value=u.descricao2)
+        ws.cell(row=row, column=21, value=u.descricao3)
 
     for col in ws.columns:
         width = max(len(str(cell.value or '')) for cell in col)
@@ -1721,6 +1746,7 @@ def unidade_list_pdf(request, bloco_pk):
     zero = Decimal('0')
     campos = ['area_privativa', 'area_privativa_acessoria', 'area_comum', 'fracao_ideal', 'valor_tabela']
     tots = {c: sum((getattr(u, c) for u in unidades), zero) for c in campos}
+    tots['area_total'] = tots['area_privativa'] + tots['area_privativa_acessoria'] + tots['area_comum']
 
     C_HDR   = colors.HexColor('#A7A3AB')
     C_ALT   = colors.HexColor('#f7f7f7')
@@ -1740,7 +1766,9 @@ def unidade_list_pdf(request, bloco_pk):
     sTL = ps('tl', font='Helvetica-Bold', size=9, color=C_WHITE)
     sTR = ps('tr', font='Helvetica-Bold', size=9, color=C_WHITE, align=TA_RIGHT)
 
-    CW = [17*mm, 20*mm, 35*mm, 38*mm, 23*mm, 29*mm, 23*mm, 24*mm, 30*mm, 28*mm]
+    # Nº | Tipo | Tipologia | Localização | ÁPriv | ÁPrivAcess | ÁComum | ÁTotal | Fração | Valor | Status
+    CW = [17*mm, 20*mm, 30*mm, 32*mm, 23*mm, 23*mm, 23*mm, 20*mm, 22*mm, 30*mm, 27*mm]
+    # 17+20+30+32+23+23+23+20+22+30+27 = 267mm
 
     def fmt_dec(v, places=2):
         return f'{float(v):.{places}f}'
@@ -1770,6 +1798,7 @@ def unidade_list_pdf(request, bloco_pk):
         Paragraph('Área Priv. (m²)', sHR),
         Paragraph('Área Priv. Acess. (m²)', sHR),
         Paragraph('Área Comum (m²)', sHR),
+        Paragraph('Área Total (m²)', sHR),
         Paragraph('Fração Ideal', sHR),
         Paragraph('Valor Tabela (R$)', sHR),
         Paragraph('Status', sH),
@@ -1783,6 +1812,7 @@ def unidade_list_pdf(request, bloco_pk):
             Paragraph(fmt_dec(u.area_privativa), sR),
             Paragraph(fmt_dec(u.area_privativa_acessoria), sR),
             Paragraph(fmt_dec(u.area_comum), sR),
+            Paragraph(fmt_dec(u.area_total), sR),
             Paragraph(fmt_dec(u.fracao_ideal, 6), sR),
             Paragraph(fmt_dec(u.valor_tabela), sR),
             Paragraph(u.get_status_display(), sN),
@@ -1796,6 +1826,7 @@ def unidade_list_pdf(request, bloco_pk):
             Paragraph(fmt_dec(tots['area_privativa']), sSR),
             Paragraph(fmt_dec(tots['area_privativa_acessoria']), sSR),
             Paragraph(fmt_dec(tots['area_comum']), sSR),
+            Paragraph(fmt_dec(tots['area_total']), sSR),
             Paragraph(fmt_dec(tots['fracao_ideal'], 6), sSR),
             Paragraph(fmt_dec(tots['valor_tabela']), sSR),
             '',
