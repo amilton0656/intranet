@@ -1287,6 +1287,8 @@ def unidade_import_empreendimento_csv(request, empreendimento_pk):
 
     modo = request.POST.get('modo', 'atualizar')
     if modo == 'substituir':
+        unidade_ids = Unidade.objects.filter(bloco__empreendimento=empreendimento).values_list('id', flat=True)
+        ItemTabelaVendas.objects.filter(unidade_id__in=unidade_ids).delete()
         Unidade.objects.filter(bloco__empreendimento=empreendimento).delete()
 
     erros = []
