@@ -520,7 +520,7 @@ def empreendimento_relatorio_pdf(request, pk):
     sTR = ps('tr', font='Helvetica-Bold', size=9,  color=C_WHITE, align=TA_RIGHT)
 
     # Nº | Tipo | Tipologia | Localização | ÁPriv | ÁPrivAcess | ÁComum | ÁTotal | Fração | Valor | Status
-    CW = [18.15*mm, 20*mm, 30*mm, 27*mm, 22*mm, 25*mm, 22*mm, 22*mm, 20*mm, 28*mm, 20*mm]
+    CW = [19.965*mm, 20*mm, 28.5*mm, 27*mm, 22*mm, 25*mm, 22*mm, 22*mm, 20*mm, 28*mm, 19*mm]
 
     def fmt_dec(v, places=2):
         return f'{float(v):.{places}f}'
@@ -1750,7 +1750,7 @@ def unidade_list_pdf(request, bloco_pk):
     sTL = ps('tl', font='Helvetica-Bold', size=9, color=C_WHITE)
     sTR = ps('tr', font='Helvetica-Bold', size=9, color=C_WHITE, align=TA_RIGHT)
 
-    CW = [18.15*mm, 20*mm, 30*mm, 27*mm, 22*mm, 25*mm, 22*mm, 22*mm, 20*mm, 28*mm, 20*mm]
+    CW = [19.965*mm, 20*mm, 28.5*mm, 27*mm, 22*mm, 25*mm, 22*mm, 22*mm, 20*mm, 28*mm, 19*mm]
 
     def fmt_dec(v, places=2):
         return f'{float(v):.{places}f}'
