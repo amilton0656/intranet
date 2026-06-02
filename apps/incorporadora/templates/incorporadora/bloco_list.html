@@ -243,6 +243,25 @@
             Empreendimento: <strong>{{ empreendimento }}</strong>
           </p>
           <div class="mb-3">
+            <label class="form-label fw-semibold mb-2">Modo de importação</label>
+            <div class="d-flex flex-column gap-2">
+              <label class="d-flex align-items-start gap-2 border rounded p-2 cursor-pointer" style="cursor:pointer;">
+                <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="modo" value="atualizar" checked>
+                <div>
+                  <div class="fw-semibold" style="font-size:0.85rem;">Atualizar existentes</div>
+                  <div class="text-muted" style="font-size:0.78rem;">Atualiza as unidades já cadastradas (mesmo bloco + número). Não exclui nenhum registro.</div>
+                </div>
+              </label>
+              <label class="d-flex align-items-start gap-2 border border-danger rounded p-2" id="modoSubstituirLabel" style="cursor:pointer;">
+                <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="modo" value="substituir" id="modoSubstituir">
+                <div>
+                  <div class="fw-semibold text-danger" style="font-size:0.85rem;">Substituir tudo</div>
+                  <div class="text-muted" style="font-size:0.78rem;">Remove <strong>todas</strong> as unidades e vínculos do empreendimento e reimporta do zero.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="mb-3">
             <label class="form-label fw-semibold">Arquivo CSV</label>
             <input type="file" name="arquivo" class="form-control" accept=".csv" required>
           </div>
@@ -255,7 +274,6 @@
               descricao1; descricao2; descricao3
             </code>
             <p class="mb-1">O campo <strong>bloco</strong> deve corresponder ao nome exato do bloco neste empreendimento.</p>
-            <p class="mb-0 text-muted">Unidades existentes (mesmo bloco + número) serão atualizadas.</p>
           </div>
         </div>
         <div class="modal-footer justify-content-between">
@@ -264,11 +282,37 @@
           </a>
           <div class="d-flex gap-2">
             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-upload me-1"></i>Importar</button>
+            <button type="submit" class="btn btn-primary btn-sm" id="btnImportarUnidades"><i class="bi bi-upload me-1"></i>Importar</button>
           </div>
         </div>
       </form>
     </div>
   </div>
 </div>
+
+{% block extra_js %}
+<script>
+document.getElementById('modoSubstituir').addEventListener('change', function() {
+  document.getElementById('btnImportarUnidades').classList.replace('btn-primary', 'btn-danger');
+  document.getElementById('btnImportarUnidades').innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Substituir tudo';
+});
+document.querySelectorAll('input[name="modo"]').forEach(r => {
+  r.addEventListener('change', function() {
+    if (this.value === 'atualizar') {
+      document.getElementById('btnImportarUnidades').classList.replace('btn-danger', 'btn-primary');
+      document.getElementById('btnImportarUnidades').innerHTML = '<i class="bi bi-upload me-1"></i>Importar';
+    }
+  });
+});
+document.getElementById('btnImportarUnidades').closest('form').addEventListener('submit', function(e) {
+  const modo = this.querySelector('input[name="modo"]:checked').value;
+  if (modo === 'substituir') {
+    if (!confirm('Atenção: todas as unidades e vínculos deste empreendimento serão excluídos antes da importação.\n\nDeseja continuar?')) {
+      e.preventDefault();
+    }
+  }
+});
+</script>
+{% endblock %}
+
 {% endblock %}

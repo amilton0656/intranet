@@ -1285,6 +1285,10 @@ def unidade_import_empreendimento_csv(request, empreendimento_pk):
 
     blocos_cache = {b.nome: b for b in empreendimento.blocos.all()}
 
+    modo = request.POST.get('modo', 'atualizar')
+    if modo == 'substituir':
+        Unidade.objects.filter(bloco__empreendimento=empreendimento).delete()
+
     erros = []
     criados = 0
 
@@ -1358,7 +1362,8 @@ def unidade_import_empreendimento_csv(request, empreendimento_pk):
             messages.warning(request, f'... e mais {len(erros) - 10} erro(s) não exibidos.')
 
     if criados:
-        messages.success(request, f'{criados} unidade(s) importada(s)/atualizadas em "{empreendimento.nome}".')
+        acao = 'importada(s)' if modo == 'substituir' else 'importada(s)/atualizada(s)'
+        messages.success(request, f'{criados} unidade(s) {acao} em "{empreendimento.nome}".')
     elif not erros:
         messages.warning(request, 'Nenhuma unidade encontrada no arquivo.')
 
