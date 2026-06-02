@@ -137,28 +137,42 @@
 <!-- ── Templates de detalhe por status ── -->
 {% for grupo in grupos_status %}
 <template id="detail-{{ forloop.counter }}">
-  <div class="table-responsive">
+  <div class="table-responsive" style="font-size:0.78rem;">
     <table class="table table-sm table-hover mb-2">
       <thead>
-        <tr class="text-muted small">
+        <tr class="text-muted" style="font-size:0.72rem;">
           <th>Bloco</th>
           <th>Número</th>
+          <th>Tipo</th>
           <th>Tipologia</th>
+          <th>Localização</th>
           <th class="text-end">Área Priv. (m²)</th>
-          <th class="text-end">Valor Tabela</th>
+          <th class="text-end">Área Priv. Acess. (m²)</th>
+          <th class="text-end">Área Comum (m²)</th>
+          <th class="text-end">Área Total (m²)</th>
+          <th class="text-end">Fração Ideal</th>
+          <th class="text-end">Valor Tabela (R$)</th>
+          <th>Status</th>
         </tr>
       </thead>
       <tbody>
         {% for u in grupo.dados.unidades %}
         <tr>
           <td>{{ u.bloco.nome }}</td>
-          <td>{{ u.numero_display }}</td>
+          <td class="fw-semibold">{{ u.numero_display }}</td>
+          <td>{{ u.get_tipo_display }}</td>
           <td>{{ u.tipologia|default:"—" }}</td>
+          <td>{{ u.localizacao|default:"—" }}</td>
           <td class="text-end">{{ u.area_privativa|floatformat:2 }}</td>
+          <td class="text-end">{{ u.area_privativa_acessoria|floatformat:2 }}</td>
+          <td class="text-end">{{ u.area_comum|floatformat:2 }}</td>
+          <td class="text-end">{{ u.area_total|floatformat:2 }}</td>
+          <td class="text-end">{{ u.fracao_ideal|floatformat:6 }}</td>
           <td class="text-end">{{ u.valor_tabela|format_real }}</td>
+          <td>{{ u.get_status_display }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" class="text-muted small">Nenhuma unidade.</td></tr>
+        <tr><td colspan="12" class="text-muted small">Nenhuma unidade.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -173,7 +187,7 @@
 
 <!-- ── Modal detalhes ── -->
 <div class="modal fade" id="detailModal" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header py-2">
         <h6 class="modal-title" id="detailModalTitle">Detalhes</h6>

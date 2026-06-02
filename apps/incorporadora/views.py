@@ -1722,6 +1722,7 @@ def unidade_list_pdf(request, bloco_pk):
     zero = Decimal('0')
     campos = ['area_privativa', 'area_privativa_acessoria', 'area_comum', 'fracao_ideal', 'valor_tabela']
     tots = {c: sum((getattr(u, c) for u in unidades), zero) for c in campos}
+    tots['area_total'] = tots['area_privativa'] + tots['area_privativa_acessoria'] + tots['area_comum']
 
     C_HDR   = colors.HexColor('#A7A3AB')
     C_ALT   = colors.HexColor('#f7f7f7')
@@ -1741,7 +1742,7 @@ def unidade_list_pdf(request, bloco_pk):
     sTL = ps('tl', font='Helvetica-Bold', size=9, color=C_WHITE)
     sTR = ps('tr', font='Helvetica-Bold', size=9, color=C_WHITE, align=TA_RIGHT)
 
-    CW = [17*mm, 20*mm, 35*mm, 38*mm, 23*mm, 29*mm, 23*mm, 24*mm, 30*mm, 28*mm]
+    CW = [15*mm, 18*mm, 30*mm, 30*mm, 22*mm, 25*mm, 22*mm, 22*mm, 20*mm, 28*mm, 25*mm]
 
     def fmt_dec(v, places=2):
         return f'{float(v):.{places}f}'
@@ -1771,6 +1772,7 @@ def unidade_list_pdf(request, bloco_pk):
         Paragraph('Área Priv. (m²)', sHR),
         Paragraph('Área Priv. Acess. (m²)', sHR),
         Paragraph('Área Comum (m²)', sHR),
+        Paragraph('Área Total (m²)', sHR),
         Paragraph('Fração Ideal', sHR),
         Paragraph('Valor Tabela (R$)', sHR),
         Paragraph('Status', sH),
@@ -1784,6 +1786,7 @@ def unidade_list_pdf(request, bloco_pk):
             Paragraph(fmt_dec(u.area_privativa), sR),
             Paragraph(fmt_dec(u.area_privativa_acessoria), sR),
             Paragraph(fmt_dec(u.area_comum), sR),
+            Paragraph(fmt_dec(u.area_total), sR),
             Paragraph(fmt_dec(u.fracao_ideal, 6), sR),
             Paragraph(fmt_dec(u.valor_tabela), sR),
             Paragraph(u.get_status_display(), sN),
@@ -1797,6 +1800,7 @@ def unidade_list_pdf(request, bloco_pk):
             Paragraph(fmt_dec(tots['area_privativa']), sSR),
             Paragraph(fmt_dec(tots['area_privativa_acessoria']), sSR),
             Paragraph(fmt_dec(tots['area_comum']), sSR),
+            Paragraph(fmt_dec(tots['area_total']), sSR),
             Paragraph(fmt_dec(tots['fracao_ideal'], 6), sSR),
             Paragraph(fmt_dec(tots['valor_tabela']), sSR),
             '',
