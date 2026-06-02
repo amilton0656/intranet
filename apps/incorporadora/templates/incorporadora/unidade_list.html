@@ -107,7 +107,6 @@
           <th class="text-end">Área Priv. (m²)</th>
           <th class="text-end">Área Priv. Acess. (m²)</th>
           <th class="text-end">Área Comum (m²)</th>
-          <th class="text-end">Área Total (m²)</th>
           <th class="text-end">Fração Ideal</th>
           <th class="text-end">Valor Tabela (R$)</th>
           <th>Status</th>
@@ -127,7 +126,6 @@
           <td class="text-end">{{ u.area_privativa|dec }}</td>
           <td class="text-end">{{ u.area_privativa_acessoria|dec }}</td>
           <td class="text-end">{{ u.area_comum|dec }}</td>
-          <td class="text-end">{{ u.area_total|dec }}</td>
           <td class="text-end">{{ u.fracao_ideal|dec:6 }}</td>
           <td class="text-end">{{ u.valor_tabela|brl }}</td>
           <td>
@@ -154,7 +152,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="12" class="text-center text-muted py-4">
+          <td colspan="11" class="text-center text-muted py-4">
             <i class="bi bi-inbox me-2"></i>Nenhuma unidade cadastrada.
           </td>
         </tr>

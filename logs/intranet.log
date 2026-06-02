@@ -760,11 +760,3 @@ Traceback (most recent call last):
     ) from e
 ValueError: Field 'id' expected a number but got ''.
 2026-05-28 13:42:00,548 ERROR django.server "POST /contratos/gerar/PROP-2026-0001/ HTTP/1.1" 500 152526
-2026-05-29 19:41:42,348 WARNING django.request Not Found: /favicon.ico
-2026-05-29 19:41:42,348 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5229
-2026-05-30 07:25:29,129 WARNING django.request Not Found: /favicon.ico
-2026-05-30 07:25:29,135 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5229
-2026-05-30 13:23:39,602 WARNING django.request Not Found: /favicon.ico
-2026-05-30 13:23:39,603 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5229
-2026-05-31 18:22:20,724 WARNING django.request Not Found: /favicon.ico
-2026-05-31 18:22:20,725 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5229
