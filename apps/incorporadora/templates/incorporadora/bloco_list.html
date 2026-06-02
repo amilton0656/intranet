@@ -256,7 +256,7 @@
                 <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="modo" value="substituir" id="modoSubstituir">
                 <div>
                   <div class="fw-semibold text-danger" style="font-size:0.85rem;">Substituir tudo</div>
-                  <div class="text-muted" style="font-size:0.78rem;">Remove <strong>todas</strong> as unidades, vínculos e itens de tabela de vendas do empreendimento e reimporta do zero.</div>
+                  <div class="text-muted" style="font-size:0.78rem;">Remove <strong>todas</strong> as unidades, vínculos, itens de tabela de vendas e vínculos de propostas do empreendimento e reimporta do zero.</div>
                 </div>
               </label>
             </div>
@@ -307,7 +307,7 @@ document.querySelectorAll('input[name="modo"]').forEach(r => {
 document.getElementById('btnImportarUnidades').closest('form').addEventListener('submit', function(e) {
   const modo = this.querySelector('input[name="modo"]:checked').value;
   if (modo === 'substituir') {
-    if (!confirm('Atenção: todas as unidades, vínculos e itens de tabela de vendas deste empreendimento serão excluídos antes da importação.\n\nDeseja continuar?')) {
+    if (!confirm('Atenção: todas as unidades, vínculos, itens de tabela de vendas e vínculos de propostas deste empreendimento serão excluídos antes da importação.\n\nDeseja continuar?')) {
       e.preventDefault();
     }
   }
