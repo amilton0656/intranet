@@ -484,10 +484,12 @@ def empreendimento_relatorio_pdf(request, pk):
     blocos = empreendimento.blocos.order_by('ordem', 'nome')
 
     zero = Decimal('0')
-    campos = ['area_privativa', 'area_comum', 'fracao_ideal', 'valor_tabela']
+    campos = ['area_privativa', 'area_privativa_acessoria', 'area_comum', 'fracao_ideal', 'valor_tabela']
 
     def calcular_totais(uns):
-        return {c: sum((getattr(u, c) for u in uns), zero) for c in campos}
+        tots = {c: sum((getattr(u, c) for u in uns), zero) for c in campos}
+        tots['area_total'] = tots['area_privativa'] + tots['area_privativa_acessoria'] + tots['area_comum']
+        return tots
 
     blocos_data = []
     for bloco in blocos:
@@ -517,10 +519,8 @@ def empreendimento_relatorio_pdf(request, pk):
     sTL = ps('tl', font='Helvetica-Bold', size=9,  color=C_WHITE)
     sTR = ps('tr', font='Helvetica-Bold', size=9,  color=C_WHITE, align=TA_RIGHT)
 
-    # ── larguras das colunas (total = 267mm) ──
-    # Nº | Tipo | Tipologia | Localização | ÁPriv | ÁComum | Fração | Valor | Status
-    CW = [19*mm, 20*mm, 45*mm, 48*mm, 23*mm, 23*mm, 24*mm, 37*mm, 28*mm]
-    # 19+20+45+48+23+23+24+37+28 = 267mm
+    # Nº | Tipo | Tipologia | Localização | ÁPriv | ÁPrivAcess | ÁComum | ÁTotal | Fração | Valor | Status
+    CW = [16.5*mm, 20*mm, 30*mm, 30*mm, 22*mm, 25*mm, 22*mm, 22*mm, 20*mm, 28*mm, 20*mm]
 
     def fmt_dec(v, places=2):
         return f'{float(v):.{places}f}'
@@ -532,7 +532,9 @@ def empreendimento_relatorio_pdf(request, pk):
             Paragraph('Tipologia', sH),
             Paragraph('Localização', sH),
             Paragraph('Área Priv. (m²)', sHR),
+            Paragraph('Área Priv. Acess. (m²)', sHR),
             Paragraph('Área Comum (m²)', sHR),
+            Paragraph('Área Total (m²)', sHR),
             Paragraph('Fração Ideal', sHR),
             Paragraph('Valor Tabela (R$)', sHR),
             Paragraph('Status', sH),
@@ -574,7 +576,9 @@ def empreendimento_relatorio_pdf(request, pk):
                 Paragraph(u.tipologia or '', sN),
                 Paragraph(u.localizacao or '', sN),
                 Paragraph(fmt_dec(u.area_privativa), sR),
+                Paragraph(fmt_dec(u.area_privativa_acessoria), sR),
                 Paragraph(fmt_dec(u.area_comum), sR),
+                Paragraph(fmt_dec(u.area_total), sR),
                 Paragraph(fmt_dec(u.fracao_ideal, 6), sR),
                 Paragraph(fmt_dec(u.valor_tabela), sR),
                 Paragraph(u.get_status_display(), sN),
@@ -583,7 +587,9 @@ def empreendimento_relatorio_pdf(request, pk):
         data.append([
             Paragraph(f'Subtotal — {bloco.nome}', sSL), '', '', '',
             Paragraph(fmt_dec(tots['area_privativa']), sSR),
+            Paragraph(fmt_dec(tots['area_privativa_acessoria']), sSR),
             Paragraph(fmt_dec(tots['area_comum']), sSR),
+            Paragraph(fmt_dec(tots['area_total']), sSR),
             Paragraph(fmt_dec(tots['fracao_ideal'], 6), sSR),
             Paragraph(fmt_dec(tots['valor_tabela']), sSR),
             '',
@@ -614,7 +620,9 @@ def empreendimento_relatorio_pdf(request, pk):
         tdata = [[
             Paragraph(f'TOTAL GERAL — {len(todas)} unidade(s)', sTL), '', '', '',
             Paragraph(fmt_dec(tg['area_privativa']), sTR),
+            Paragraph(fmt_dec(tg['area_privativa_acessoria']), sTR),
             Paragraph(fmt_dec(tg['area_comum']), sTR),
+            Paragraph(fmt_dec(tg['area_total']), sTR),
             Paragraph(fmt_dec(tg['fracao_ideal'], 6), sTR),
             Paragraph(fmt_dec(tg['valor_tabela']), sTR),
             '',
