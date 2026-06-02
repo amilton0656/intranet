@@ -760,3 +760,63 @@ Traceback (most recent call last):
     ) from e
 ValueError: Field 'id' expected a number but got ''.
 2026-05-28 13:42:00,548 ERROR django.server "POST /contratos/gerar/PROP-2026-0001/ HTTP/1.1" 500 152526
+2026-05-29 08:00:53,346 WARNING django.request Not Found: /favicon.ico
+2026-05-29 08:00:53,349 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5229
+2026-06-01 12:20:14,766 WARNING django.request Not Found: /favicon.ico
+2026-06-01 12:20:14,769 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5229
+2026-06-01 12:21:25,508 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=4f1912e7e41512cdc74ef0990ca5899e58beccf3b96d6fb615239e2b05ed5a91 registros=1366
+2026-06-01 12:22:07,980 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=59dadd466ec1cedb7cd7d3023942a60c5becb4c32d36e7ebdde30b67691bf9b4 registros=47
+2026-06-01 12:24:32,237 INFO apps.cota365.views cota365 import ok | tipo=tabela arquivo=tabela.csv sha256=d0570df03768f5284df64f88cee2fb56b19be1bc7d1068ae042d324af33b0137 registros=180
+2026-06-01 12:24:50,765 INFO apps.cota365.views cota365 import ok | tipo=vendas arquivo=vendas.csv sha256=4a70acd8c5e31e4e24940ee70fbbbcef8ebedcc8f98ff6518afeacd08af11f18 registros=31
+2026-06-01 12:25:01,697 INFO apps.cota365.views cota365 import ok | tipo=fluxo arquivo=fluxo.csv sha256=bf862ac5f031340a00eefcb84a61730a970b8331b8fe22c854afa37055c381fa registros=31
+2026-06-01 12:25:12,042 INFO apps.cota365.views cota365 import ok | tipo=comissoes arquivo=comissoes.csv sha256=d6ba85aee73a42ca3b6f6245dbbec3da17e0157571f82473c8375508665c8ee1 registros=3
+2026-06-02 08:01:30,235 WARNING django.request Not Found: /favicon.ico
+2026-06-02 08:01:30,237 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5229
+2026-06-02 09:15:44,615 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=1e07f1cc2a256d351f6bd20c782e7bc60f4967d9cb8d67dad49912d879603da1 registros=1413
+2026-06-02 09:16:32,038 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=b9bc28c585ceedc0ffc85baf84ae8c04a7eda86d072d2dfaa17eba80a1264b42 registros=48
+2026-06-02 09:16:54,375 INFO apps.cota365.views cota365 import ok | tipo=tabela arquivo=tabela.csv sha256=6808c57fbf12b6736c2315ed76b82f9b46da5f0d83e8a4638f0d2581701e6e6f registros=180
+2026-06-02 09:17:05,912 INFO apps.cota365.views cota365 import ok | tipo=vendas arquivo=vendas.csv sha256=7a2e81e9fcd8d4b4dfee8ad72e5bfec0659d71d8731c670636cb38ffbf5453bf registros=32
+2026-06-02 09:17:16,512 INFO apps.cota365.views cota365 import ok | tipo=fluxo arquivo=fluxo.csv sha256=5d70fb27923f4b8d867cc747df2c4828b9354a375e3fd852a8f0d9b501ca6fe3 registros=32
+2026-06-02 09:17:26,593 INFO apps.cota365.views cota365 import ok | tipo=comissoes arquivo=comissoes.csv sha256=6aca2af44efb8e98de4e687e7f1e37a6fb5274ab87aaaad375fde0c2f1c46e13 registros=1
+2026-06-02 11:13:59,088 WARNING django.request Not Found: /favicon.ico
+2026-06-02 11:13:59,150 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5229
+2026-06-02 11:49:17,476 ERROR django.request Internal Server Error: /incorporadora/empreendimentos/2/unidades/importar-csv/
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\newway\intranet\apps\incorporadora\views.py", line 1290, in unidade_import_empreendimento_csv
+    Unidade.objects.filter(bloco__empreendimento=empreendimento).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 1198, in delete
+    collector.collect(del_query)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\deletion.py", line 350, in collect
+    raise ProtectedError(
+    ...<7 lines>...
+    )
+django.db.models.deletion.ProtectedError: ("Cannot delete some instances of model 'Unidade' because they are referenced through protected foreign keys: 'ItemTabelaVendas.unidade'.", {<ItemTabelaVendas: BLISS LIVING — Maio/2026 — 101-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 102-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 103-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 104-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 105-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 106-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 201-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 202-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 203-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 204-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 205-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 206-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 301-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 302-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 303-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 304-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 305-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 306-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 401-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 402-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 403-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 404-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 405-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 406-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 501-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 502-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 503-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 504-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 505-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 506-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 601-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 602-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 603-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 604-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 605-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 606-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 701-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 702-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 703-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 704-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 705-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 706-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 801-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 802-SUN>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — Loja>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 101-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 102-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 103-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 104-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 105-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 201-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 202-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 203-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 204-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 205-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 301-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 302-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 303-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 304-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 305-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 401-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 402-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 403-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 404-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 405-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 501-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 502-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 503-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 504-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 505-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 601-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 602-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 603-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 604-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 605-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 701-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 702-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 703-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 704-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 705-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 801-SHINE>, <ItemTabelaVendas: BLISS LIVING — Maio/2026 — 802-SHINE>})
+2026-06-02 11:49:17,484 ERROR django.server "POST /incorporadora/empreendimentos/2/unidades/importar-csv/ HTTP/1.1" 500 157472
+2026-06-02 12:45:23,538 ERROR django.request Internal Server Error: /incorporadora/empreendimentos/1/unidades/importar-csv/
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\newway\intranet\apps\incorporadora\views.py", line 1292, in unidade_import_empreendimento_csv
+    Unidade.objects.filter(bloco__empreendimento=empreendimento).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\query.py", line 1198, in delete
+    collector.collect(del_query)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\db\models\deletion.py", line 350, in collect
+    raise ProtectedError(
+    ...<7 lines>...
+    )
+django.db.models.deletion.ProtectedError: ("Cannot delete some instances of model 'Unidade' because they are referenced through protected foreign keys: 'UnidadeProposta.unidade'.", {<UnidadeProposta: PROP-2026-0001 — COTA 365 — Único — 1102>, <UnidadeProposta: PROP-2026-0002 — COTA 365 — Único — 210>, <UnidadeProposta: PROP-2026-0001 — COTA 365 — Único — 1010>, <UnidadeProposta: PROP-2026-0001 — COTA 365 — Único — G65>, <UnidadeProposta: PROP-2026-0001 — COTA 365 — Único — HB70>})
+2026-06-02 12:45:23,545 ERROR django.server "POST /incorporadora/empreendimentos/1/unidades/importar-csv/ HTTP/1.1" 500 135347
