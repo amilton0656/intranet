@@ -51,7 +51,10 @@ def _get_bliss_info():
             grp_n[g] = grp_n.get(g, 0) + row['n']
 
         apt_bloco_ids = set(apts_qs.values_list('bloco_id', flat=True))
-        blocos_res = list(Bloco.objects.filter(id__in=apt_bloco_ids).order_by('ordem').values_list('nome', flat=True))
+        blocos_res = list(Bloco.objects.filter(id__in=apt_bloco_ids)
+                          .exclude(nome__icontains='garagem')
+                          .exclude(nome__icontains='hobby')
+                          .order_by('ordem').values_list('nome', flat=True))
 
         return {
             'blocos':         _fmt_blocos(blocos_res),
@@ -106,7 +109,10 @@ def _get_cota365_info():
         apt_bloco_ids = set(IncUnidade.objects.filter(
             bloco__empreendimento=emp_inc, tipo='apartamento'
         ).values_list('bloco_id', flat=True))
-        blocos_res = list(IncBloco.objects.filter(id__in=apt_bloco_ids).order_by('ordem').values_list('nome', flat=True))
+        blocos_res = list(IncBloco.objects.filter(id__in=apt_bloco_ids)
+                          .exclude(nome__icontains='garagem')
+                          .exclude(nome__icontains='hobby')
+                          .order_by('ordem').values_list('nome', flat=True))
 
         return {
             'blocos':        _fmt_blocos(blocos_res),
