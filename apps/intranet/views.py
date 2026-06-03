@@ -3,8 +3,125 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Group
 from django.contrib import messages
+from django.db.models import Count, Min, Max
 from django.shortcuts import render, redirect, get_object_or_404
 from uteis import Uteis
+
+
+def _fmt_blocos(nomes):
+    if not nomes:       return '—'
+    if len(nomes) == 1: return nomes[0]
+    if len(nomes) == 2: return f"{nomes[0]} e {nomes[1]}"
+    return ', '.join(nomes[:-1]) + f' e {nomes[-1]}'
+
+
+def _get_bliss_info():
+    try:
+        from apps.incorporadora.models import Unidade, Bloco, Empreendimento
+        from django.db.models import Sum
+
+        def fmt(v):
+            return f"{float(v):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+
+        def _grupo(t):
+            if not t: return 'Outros'
+            tl = t.lower()
+            if '2d' in tl: return '2D'
+            if '3d' in tl: return '3D'
+            if 'loja' in tl: return 'Loja'
+            return 'Outros'
+
+        bliss = Empreendimento.objects.get(nome='BLISS LIVING')
+        blocos = Bloco.objects.filter(empreendimento=bliss)
+        qs = Unidade.objects.filter(bloco__in=blocos)
+
+        areas = qs.aggregate(
+            ap=Sum('area_privativa'),
+            aa=Sum('area_privativa_acessoria'),
+            ac=Sum('area_comum'),
+        )
+        ap = float(areas['ap'] or 0)
+        aa = float(areas['aa'] or 0)
+        ac = float(areas['ac'] or 0)
+
+        grp_n = {}
+        apts_qs = qs.filter(tipo='apartamento')
+        for row in apts_qs.values('tipologia').annotate(n=Count('id')):
+            g = _grupo(row['tipologia'])
+            grp_n[g] = grp_n.get(g, 0) + row['n']
+
+        apt_bloco_ids = set(apts_qs.values_list('bloco_id', flat=True))
+        blocos_res = list(Bloco.objects.filter(id__in=apt_bloco_ids).order_by('ordem').values_list('nome', flat=True))
+
+        return {
+            'blocos':         _fmt_blocos(blocos_res),
+            'd2_count':       grp_n.get('2D', 0),
+            'd3_count':       grp_n.get('3D', 0),
+            'loja_count':     qs.filter(tipo='loja').count(),
+            'vagas_count':    qs.filter(tipo='garagem').count(),
+            'hb_count':       qs.filter(tipo='hobby_box').count(),
+            'area_priv':      f"{fmt(ap)} m²",
+            'area_priv_acess':f"{fmt(aa)} m²",
+            'area_comum':     f"{fmt(ac)} m²",
+            'area_total':     f"{fmt(ap + aa + ac)} m²",
+        }
+    except Exception:
+        return None
+
+
+def _get_cota365_info():
+    try:
+        from apps.cota365.models import Unidade, Tabela
+        from apps.incorporadora.models import Empreendimento as IncEmp, Unidade as IncUnidade
+        from collections import defaultdict
+
+        def fmt(v):
+            return f"{v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+
+        # Áreas: soma de todas as unidades (igual a _compute_areas do cota365)
+        qs = Unidade.objects.all()
+        area_priv       = sum(u.area_privativa       for u in qs)
+        area_priv_acess = sum(u.area_priv_acessoria  for u in qs)
+        area_comum      = sum(u.area_comum           for u in qs)
+        area_total      = area_priv + area_priv_acess + area_comum
+
+        # Contagem por grupo tipológico (igual ao resumo_tip do dashboard)
+        def _grupo(t):
+            tl = t.lower()
+            if 'studio' in tl: return 'Studio'
+            if 'loja'   in tl: return 'Loja'
+            return '2D'
+
+        grp_n = defaultdict(int)
+        for t in Tabela.objects.all():
+            if t.tipologia:
+                grp_n[_grupo(t.tipologia)] += 1
+
+        # Garagens e Hobby boxes (Unidade)
+        tipo_counts = {t['tipo']: t['n'] for t in Unidade.objects.values('tipo').annotate(n=Count('id'))}
+
+        # Blocos residenciais (incorporadora)
+        from apps.incorporadora.models import Bloco as IncBloco
+        emp_inc = IncEmp.objects.get(nome='COTA 365')
+        apt_bloco_ids = set(IncUnidade.objects.filter(
+            bloco__empreendimento=emp_inc, tipo='apartamento'
+        ).values_list('bloco_id', flat=True))
+        blocos_res = list(IncBloco.objects.filter(id__in=apt_bloco_ids).order_by('ordem').values_list('nome', flat=True))
+
+        return {
+            'blocos':        _fmt_blocos(blocos_res),
+            'd2_count':      grp_n.get('2D', 0),
+            'studio_count':  grp_n.get('Studio', 0),
+            'loja_count':    grp_n.get('Loja', 0),
+            'garagem_count': tipo_counts.get('Garagem', 0),
+            'hb_count':      tipo_counts.get('Hobby box', 0),
+            'area_priv':       f"{fmt(area_priv)} m²",
+            'area_priv_acess': f"{fmt(area_priv_acess)} m²",
+            'area_comum':      f"{fmt(area_comum)} m²",
+            'area_total':      f"{fmt(area_total)} m²",
+        }
+    except Exception:
+        return None
 
 GRUPOS_DISPONIVEIS = [
     ('admin',        'Admin',        'Acesso total — todos os menus'),
@@ -23,6 +140,8 @@ def intranet_home(request):
     context = {
         'cubs': cubs,
         'cubs_history': cubs_history,
+        'cota365_info': _get_cota365_info(),
+        'bliss_info':   _get_bliss_info(),
     }
 
     return render(request, 'intranet/intranet_home.html', context)
