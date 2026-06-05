@@ -38,9 +38,9 @@
     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalImportVinculos">
       <i class="bi bi-link-45deg me-1"></i>Importar Vínculos
     </button>
-    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalImportTabelaCV">
-      <i class="bi bi-table me-1"></i>Importar Tabela CV
-    </button>
+    <a href="{% url 'incorporadora:empreendimento_importar' pk=empreendimento.pk %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-cloud-upload me-1"></i>Importar
+    </a>
     <a href="{% url 'incorporadora:bloco_create' empreendimento_pk=empreendimento.pk %}" class="btn btn-primary btn-sm">
       <i class="bi bi-plus-lg me-1"></i>Novo Bloco
     </a>
@@ -182,41 +182,6 @@
             <p class="mb-1"><strong>unidade</strong> — número da unidade principal (ex: 101)</p>
             <p class="mb-1"><strong>vinculada</strong> — número da unidade auxiliar (ex: G01)</p>
             <p class="mb-0 text-muted">Todos os vínculos existentes serão substituídos.</p>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-upload me-1"></i>Importar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Importar Tabela CV -->
-<div class="modal fade" id="modalImportTabelaCV" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="post" action="{% url 'incorporadora:unidade_import_tabela_cv' empreendimento_pk=empreendimento.pk %}" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="modal-header">
-          <h5 class="modal-title"><i class="bi bi-table me-2"></i>Importar Tabela CV</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <p class="text-muted small mb-3">
-            Empreendimento: <strong>{{ empreendimento }}</strong>
-          </p>
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Arquivo CSV</label>
-            <input type="file" name="arquivo" class="form-control" accept=".csv" required>
-          </div>
-          <div class="alert alert-light border small mb-0">
-            <p class="fw-semibold mb-1">Colunas utilizadas (separadas por <code>;</code>):</p>
-            <code class="d-block mb-2" style="font-size:0.75rem;">UNIDADE; SITUAÇÃO; VALOR TOTAL</code>
-            <p class="mb-1">As unidades são identificadas pelo número (coluna <strong>UNIDADE</strong>).</p>
-            <p class="mb-1">Situações mapeadas: <strong>Disponível, Reservada, Vendida</strong>. "Bloqueada" mantém o status atual.</p>
-            <p class="mb-0 text-muted">Apenas <strong>Situação</strong> e <strong>Valor Total</strong> serão atualizados.</p>
           </div>
         </div>
         <div class="modal-footer">

@@ -48,6 +48,7 @@ urlpatterns = [
     path('empreendimentos/<int:pk>/resumo/',       views.empreendimento_resumo,       name='empreendimento_resumo'),
     path('empreendimentos/<int:pk>/resumo/pdf/',   views.empreendimento_resumo_pdf,   name='empreendimento_resumo_pdf'),
     path('empreendimentos/<int:pk>/resumo/email/', views.empreendimento_resumo_email, name='empreendimento_resumo_email'),
+    path('empreendimentos/importar/',             views.importar_redirect,           name='importar_redirect'),
     path('empreendimentos/<int:pk>/importar/',    views.empreendimento_importar,     name='empreendimento_importar'),
 
     # Excel / CSV

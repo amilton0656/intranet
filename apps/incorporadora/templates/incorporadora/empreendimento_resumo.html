@@ -132,6 +132,13 @@
     </table>
   </div>
 
+  {% if preco_medio_tipo %}
+  <div class="text-center py-2 px-4 rounded fw-bold"
+       style="background:#fff3cd; border:1px solid #ffc107; display:inline-block;">
+    Preço médio do tipo: {{ preco_medio_tipo|format_real }}
+  </div>
+  {% endif %}
+
 </div>
 
 <!-- ── Templates de detalhe por status ── -->

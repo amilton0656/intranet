@@ -787,7 +787,11 @@ def _build_empreendimento_resumo_context(empreendimento):
 
     unidades_principais = list(
         Unidade.objects
-        .filter(bloco__empreendimento=empreendimento, unidade_principal__isnull=True)
+        .filter(
+            bloco__empreendimento=empreendimento,
+            tipo__in=['apartamento', 'sala', 'loja'],
+            unidade_principal__isnull=True,
+        )
         .select_related('bloco')
         .order_by('bloco__ordem', 'bloco__nome', 'ordem', 'numero')
     )
@@ -888,13 +892,20 @@ def _build_empreendimento_resumo_context(empreendimento):
     }
     total_tipo['valor_m2'] = (total_tipo['valor'] / total_tipo['area']) if total_tipo['area'] else Decimal('0')
 
+    # Preço médio por unidade — apenas tipos sem loja (= valor disponível / qtde)
+    tipos_sem_loja = [d['dados'] for d in grupos_tipo if d['tipo'].lower() != 'loja']
+    qtde_tipos     = sum(d['qtde']  for d in tipos_sem_loja)
+    valor_tipos    = sum(d['valor'] for d in tipos_sem_loja)
+    preco_medio_tipo = (valor_tipos / qtde_tipos) if qtde_tipos else Decimal('0')
+
     return {
-        'empreendimento': empreendimento,
-        'grupos_status':  grupos_status,
-        'total':          total_s,
-        'grupos_tipo':    grupos_tipo,
-        'total_tipo':     total_tipo,
-        'data_geracao':   date.today(),
+        'empreendimento':  empreendimento,
+        'grupos_status':   grupos_status,
+        'total':           total_s,
+        'grupos_tipo':     grupos_tipo,
+        'total_tipo':      total_tipo,
+        'preco_medio_tipo': preco_medio_tipo,
+        'data_geracao':    date.today(),
     }
 
 
@@ -1574,6 +1585,10 @@ def unidade_import_tabela_cv(request, empreendimento_pk):
 
     if atualizadas:
         messages.success(request, f'{atualizadas} unidade(s) atualizadas com dados da tabela CV.')
+        if 'bliss' in empreendimento.nome.lower():
+            total = _aplicar_situacoes_fixas_bliss(empreendimento)
+            if total:
+                messages.info(request, f'{total} situação(ões) fixas aplicadas (Bliss Living).')
     elif not erros:
         messages.warning(request, 'Nenhuma unidade encontrada no arquivo.')
 
@@ -2762,6 +2777,57 @@ _IMPORTADORES = {
 }
 
 
+def _aplicar_situacoes_fixas_bliss(empreendimento) -> int:
+    """
+    Aplica situações fixas nas unidades do BLISS LIVING após importação de
+    tabela CV. Grava em Unidade.status (incorporadora_unidade), usando o
+    numero da unidade como chave.
+
+    A Loja tem permuta parcial de 12,826 %: perc_permuta é gravado para que
+    o resumo divida valor e área entre Permuta e a situação real da unidade.
+    """
+    from decimal import Decimal as D
+
+    _FIXAS = {
+        'qa': [
+            '201-SUN', '206-SUN',
+            '501-SHINE',
+        ],
+        'bloqueado': [
+            '306-SUN', '406-SUN',
+            '305-SHINE', '405-SHINE',
+        ],
+        'permuta': [
+            '101-SUN', '303-SUN', '505-SUN', '701-SUN', '802-SUN',
+            '102-SHINE', '302-SHINE', '401-SHINE', '703-SHINE',
+        ],
+    }
+    total = 0
+    for status, numeros in _FIXAS.items():
+        for numero in numeros:
+            total += Unidade.objects.filter(
+                bloco__empreendimento=empreendimento,
+                numero=numero,
+            ).update(status=status)
+
+    # Loja: permuta parcial de 12,826 % — o resumo divide valor/área
+    # entre Permuta (12,826 %) e a situação real vinda da tabela CV.
+    total += Unidade.objects.filter(
+        bloco__empreendimento=empreendimento,
+        tipo='loja',
+    ).update(perc_permuta=D('0.128260'))
+
+    return total
+
+
+@login_required
+def importar_redirect(request):
+    emp = Empreendimento.objects.order_by('nome').first()
+    if emp:
+        return redirect('incorporadora:empreendimento_importar', pk=emp.pk)
+    return redirect('incorporadora:empreendimento_list')
+
+
 @login_required
 def empreendimento_importar(request, pk):
     empreendimento = get_object_or_404(Empreendimento, pk=pk)
@@ -2794,6 +2860,10 @@ def empreendimento_importar(request, pk):
                 lista = ', '.join(nao_encontrados)
                 msg += f' Bloco(s) não encontrado(s): {lista}.'
             messages.success(request, msg)
+            if tipo == 'tabela_cv' and 'bliss' in empreendimento.nome.lower():
+                n_fixas = _aplicar_situacoes_fixas_bliss(empreendimento)
+                if n_fixas:
+                    messages.info(request, f'{n_fixas} situação(ões) fixas aplicadas (Bliss Living).')
         except Exception as e:
             messages.error(request, f'Erro na importação: {e}')
 
@@ -2807,5 +2877,6 @@ def empreendimento_importar(request, pk):
 
     return render(request, 'incorporadora/empreendimento_importar.html', {
         'empreendimento': empreendimento,
+        'empreendimentos': Empreendimento.objects.order_by('nome'),
         'logs': logs,
     })

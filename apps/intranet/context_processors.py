@@ -166,6 +166,7 @@ def navbar_links(request):
         show_propostas_menu = bool(group_names & {"admin", "incorporadora"})
         show_contratos_menu = bool(group_names & {"admin", "incorporadora"})
 
+
     return {
         "empreendimento_links": EMPREENDEDIMENTO_LINKS,
         "administrativo_links": ADMINISTRATIVO_LINKS,

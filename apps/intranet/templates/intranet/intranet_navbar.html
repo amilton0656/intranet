@@ -159,6 +159,8 @@
                         <li><a class="dropdown-item" href="{% url 'pessoas:pessoa_list' %}"><i class="bi bi-people me-2"></i>Pessoas</a></li>
                         <li><a class="dropdown-item" href="{% url 'propostas:proposta_list' %}"><i class="bi bi-file-earmark-text me-2"></i>Propostas</a></li>
                         <li><a class="dropdown-item" href="{% url 'contratos:minuta_list' %}"><i class="bi bi-file-earmark-ruled me-2"></i>Contratos</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'incorporadora:importar_redirect' %}"><i class="bi bi-cloud-upload me-2"></i>Importar</a></li>
                         {% endif %}
                         {% if show_admin_menu %}
                         {% if show_incorporadora_menu %}<li><hr class="dropdown-divider"></li>{% endif %}
