@@ -1561,11 +1561,11 @@ def dashboard(request):
             .annotate(total=Sum('vgv'))
     }
     com_por_imob = {
-        r['imobiliaria']: r['total']
+        r['imobiliaria']: r['total'] or 0.0
         for r in Comissao.objects
             .exclude(imobiliaria='')
             .values('imobiliaria')
-            .annotate(total=Sum('valor_comissao_pagar'))
+            .annotate(total=Sum('valor_comissao'))
     }
     all_imobs = set(cnt_por_imob) | set(vgv_por_imob)
     total_vgv_imob = sum(vgv_por_imob.values()) or 1.0
@@ -1957,11 +1957,11 @@ def export_dashboard(request):
             .annotate(total=Sum('vgv'))
     }
     com_por_imob = {
-        r['imobiliaria']: r['total']
+        r['imobiliaria']: r['total'] or 0.0
         for r in Comissao.objects
             .exclude(imobiliaria='')
             .values('imobiliaria')
-            .annotate(total=Sum('valor_comissao_pagar'))
+            .annotate(total=Sum('valor_comissao'))
     }
     all_imobs = set(cnt_por_imob) | set(vgv_por_imob)
     total_vgv_imob = sum(vgv_por_imob.values()) or 1.0
