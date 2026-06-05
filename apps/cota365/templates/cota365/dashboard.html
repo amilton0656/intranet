@@ -436,6 +436,16 @@
               <td class="text-end text-muted">{{ r.com_pct }}</td>
             </tr>
             {% endfor %}
+            {% if ranking_total %}
+            <tr style="font-weight:700; background:#f0f2f5; border-top:2px solid #dee2e6;">
+              <td>Total</td>
+              <td class="text-end">{{ ranking_total.n_vendas }}</td>
+              <td class="text-end">{{ ranking_total.vgv_fmt }}</td>
+              <td class="text-end text-muted">100%</td>
+              <td class="text-end">{{ ranking_total.com_fmt }}</td>
+              <td class="text-end text-muted">{{ ranking_total.com_pct }}</td>
+            </tr>
+            {% endif %}
           </tbody>
         </table>
       </div>

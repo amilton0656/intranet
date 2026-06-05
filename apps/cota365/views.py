@@ -1585,6 +1585,14 @@ def dashboard(request):
         key=lambda x: x['vgv'],
         reverse=True,
     )
+    _tot_vgv = sum(r['vgv'] for r in ranking_imobiliaria)
+    _tot_com = sum(com_por_imob.get(imob, 0.0) for imob in all_imobs)
+    ranking_total = {
+        'n_vendas': sum(r['n_vendas'] for r in ranking_imobiliaria),
+        'vgv_fmt':  _fmt_brl(_tot_vgv),
+        'com_fmt':  _fmt_brl(_tot_com),
+        'com_pct':  f"{_tot_com / _tot_vgv * 100:.1f}%" if _tot_vgv else '—',
+    }
 
     context = {
         'total_geral':          _fmt_brl(vgv_tabela),
@@ -1607,6 +1615,7 @@ def dashboard(request):
         'total_fluxo_fmt':      _fmt_brl(total_fluxo),
         'fluxo_mensal_rows':    fluxo_mensal_rows,
         'ranking_imobiliaria':  ranking_imobiliaria,
+        'ranking_total':        ranking_total,
     }
     return render(request, 'cota365/dashboard.html', context)
 
@@ -1980,6 +1989,8 @@ def export_dashboard(request):
         key=lambda x: x['vgv'],
         reverse=True,
     )
+    _tot_vgv = sum(r['vgv'] for r in ranking_imob)
+    _tot_com = sum(r['com'] for r in ranking_imob)
 
     if ranking_imob:
         story.append(Spacer(1, 10))
@@ -1991,8 +2002,17 @@ def export_dashboard(request):
              tdr(_fmt_brl(r['com'])), tdr(r['com_pct'])]
             for r in ranking_imob
         ]
+        _tot_com_pct = f"{_tot_com / _tot_vgv * 100:.1f}%" if _tot_vgv else '—'
+        rank_rows.append([
+            tdb('TOTAL'),
+            tdrb(str(sum(r['n_vendas'] for r in ranking_imob))),
+            tdrb(_fmt_brl(_tot_vgv)),
+            tdrb('100%'),
+            tdrb(_fmt_brl(_tot_com)),
+            tdrb(_tot_com_pct),
+        ])
         story.append(tbl(rank_header + rank_rows,
-                         [6.5*cm, 1.8*cm, 3.5*cm, 1.8*cm, 3.5*cm, 1.8*cm]))
+                         [6.5*cm, 1.8*cm, 3.5*cm, 1.8*cm, 3.5*cm, 1.8*cm], total_last=True))
 
     doc.build(story)
     buf.seek(0)
