@@ -1545,26 +1545,59 @@ def dashboard(request):
     ticket_medio  = total_vendido / n_contratos if n_contratos else 0
     vgv_liquido   = vgv_tabela - vgv_permuta
 
+    # ── Ranking por imobiliária ───────────────────────────────────────────────
+    cnt_por_imob = {
+        r['imobiliaria']: r['cnt']
+        for r in Venda.objects
+            .exclude(imobiliaria='')
+            .values('imobiliaria')
+            .annotate(cnt=Count('id'))
+    }
+    vgv_por_imob = {
+        r['imobiliaria']: r['total']
+        for r in FluxoContrato.objects
+            .exclude(imobiliaria='')
+            .values('imobiliaria')
+            .annotate(total=Sum('vgv'))
+    }
+    all_imobs = set(cnt_por_imob) | set(vgv_por_imob)
+    total_vgv_imob = sum(vgv_por_imob.values()) or 1.0
+    ranking_imobiliaria = sorted(
+        [
+            {
+                'imobiliaria': imob,
+                'n_vendas':    cnt_por_imob.get(imob, 0),
+                'vgv':         vgv_por_imob.get(imob, 0.0),
+                'vgv_fmt':     _fmt_brl(vgv_por_imob.get(imob, 0.0)),
+                'pct':         f"{vgv_por_imob.get(imob, 0.0) / total_vgv_imob * 100:.1f}%",
+            }
+            for imob in all_imobs
+        ],
+        key=lambda x: x['vgv'],
+        reverse=True,
+    )
+
     context = {
-        'total_geral':        _fmt_brl(vgv_tabela),
-        'vgv_liquido':        _fmt_brl(vgv_liquido),
-        'n_contratos':        n_contratos,
-        'ticket_medio':       _fmt_brl(ticket_medio),
-        'total_vendido':      _fmt_brl(total_vendido),
-        'area_priv':          _fmt_m2(area_priv),
-        'area_priv_acess':    _fmt_m2(area_priv_acess),
-        'total_priv':         _fmt_m2(total_priv),
-        'area_comum':         _fmt_m2(area_comum),
-        'area_total':         _fmt_m2(area_total),
-        'resumo_sit':         resumo_sit,
-        'resumo_sit_liquido': resumo_sit_liquido,
-        'resumo_tip':         resumo_tip,
-        'resumo_tip_estoque': resumo_tip_estoque,
-        'preco_medio_tipo':   preco_medio_tipo,
-        'preco_medio_estoque':preco_medio_estoque,
-        'receita_por_ano':    receita_por_ano,
-        'total_fluxo_fmt':    _fmt_brl(total_fluxo),
-        'fluxo_mensal_rows':  fluxo_mensal_rows,
+        'total_geral':          _fmt_brl(vgv_tabela),
+        'vgv_liquido':          _fmt_brl(vgv_liquido),
+        'n_contratos':          n_contratos,
+        'ticket_medio':         _fmt_brl(ticket_medio),
+        'total_vendido':        _fmt_brl(total_vendido),
+        'area_priv':            _fmt_m2(area_priv),
+        'area_priv_acess':      _fmt_m2(area_priv_acess),
+        'total_priv':           _fmt_m2(total_priv),
+        'area_comum':           _fmt_m2(area_comum),
+        'area_total':           _fmt_m2(area_total),
+        'resumo_sit':           resumo_sit,
+        'resumo_sit_liquido':   resumo_sit_liquido,
+        'resumo_tip':           resumo_tip,
+        'resumo_tip_estoque':   resumo_tip_estoque,
+        'preco_medio_tipo':     preco_medio_tipo,
+        'preco_medio_estoque':  preco_medio_estoque,
+        'receita_por_ano':      receita_por_ano,
+        'total_fluxo_fmt':      _fmt_brl(total_fluxo),
+        'fluxo_mensal_rows':    fluxo_mensal_rows,
+        'ranking_imobiliaria':  ranking_imobiliaria,
     }
     return render(request, 'cota365/dashboard.html', context)
 
@@ -1898,6 +1931,49 @@ def export_dashboard(request):
             ('RIGHTPADDING',  (0, 0),           (-1, -1),          4),
         ]))
         story.append(sum_table)
+
+    # ── Ranking por imobiliária ───────────────────────────────────────────────
+    cnt_por_imob = {
+        r['imobiliaria']: r['cnt']
+        for r in Venda.objects
+            .exclude(imobiliaria='')
+            .values('imobiliaria')
+            .annotate(cnt=Count('id'))
+    }
+    vgv_por_imob = {
+        r['imobiliaria']: r['total']
+        for r in FluxoContrato.objects
+            .exclude(imobiliaria='')
+            .values('imobiliaria')
+            .annotate(total=Sum('vgv'))
+    }
+    all_imobs = set(cnt_por_imob) | set(vgv_por_imob)
+    total_vgv_imob = sum(vgv_por_imob.values()) or 1.0
+    ranking_imob = sorted(
+        [
+            {
+                'imobiliaria': imob,
+                'n_vendas':    cnt_por_imob.get(imob, 0),
+                'vgv':         vgv_por_imob.get(imob, 0.0),
+                'pct':         f"{vgv_por_imob.get(imob, 0.0) / total_vgv_imob * 100:.1f}%",
+            }
+            for imob in all_imobs
+        ],
+        key=lambda x: x['vgv'],
+        reverse=True,
+    )
+
+    if ranking_imob:
+        story.append(Spacer(1, 10))
+        story.append(Paragraph('Ranking de Vendas por Imobiliária', sec_s))
+        rank_header = [[th('#'), th('IMOBILIÁRIA'), th('VENDAS'), th('VGV'), th('%')]]
+        rank_rows = [
+            [tdc(str(i + 1)), td(r['imobiliaria']), tdr(str(r['n_vendas'])),
+             tdrb(_fmt_brl(r['vgv'])), tdr(r['pct'])]
+            for i, r in enumerate(ranking_imob)
+        ]
+        story.append(tbl(rank_header + rank_rows,
+                         [1*cm, 8.5*cm, 2*cm, 4*cm, 2*cm]))
 
     doc.build(story)
     buf.seek(0)
