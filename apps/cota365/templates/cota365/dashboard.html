@@ -417,21 +417,21 @@
         <table class="table top-table mb-0">
           <thead>
             <tr>
-              <th style="width:2.5rem;">#</th>
               <th>Imobiliária</th>
               <th class="text-end">Vendas</th>
               <th class="text-end">VGV</th>
               <th class="text-end">%</th>
+              <th class="text-end">Comissões</th>
             </tr>
           </thead>
           <tbody>
             {% for r in ranking_imobiliaria %}
             <tr>
-              <td class="text-muted">{{ forloop.counter }}</td>
               <td class="fw-semibold">{{ r.imobiliaria }}</td>
               <td class="text-end">{{ r.n_vendas }}</td>
               <td class="text-end fw-bold">{{ r.vgv_fmt }}</td>
               <td class="text-end text-muted">{{ r.pct }}</td>
+              <td class="text-end">{{ r.com_fmt }}</td>
             </tr>
             {% endfor %}
           </tbody>
