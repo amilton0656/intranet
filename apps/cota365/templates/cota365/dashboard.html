@@ -422,6 +422,7 @@
               <th class="text-end">VGV</th>
               <th class="text-end">%</th>
               <th class="text-end">Comissões</th>
+              <th class="text-end">% Com.</th>
             </tr>
           </thead>
           <tbody>
@@ -432,6 +433,7 @@
               <td class="text-end fw-bold">{{ r.vgv_fmt }}</td>
               <td class="text-end text-muted">{{ r.pct }}</td>
               <td class="text-end">{{ r.com_fmt }}</td>
+              <td class="text-end text-muted">{{ r.com_pct }}</td>
             </tr>
             {% endfor %}
           </tbody>

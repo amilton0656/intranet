@@ -1578,6 +1578,7 @@ def dashboard(request):
                 'vgv_fmt':     _fmt_brl(vgv_por_imob.get(imob, 0.0)),
                 'pct':         f"{vgv_por_imob.get(imob, 0.0) / total_vgv_imob * 100:.1f}%",
                 'com_fmt':     _fmt_brl(com_por_imob.get(imob, 0.0)),
+                'com_pct':     f"{com_por_imob.get(imob, 0.0) / vgv_por_imob.get(imob, 1.0) * 100:.1f}%" if vgv_por_imob.get(imob) else '—',
             }
             for imob in all_imobs
         ],
@@ -1972,6 +1973,7 @@ def export_dashboard(request):
                 'vgv':         vgv_por_imob.get(imob, 0.0),
                 'pct':         f"{vgv_por_imob.get(imob, 0.0) / total_vgv_imob * 100:.1f}%",
                 'com':         com_por_imob.get(imob, 0.0),
+                'com_pct':     f"{com_por_imob.get(imob, 0.0) / vgv_por_imob.get(imob, 1.0) * 100:.1f}%" if vgv_por_imob.get(imob) else '—',
             }
             for imob in all_imobs
         ],
@@ -1982,14 +1984,15 @@ def export_dashboard(request):
     if ranking_imob:
         story.append(Spacer(1, 10))
         story.append(Paragraph('Ranking de Vendas por Imobiliária', sec_s))
-        rank_header = [[th('IMOBILIÁRIA'), th('VENDAS'), th('VGV'), th('%'), th('COMISSÕES')]]
+        rank_header = [[th('IMOBILIÁRIA'), th('VENDAS'), th('VGV'), th('%'), th('COMISSÕES'), th('% COM.')]]
         rank_rows = [
             [td(r['imobiliaria']), tdr(str(r['n_vendas'])),
-             tdrb(_fmt_brl(r['vgv'])), tdr(r['pct']), tdr(_fmt_brl(r['com']))]
+             tdrb(_fmt_brl(r['vgv'])), tdr(r['pct']),
+             tdr(_fmt_brl(r['com'])), tdr(r['com_pct'])]
             for r in ranking_imob
         ]
         story.append(tbl(rank_header + rank_rows,
-                         [8*cm, 2*cm, 4*cm, 2*cm, 4*cm]))
+                         [6.5*cm, 1.8*cm, 3.5*cm, 1.8*cm, 3.5*cm, 1.8*cm]))
 
     doc.build(story)
     buf.seek(0)
