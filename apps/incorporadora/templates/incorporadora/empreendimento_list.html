@@ -3,7 +3,7 @@
 {% block nav_empreendimentos %}active{% endblock %}
 
 {% block content %}
-<div class="page-header d-flex align-items-center justify-content-between">
+<div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2">
   <div>
     <h1><i class="bi bi-buildings me-2"></i>Empreendimentos</h1>
     <nav aria-label="breadcrumb">
@@ -14,7 +14,7 @@
   </div>
   <div class="d-flex gap-2">
     <a href="{% url 'incorporadora:empreendimento_create' %}" class="btn btn-primary btn-sm">
-      <i class="bi bi-plus-lg me-1"></i>Novo Empreendimento
+      <i class="bi bi-plus-lg me-1"></i><span class="d-none d-sm-inline">Novo Empreendimento</span>
     </a>
   </div>
 </div>
@@ -30,7 +30,8 @@
     {% endfor %}
   {% endif %}
 
-  <div class="data-table">
+  {# Tabela — visível em md+ #}
+  <div class="data-table d-none d-md-block">
     <table class="table table-hover mb-0">
       <thead>
         <tr>
@@ -103,6 +104,65 @@
       </tbody>
     </table>
   </div>
+
+  {# Cards — visível apenas em mobile (< md) #}
+  <div class="d-md-none">
+    {% for emp in empreendimentos %}
+    <div class="card mb-2 shadow-sm">
+      <div class="card-body py-3 px-3">
+        <div class="fw-semibold">{{ emp.nome }}</div>
+        <div class="text-muted small mt-1">{{ emp.empresa }}</div>
+        <div class="d-flex align-items-center justify-content-between mt-2">
+          <div>
+            {% if emp.status == 'planejamento' %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Planejamento</span>
+            {% elif emp.status == 'em_construcao' %}
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Em Construção</span>
+            {% else %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Entregue</span>
+            {% endif %}
+          </div>
+          <div class="d-flex gap-1">
+            <a href="{% url 'incorporadora:empreendimento_edit' emp.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{% url 'incorporadora:empreendimento_delete' emp.pk %}" class="btn btn-outline-danger btn-sm py-0 px-2">
+              <i class="bi bi-trash"></i>
+            </a>
+          </div>
+        </div>
+        <div class="d-flex flex-wrap gap-1 mt-2">
+          <a href="{% url 'incorporadora:bloco_list' empreendimento_pk=emp.pk %}" class="btn btn-outline-primary btn-sm py-0 px-2">
+            <i class="bi bi-grid me-1"></i>Blocos
+          </a>
+          <a href="{% url 'incorporadora:tabela_list' empreendimento_pk=emp.pk %}" class="btn btn-outline-primary btn-sm py-0 px-2" title="Tabelas de Vendas">
+            <i class="bi bi-table me-1"></i>Tabelas
+          </a>
+          <a href="{% url 'incorporadora:empreendimento_vinculos_pdf' pk=emp.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2" target="_blank" title="Vínculos PDF">
+            <i class="bi bi-link-45deg"></i>
+          </a>
+          <a href="{% url 'incorporadora:empreendimento_importar' pk=emp.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2" title="Importar dados">
+            <i class="bi bi-cloud-upload"></i>
+          </a>
+          <a href="{% url 'incorporadora:empreendimento_export_excel_pk' pk=emp.pk %}" class="btn btn-outline-success btn-sm py-0 px-2" title="Exportar Excel">
+            <i class="bi bi-file-earmark-excel"></i>
+          </a>
+          <a href="{% url 'incorporadora:empreendimento_resumo' pk=emp.pk %}" class="btn btn-outline-primary btn-sm py-0 px-2" title="Resumo de situações">
+            <i class="bi bi-bar-chart-line"></i>
+          </a>
+          <a href="{% url 'incorporadora:empreendimento_relatorio_pdf' pk=emp.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2" target="_blank" title="Relatório PDF">
+            <i class="bi bi-file-pdf"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-center text-muted py-4">
+      <i class="bi bi-inbox me-2"></i>Nenhum empreendimento cadastrado.
+    </div>
+    {% endfor %}
+  </div>
+
 </div>
 
 {% endblock %}
