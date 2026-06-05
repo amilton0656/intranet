@@ -155,7 +155,8 @@
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                         {% if show_incorporadora_menu %}
-                        <li><a class="dropdown-item" href="{% url 'incorporadora:empreendimento_list' %}"><i class="bi bi-buildings me-2"></i>Incorporadora</a></li>
+                        <li><a class="dropdown-item" href="{% url 'incorporadora:empresa_list' %}"><i class="bi bi-building me-2"></i>Empresas</a></li>
+                        <li><a class="dropdown-item" href="{% url 'incorporadora:empreendimento_list' %}"><i class="bi bi-buildings me-2"></i>Empreendimentos</a></li>
                         <li><a class="dropdown-item" href="{% url 'pessoas:pessoa_list' %}"><i class="bi bi-people me-2"></i>Pessoas</a></li>
                         <li><a class="dropdown-item" href="{% url 'propostas:proposta_list' %}"><i class="bi bi-file-earmark-text me-2"></i>Propostas</a></li>
                         <li><a class="dropdown-item" href="{% url 'contratos:minuta_list' %}"><i class="bi bi-file-earmark-ruled me-2"></i>Contratos</a></li>
