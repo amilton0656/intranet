@@ -184,6 +184,14 @@
           <form method="post" enctype="multipart/form-data" class="import-form">
             {% csrf_token %}
             <input type="hidden" name="tipo" value="{{ arq.tipo }}">
+            {% if arq.tipo == 'tabela' %}
+            <div class="mb-2">
+              <label class="form-label form-label-sm fw-semibold mb-1" style="font-size:0.8rem;">
+                <i class="bi bi-calendar-month me-1"></i>Competência (mês/ano)
+              </label>
+              <input type="month" class="form-control form-control-sm" name="competencia" required>
+            </div>
+            {% endif %}
             <div class="input-group">
               <input type="file" class="form-control form-control-sm" name="arquivo"
                      accept=".csv" required id="file-{{ arq.tipo }}">
@@ -192,6 +200,21 @@
               </button>
             </div>
           </form>
+
+          {% if arq.tipo == 'tabela' and competencias_tabela %}
+          <div class="mt-2">
+            <div class="text-muted mb-1" style="font-size:0.75rem;"><i class="bi bi-clock-history me-1"></i>Histórico importado:</div>
+            <div class="d-flex flex-wrap gap-1">
+              {% for c in competencias_tabela %}
+              <span class="badge {% if competencia_atual == c.competencia %}bg-primary{% else %}bg-secondary-subtle text-secondary border border-secondary-subtle{% endif %}"
+                    style="font-size:0.72rem;">
+                {{ c.competencia|date:"m/Y" }}
+                <span class="opacity-75 ms-1">{{ c.total }} un.</span>
+              </span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>

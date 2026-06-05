@@ -24,4 +24,6 @@ urlpatterns = [
     path('parcelas/export/', views.export_parcelas, name='export_parcelas'),
     path('importar/', views.importar, name='importar'),
     path('areas/comparativo/', views.export_areas_comparativo, name='export_areas_comparativo'),
+    path('descontos/', views.comparativo_valores, name='descontos'),
+    path('descontos/export/', views.export_descontos, name='export_descontos'),
 ]

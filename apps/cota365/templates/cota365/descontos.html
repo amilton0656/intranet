@@ -1,0 +1,159 @@
+{% extends 'cota365/base.html' %}
+{% block title %}Descontos — Cota 365{% endblock %}
+{% block nav_descontos %}active{% endblock %}
+
+{% block content %}
+<style>
+  .sort-link { color: inherit; text-decoration: none; }
+  .sort-link:hover { color: var(--accent); }
+  .sort-icon { font-size: 0.65rem; opacity: .4; }
+  .sort-icon-idle { opacity: .3; }
+  .sort-active .sort-icon { opacity: 1; color: var(--accent); }
+  .neg { color: #dc3545; font-weight: 700; }
+  .pos { color: #198754; font-weight: 700; }
+  .amount { font-variant-numeric: tabular-nums; }
+</style>
+
+<div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+  <div>
+    <h1><i class="bi bi-arrow-left-right me-2 text-primary"></i>Descontos</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'cota365:index' %}" class="text-decoration-none">Cota 365</a></li>
+        <li class="breadcrumb-item active">Descontos</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="text-muted" style="font-size:0.8rem;">
+    <i class="bi bi-table me-1"></i>Tabela vigente: <strong>{{ latest_comp }}</strong>
+    &nbsp;|&nbsp; {{ n }} unidades
+  </div>
+</div>
+
+<div class="main-content">
+
+  {% if messages %}
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <!-- Legenda -->
+  <div class="mb-3 p-3 rounded d-flex flex-wrap gap-3" style="background:#fff;border:1px solid #e2e6ea;font-size:0.78rem;">
+    <span><i class="bi bi-info-circle text-primary me-1"></i><strong>Tab. Mês Venda</strong> — preço na tabela do mês em que a unidade foi vendida</span>
+    <span><strong>Valor Contrato</strong> — valor da reserva/contrato (CSV de vendas)</span>
+    <span><strong>Desconto</strong> = Tab. Mês Venda − Valor Contrato</span>
+    <span><span class="neg">−%</span> abaixo da tabela &nbsp; <span class="pos">+%</span> acima da tabela</span>
+  </div>
+
+  <!-- Totalizadores -->
+  <div class="row g-2 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">Total Tab. Mês Venda</div>
+        <div class="value" style="font-size:1.05rem;">{{ tot_tab_mes }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">Total Contratos</div>
+        <div class="value" style="font-size:1.05rem;">{{ tot_contrato }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">Total Descontos</div>
+        <div class="value" style="font-size:1.05rem;">{{ tot_desconto }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">Contratos com descontos</div>
+        <div class="value" style="font-size:1.05rem;">{{ n }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabela -->
+  <div class="data-table">
+    <div class="d-flex justify-content-end align-items-center p-3 border-bottom">
+      <div class="export-btn-group d-flex gap-2">
+        <a href="{% url 'cota365:export_descontos' %}" class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+        </a>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0" style="font-size:0.83rem;">
+        <thead>
+          <tr>
+            {% for col, label in columns %}
+            <th class="{% if col in 'valor_contrato pct_mes vtm desconto' %}text-end{% endif %}">
+              <a href="?sort={{ col }}&dir={% if sort == col and sort_dir == 'asc' %}desc{% else %}asc{% endif %}"
+                 class="sort-link{% if sort == col %} sort-active{% endif %}">
+                {{ label }}
+                {% if sort == col %}
+                  {% if sort_dir == 'asc' %}<i class="bi bi-caret-up-fill sort-icon"></i>
+                  {% else %}<i class="bi bi-caret-down-fill sort-icon"></i>{% endif %}
+                {% else %}
+                  <i class="bi bi-caret-up sort-icon sort-icon-idle"></i>
+                {% endif %}
+              </a>
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td class="contract-num">#{{ r.numero }}</td>
+            <td class="fw-bold">{{ r.unidade }}</td>
+            <td>{{ r.cliente }}</td>
+            <td class="text-muted" style="white-space:nowrap;">
+              {{ r.data_venda }}<br>
+              <span style="font-size:0.72rem;">ref. {{ r.comp_mes }}</span>
+            </td>
+            <td class="text-end amount">
+              {% if r.vtm_fmt %}{{ r.vtm_fmt }}{% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="text-end amount fw-bold">{{ r.valor_contrato_fmt }}</td>
+            <td class="text-end amount {% if r.desconto_fmt %}{% if r.pct_mes_neg %}text-danger{% else %}text-success{% endif %}{% endif %}">
+              {% if r.desconto_fmt %}{{ r.desconto_fmt }}{% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="text-end">
+              {% if r.pct_mes_fmt %}
+                {% if r.pct_mes_neg %}<span class="neg">{{ r.pct_mes_fmt }}</span>
+                {% else %}<span class="pos">{{ r.pct_mes_fmt }}</span>{% endif %}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-5">
+              <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+              Nenhuma unidade vendida com valor de contrato importado.<br>
+              <small>Importe o arquivo <strong>vendas.csv</strong> incluindo as colunas
+              <code>Valor do contrato</code> e <code>Data de Venda</code>.</small>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        {% if rows %}
+        <tfoot>
+          <tr>
+            <td colspan="4" class="fw-bold">TOTAL</td>
+            <td class="text-end fw-bold">{{ tot_tab_mes }}</td>
+            <td class="text-end fw-bold">{{ tot_contrato }}</td>
+            <td class="text-end fw-bold">{{ tot_desconto }}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -163,8 +163,20 @@ def _open_csv(file_obj):
 # Leitura de dados — ORM
 # ---------------------------------------------------------------------------
 
+def _latest_competencia():
+    from django.db.models import Max
+    return Tabela.objects.aggregate(latest=Max('competencia'))['latest']
+
+
+def _tabela_qs(competencia=None):
+    lc = competencia or _latest_competencia()
+    if lc is None:
+        return Tabela.objects.none()
+    return Tabela.objects.filter(competencia=lc)
+
+
 def _load_tabela():
-    return {t.unidade: t.valor_total for t in Tabela.objects.all()}
+    return {t.unidade: t.valor_total for t in _tabela_qs()}
 
 
 def _load_permutas():
@@ -366,7 +378,7 @@ def _compute_resumos_tabela():
 
     permutas = _load_permutas()
 
-    for t in Tabela.objects.all():
+    for t in _tabela_qs():
         sit = 'Permuta' if t.unidade in permutas else t.situacao
         tip = t.tipologia
         sit_vt[sit] += t.valor_total
@@ -607,7 +619,9 @@ def _col(*names):
 
 
 @transaction.atomic
-def _import_tabela(file_obj, nome, sha256=''):
+def _import_tabela(file_obj, nome, sha256='', competencia=None):
+    if competencia is None:
+        raise ValueError('Selecione o mês/ano da competência antes de importar a tabela de preços.')
     f = _open_csv(file_obj)
     objs = []
     erros = []
@@ -622,6 +636,7 @@ def _import_tabela(file_obj, nome, sha256=''):
             continue
         objs.append(Tabela(
             unidade        = u,
+            competencia    = competencia,
             tipologia      = get_tipo(r).strip(),
             situacao       = get_sit(r).strip(),
             area_privativa = _parse_tabela_m2(get_area(r)),
@@ -631,11 +646,11 @@ def _import_tabela(file_obj, nome, sha256=''):
         raise ValueError('Nenhuma linha válida encontrada. Verifique o delimitador (;) e o cabeçalho.')
     if erros:
         raise ValueError(_erros_msg(erros))
-    Tabela.objects.all().delete()
+    Tabela.objects.filter(competencia=competencia).delete()
     Tabela.objects.bulk_create(objs)
     ImportLog.objects.create(tipo='tabela', total_registros=len(objs), nome_arquivo=nome, sha256=sha256)
     vgv = sum(o.valor_total for o in objs)
-    return len(objs), {'VGV total': _fmt_brl(vgv)}
+    return len(objs), {'Competência': competencia.strftime('%m/%Y'), 'VGV total': _fmt_brl(vgv)}
 
 
 @transaction.atomic
@@ -682,6 +697,8 @@ def _import_vendas(file_obj, nome, sha256=''):
     get_m2      = _col('M² da unidade', 'M2 da unidade', 'M da unidade')
     get_imob    = _col('Imobiliária', 'Imobiliaria', 'IMOBILIÁRIA')
     get_espacos = _col('Espaços complementares', 'Espacos complementares')
+    get_valor   = _col('Valor do contrato', 'Valor Contrato', 'VALOR DO CONTRATO')
+    get_data    = _col('Data de Venda', 'Data Venda', 'DATA DE VENDA', 'DATA VENDA')
     for row in csv.DictReader(f, delimiter=';'):
         reserva_raw = row.get('Reserva', '')
         if not reserva_raw.strip():
@@ -699,21 +716,26 @@ def _import_vendas(file_obj, nome, sha256=''):
             cliente = m.group(1) if m else cliente_raw.strip()
         else:
             cliente = cliente_raw.strip()
+        data_venda_dt = _parse_date(get_data(row))
+        data_venda = date(data_venda_dt.year, data_venda_dt.month, data_venda_dt.day) if data_venda_dt else None
         objs.append(Venda(
-            numero      = reserva,
-            situacao    = get_sit(row).strip(),
-            unidade     = row.get('Unidade', '').strip(),
-            m2          = get_m2(row).strip(),
-            cliente     = cliente,
-            imobiliaria = get_imob(row).strip(),
-            espacos     = get_espacos(row).strip(),
+            numero          = reserva,
+            situacao        = get_sit(row).strip(),
+            unidade         = row.get('Unidade', '').strip(),
+            m2              = get_m2(row).strip(),
+            cliente         = cliente,
+            imobiliaria     = get_imob(row).strip(),
+            espacos         = get_espacos(row).strip(),
+            valor_contrato  = _parse_float(get_valor(row).replace('R$', '')),
+            data_venda      = data_venda,
         ))
     if not objs:
         raise ValueError('Nenhuma reserva válida encontrada.')
     Venda.objects.all().delete()
     Venda.objects.bulk_create(objs)
     ImportLog.objects.create(tipo='vendas', total_registros=len(objs), nome_arquivo=nome, sha256=sha256)
-    return len(objs), {}
+    n_com_valor = sum(1 for o in objs if o.valor_contrato)
+    return len(objs), {'Com valor': n_com_valor}
 
 
 @transaction.atomic
@@ -1430,7 +1452,19 @@ def importar(request):
             return redirect('cota365:importar')
         try:
             sha256 = _file_sha256(arquivo)
-            n, stats = _IMPORTERS[tipo](arquivo, arquivo.name, sha256)
+            if tipo == 'tabela':
+                comp_str = request.POST.get('competencia', '').strip()
+                if not comp_str:
+                    raise ValueError('Selecione o mês/ano da competência antes de importar a tabela de preços.')
+                try:
+                    ano, mes = comp_str.split('-')
+                    from datetime import date as _date
+                    competencia = _date(int(ano), int(mes), 1)
+                except (ValueError, AttributeError):
+                    raise ValueError('Mês/ano de competência inválido.')
+                n, stats = _import_tabela(arquivo, arquivo.name, sha256, competencia=competencia)
+            else:
+                n, stats = _IMPORTERS[tipo](arquivo, arquivo.name, sha256)
             extras = '  |  '.join(f'{k}: {v}' for k, v in stats.items())
             msg = f'{_LABELS[tipo]} importado — {n} registros.'
             if extras:
@@ -1461,7 +1495,14 @@ def importar(request):
         })
 
     from .models import FluxoContrato as FC, Tabela as Tab, Unidade as Un, Venda as Ve
-    vgv_tab = sum(t.valor_total for t in Tab.objects.all())
+    from django.db.models import Count, Max, Sum
+    lc = Tab.objects.aggregate(latest=Max('competencia'))['latest']
+    vgv_tab = Tab.objects.filter(competencia=lc).aggregate(total=Sum('valor_total'))['total'] or 0 if lc else 0
+    competencias_tabela = list(
+        Tab.objects.values('competencia')
+        .annotate(total=Count('id'), vgv=Sum('valor_total'))
+        .order_by('-competencia')
+    )
     resumo = {
         'vgv_tabela':  _fmt_brl(vgv_tab),
         'n_contratos': FC.objects.count(),
@@ -1471,9 +1512,11 @@ def importar(request):
 
     from apps.intranet.context_processors import COTA365_TABELAS
     return render(request, 'cota365/importar.html', {
-        'arquivos':        arquivos,
-        'resumo':          resumo,
-        'cota365_tabelas': COTA365_TABELAS,
+        'arquivos':            arquivos,
+        'resumo':              resumo,
+        'cota365_tabelas':     COTA365_TABELAS,
+        'competencias_tabela': competencias_tabela,
+        'competencia_atual':   lc,
     })
 
 
@@ -2167,6 +2210,185 @@ def vendas(request):
         ],
     }
     return render(request, 'cota365/vendas.html', context)
+
+
+def comparativo_valores(request):
+    raw_rows, tot_tab_mes, tot_contrato, tot_desconto, latest_comp = _get_descontos_rows()
+
+    def _pct_fmt(v):
+        if v is None:
+            return None
+        sinal = '+' if v > 0 else ''
+        return f'{sinal}{v:.2f}%'.replace('.', ',')
+
+    rows = [{
+        **r,
+        'vtm_fmt':            _fmt_brl(r['vtm']) if r['vtm'] else None,
+        'valor_contrato_fmt': _fmt_brl(r['valor_contrato']),
+        'desconto_fmt':       _fmt_brl(r['desconto']),
+        'pct_mes_fmt':        _pct_fmt(r['pct_mes']),
+        'pct_mes_neg':        r['pct_mes'] is not None and r['pct_mes'] < 0,
+    } for r in raw_rows]
+
+    sort     = request.GET.get('sort', 'cliente')
+    sort_dir = request.GET.get('dir', 'asc')
+    _SORTS = {
+        'numero':         lambda x: int(x['numero']) if x['numero'].isdigit() else 0,
+        'unidade':        lambda x: x['unidade'],
+        'cliente':        lambda x: x['cliente'].lower(),
+        'data_venda':     lambda x: x['data_venda'],
+        'valor_contrato': lambda x: x['valor_contrato'],
+        'desconto':       lambda x: (x['desconto'] or 0),
+        'pct_mes':        lambda x: (x['pct_mes'] or 0),
+    }
+    rows.sort(key=_SORTS.get(sort, _SORTS['cliente']), reverse=(sort_dir == 'desc'))
+
+    return render(request, 'cota365/descontos.html', {
+        'rows':           rows,
+        'n':              len(rows),
+        'latest_comp':    latest_comp.strftime('%m/%Y') if latest_comp else '—',
+        'tot_contrato':   _fmt_brl(tot_contrato),
+        'tot_tab_mes':    _fmt_brl(tot_tab_mes),
+        'tot_desconto':   _fmt_brl(tot_desconto),
+        'sort':           sort,
+        'sort_dir':       sort_dir,
+        'columns': [
+            ('numero',         'RESERVA'),
+            ('unidade',        'UNIDADE'),
+            ('cliente',        'CLIENTE'),
+            ('data_venda',     'DATA VENDA'),
+            ('vtm',            'TAB. MÊS VENDA'),
+            ('valor_contrato', 'VALOR CONTRATO'),
+            ('desconto',       'DESCONTO'),
+            ('pct_mes',        'Δ%'),
+        ],
+    })
+
+
+def _get_descontos_rows():
+    tabelas = defaultdict(dict)
+    for t in Tabela.objects.all():
+        tabelas[t.competencia][t.unidade] = t.valor_total
+
+    latest_comp = max(tabelas.keys(), default=None)
+
+    rows = []
+    tot_contrato = tot_tab_mes = 0.0
+    for v in Venda.objects.filter(valor_contrato__gt=0).order_by('cliente'):
+        comp_mes = v.data_venda.replace(day=1) if v.data_venda else None
+        vtm      = tabelas.get(comp_mes, {}).get(v.unidade) if comp_mes else None
+        vc       = v.valor_contrato
+        desconto = (vtm - vc) if vtm else None
+        if not desconto:
+            continue
+        pct_mes = desconto / vtm * 100 if (vtm and vtm > 0) else None
+        rows.append({
+            'numero':             v.numero,
+            'unidade':            v.unidade,
+            'cliente':            v.cliente,
+            'data_venda':         v.data_venda.strftime('%d/%m/%Y') if v.data_venda else '—',
+            'comp_mes':           comp_mes.strftime('%m/%Y') if comp_mes else '—',
+            'vtm':                vtm,
+            'valor_contrato':     vc,
+            'desconto':           desconto,
+            'pct_mes':            pct_mes,
+        })
+        tot_contrato += vc
+        tot_tab_mes  += vtm or 0
+
+    tot_desconto = sum(r['desconto'] for r in rows)
+    return rows, tot_tab_mes, tot_contrato, tot_desconto, latest_comp
+
+
+def _export_descontos_pdf(rows, tot_tab_mes, tot_contrato, tot_desconto, latest_comp):
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+    from reportlab.platypus import HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+
+    NAVY  = colors.HexColor('#1a1a2e')
+    GRAY1 = colors.HexColor('#f8f9fa')
+    RED   = colors.HexColor('#dc3545')
+    GREEN = colors.HexColor('#198754')
+    GRID  = colors.HexColor('#dee2e6')
+    TOTAL = colors.HexColor('#e9ecef')
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=landscape(A4),
+                            leftMargin=1.5*cm, rightMargin=1.5*cm,
+                            topMargin=1.5*cm, bottomMargin=1.5*cm)
+    styles = getSampleStyleSheet()
+    lc_str = latest_comp.strftime('%m/%Y') if latest_comp else '—'
+
+    story = [
+        Paragraph('Cota 365 — Descontos',
+                  ParagraphStyle('title', parent=styles['Heading1'], fontSize=14, spaceAfter=4)),
+        Paragraph(
+            f'Tab. Mês Venda: {_fmt_brl(tot_tab_mes)}   |   '
+            f'Total Contratos: {_fmt_brl(tot_contrato)}   |   '
+            f'Total Descontos: {_fmt_brl(tot_desconto)}   |   '
+            f'{len(rows)} contratos   |   Tabela vigente: {lc_str}',
+            ParagraphStyle('sub', parent=styles['Normal'], fontSize=9, spaceAfter=12)),
+    ]
+
+    header = ['RESERVA', 'UNIDADE', 'CLIENTE', 'DATA VENDA', 'TAB. MÊS', 'VALOR CONTRATO', 'DESCONTO', 'Δ%']
+    data = [header]
+    for r in rows:
+        pct_str = ''
+        if r['pct_mes'] is not None:
+            sinal = '+' if r['pct_mes'] > 0 else ''
+            pct_str = f"{sinal}{r['pct_mes']:.2f}%".replace('.', ',')
+        data.append([
+            f"#{r['numero']}",
+            r['unidade'],
+            r['cliente'],
+            r['data_venda'],
+            _fmt_brl(r['vtm']) if r['vtm'] else '—',
+            _fmt_brl(r['valor_contrato']),
+            _fmt_brl(r['desconto']),
+            pct_str,
+        ])
+    data.append(['', '', '', '', _fmt_brl(tot_tab_mes), _fmt_brl(tot_contrato), _fmt_brl(tot_desconto), ''])
+
+    col_widths = [1.6*cm, 2.2*cm, 6.5*cm, 2.4*cm, 3.2*cm, 3.5*cm, 3.5*cm, 1.8*cm]
+    t = Table(data, colWidths=col_widths, repeatRows=1)
+
+    num_rows = len(data)
+    styles_ts = [
+        ('BACKGROUND',    (0, 0),  (-1, 0),       NAVY),
+        ('TEXTCOLOR',     (0, 0),  (-1, 0),       colors.white),
+        ('FONTNAME',      (0, 0),  (-1, 0),       'Helvetica-Bold'),
+        ('FONTSIZE',      (0, 0),  (-1, -1),      7),
+        ('ALIGN',         (0, 0),  (-1, -1),      'CENTER'),
+        ('ALIGN',         (2, 1),  (2, num_rows-2), 'LEFT'),
+        ('ALIGN',         (4, 1),  (-1, -1),      'RIGHT'),
+        ('ROWBACKGROUNDS',(0, 1),  (-1, num_rows-2), [colors.white, GRAY1]),
+        ('BACKGROUND',    (0, -1), (-1, -1),      TOTAL),
+        ('FONTNAME',      (0, -1), (-1, -1),      'Helvetica-Bold'),
+        ('GRID',          (0, 0),  (-1, -1),      0.5, GRID),
+        ('TOPPADDING',    (0, 0),  (-1, -1),      3),
+        ('BOTTOMPADDING', (0, 0),  (-1, -1),      3),
+    ]
+    # colorir descontos positivos em verde, negativos em vermelho
+    for i, r in enumerate(rows, 1):
+        cor = RED if (r['desconto'] or 0) < 0 else GREEN
+        styles_ts.append(('TEXTCOLOR', (6, i), (6, i), cor))
+        styles_ts.append(('TEXTCOLOR', (7, i), (7, i), cor))
+
+    t.setStyle(TableStyle(styles_ts))
+    story.append(t)
+    doc.build(story)
+    buf.seek(0)
+    resp = HttpResponse(buf, content_type='application/pdf')
+    resp['Content-Disposition'] = 'attachment; filename="descontos.pdf"'
+    return resp
+
+
+def export_descontos(request):
+    rows, tot_tab_mes, tot_contrato, tot_desconto, latest_comp = _get_descontos_rows()
+    return _export_descontos_pdf(rows, tot_tab_mes, tot_contrato, tot_desconto, latest_comp)
 
 
 def fluxo_mensal(request):
@@ -3165,7 +3387,8 @@ def export_areas_comparativo(request):
     ws_tab.title = 'Tabela'
     _hdr(ws_tab, 1, ['UNIDADE', 'TIPOLOGIA', 'SITUAÇÃO', 'ÁREA PRIV. (m²)', 'VALOR TOTAL'])
     ws_tab.row_dimensions[1].height = 28
-    for i, t in enumerate(Tabela.objects.order_by('unidade'), 2):
+    _tab_qs = list(_tabela_qs().order_by('unidade'))
+    for i, t in enumerate(_tab_qs, 2):
         row = [t.unidade, t.tipologia, t.situacao, t.area_privativa, t.valor_total]
         for c, val in enumerate(row, 1):
             cell = ws_tab.cell(row=i, column=c, value=_xlsx_val(val))
@@ -3174,14 +3397,14 @@ def export_areas_comparativo(request):
                 cell.number_format = '#,##0.00'
                 cell.alignment = Alignment(horizontal='right')
     # total
-    n = Tabela.objects.count()
+    n = len(_tab_qs)
     total_row = n + 2
     ws_tab.cell(row=total_row, column=1, value='TOTAL').font = TOTAL_FONT
     ws_tab.cell(row=total_row, column=4,
-                value=sum(t.area_privativa for t in Tabela.objects.all())).number_format = '#,##0.00'
+                value=sum(t.area_privativa for t in _tab_qs)).number_format = '#,##0.00'
     ws_tab.cell(row=total_row, column=4).font = TOTAL_FONT
     ws_tab.cell(row=total_row, column=5,
-                value=sum(t.valor_total for t in Tabela.objects.all())).number_format = '#,##0.00'
+                value=sum(t.valor_total for t in _tab_qs)).number_format = '#,##0.00'
     ws_tab.cell(row=total_row, column=5).font = TOTAL_FONT
     _auto_width(ws_tab)
 
@@ -3225,7 +3448,7 @@ def export_areas_comparativo(request):
     ])
     ws_cmp.row_dimensions[1].height = 28
 
-    tab_map  = {t.unidade: t for t in Tabela.objects.all()}
+    tab_map  = {t.unidade: t for t in _tabela_qs()}
     uni_map  = {u.unidade: u for u in Unidade.objects.all()}
     all_keys = sorted(set(tab_map) | set(uni_map))
 

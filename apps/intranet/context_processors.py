@@ -131,6 +131,7 @@ GERENCIAL_LINKS = [
     {"name": "Bliss - Resumo", "url": reverse('bliss_resumo_pdf')},
     {"name": "Cota365 - Resumo", "url": reverse('cota365:export_dashboard')},
     {"name": "Cota365 - Fluxo Mensal", "url": reverse('cota365:export_fluxo') + '?format=pdf'},
+    {"name": "Cota365 - Descontos", "url": reverse('cota365:export_descontos')},
 ]
 
 ADMIN_LINKS = [

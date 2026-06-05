@@ -25,14 +25,18 @@ class ImportLog(models.Model):
 
 
 class Tabela(models.Model):
-    unidade        = models.CharField(max_length=50, unique=True)
+    unidade        = models.CharField(max_length=50)
+    competencia    = models.DateField()
     tipologia      = models.CharField(max_length=100, blank=True)
     situacao       = models.CharField(max_length=50, blank=True)
     area_privativa = models.FloatField(default=0)
     valor_total    = models.FloatField(default=0)
 
+    class Meta:
+        unique_together = [('unidade', 'competencia')]
+
     def __str__(self):
-        return self.unidade
+        return f'{self.unidade} ({self.competencia:%m/%Y})'
 
 
 class Permuta(models.Model):
@@ -52,13 +56,15 @@ class Vinculo(models.Model):
 
 
 class Venda(models.Model):
-    numero      = models.CharField(max_length=20, unique=True)
-    situacao    = models.CharField(max_length=50, blank=True)
-    unidade     = models.CharField(max_length=50, blank=True)
-    cliente     = models.CharField(max_length=255, blank=True)
-    imobiliaria = models.CharField(max_length=255, blank=True)
-    m2          = models.CharField(max_length=20, blank=True)
-    espacos     = models.CharField(max_length=255, blank=True)
+    numero          = models.CharField(max_length=20, unique=True)
+    situacao        = models.CharField(max_length=50, blank=True)
+    unidade         = models.CharField(max_length=50, blank=True)
+    cliente         = models.CharField(max_length=255, blank=True)
+    imobiliaria     = models.CharField(max_length=255, blank=True)
+    m2              = models.CharField(max_length=20, blank=True)
+    espacos         = models.CharField(max_length=255, blank=True)
+    valor_contrato  = models.FloatField(default=0)
+    data_venda      = models.DateField(null=True, blank=True, db_index=True)
 
     def __str__(self):
         return f'#{self.numero} — {self.cliente}'
