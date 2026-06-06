@@ -31,6 +31,7 @@ from .models import (
     ImportLog, Tabela, Permuta, Vinculo, Venda,
     Unidade, FluxoContrato, FluxoParcela, Comissao, SerieContrato, Parcela, ComissaoObs,
 )
+from apps.indices.models import IndiceData
 
 # ---------------------------------------------------------------------------
 # Helpers de formatação
@@ -1813,12 +1814,15 @@ def export_dashboard(request):
 
     desconto_val = total_vendido - total_fluxo
     desconto_pct = f'{desconto_val / total_vendido * 100:.1f}%' if total_vendido else '0%'
+    _, _, _, tot_desconto_cubs, tot_cubs, cub_atual, _, _, _, _ = _get_descontos_rows()
+    tot_cubs_brl = _fmt_brl(tot_cubs * cub_atual) if cub_atual else '—'
+    tot_cubs_fmt = f'{tot_cubs:.2f}'.replace('.', ',')
     story.append(Paragraph('Descontos', sec_s))
-    _dw = (W - 2*cm) / 4
+    _dw = (W - 2*cm) / 5
     desc_table = Table([
-        [th(''), th('VALOR TABELA'), th('VALOR CONTRATO'), th('DESCONTO'), th('% DESCONTO')],
-        [td('Vendido'), tdrb(_fmt_brl(total_vendido)), tdrb(_fmt_brl(total_fluxo)), tdrb(_fmt_brl(desconto_val)), tdrb(desconto_pct)],
-    ], colWidths=[2*cm, _dw, _dw, _dw, _dw])
+        [th(''), th('VALOR TABELA'), th('VALOR CONTRATO'), th('DESCONTO'), th('% DESCONTO'), th('DESCONTOS EM CUBs')],
+        [td('Vendido'), tdrb(_fmt_brl(total_vendido)), tdrb(_fmt_brl(total_fluxo)), tdrb(_fmt_brl(desconto_val)), tdrb(desconto_pct), tdrb(f'{tot_cubs_fmt}  ({tot_cubs_brl})')],
+    ], colWidths=[2*cm, _dw, _dw, _dw, _dw, _dw])
     desc_table.setStyle(TableStyle([
         ('BACKGROUND',    (0, 0), (-1, 0), colors.HexColor('#1a1a2e')),
         ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white]),
@@ -2213,7 +2217,7 @@ def vendas(request):
 
 
 def comparativo_valores(request):
-    raw_rows, tot_tab_mes, tot_contrato, tot_desconto, latest_comp = _get_descontos_rows()
+    raw_rows, tot_tab_mes, tot_contrato, tot_desconto, tot_cubs, cub_atual, tot_tab_mes_all, tot_contrato_all, pct_resumo, latest_comp = _get_descontos_rows()
 
     def _pct_fmt(v):
         if v is None:
@@ -2228,6 +2232,7 @@ def comparativo_valores(request):
         'desconto_fmt':       _fmt_brl(r['desconto']),
         'pct_mes_fmt':        _pct_fmt(r['pct_mes']),
         'pct_mes_neg':        r['pct_mes'] is not None and r['pct_mes'] < 0,
+        'qtd_cubs_fmt':       f'{r["qtd_cubs"]:.2f}'.replace('.', ',') if r['qtd_cubs'] is not None else None,
     } for r in raw_rows]
 
     sort     = request.GET.get('sort', 'cliente')
@@ -2250,6 +2255,15 @@ def comparativo_valores(request):
         'tot_contrato':   _fmt_brl(tot_contrato),
         'tot_tab_mes':    _fmt_brl(tot_tab_mes),
         'tot_desconto':   _fmt_brl(tot_desconto),
+        'tot_cubs':         f'{tot_cubs:.2f}'.replace('.', ','),
+        'tot_cubs_brl':     _fmt_brl(tot_cubs * cub_atual) if cub_atual else None,
+        'cub_atual_fmt':    _fmt_brl(cub_atual) if cub_atual else '—',
+        'tot_pct_cubs':     _pct_fmt((tot_cubs * cub_atual) / tot_tab_mes * 100) if (cub_atual and tot_tab_mes) else None,
+        'resumo_tab_all':   _fmt_brl(tot_tab_mes_all),
+        'resumo_cont_all':  _fmt_brl(tot_contrato_all),
+        'resumo_desconto':  _fmt_brl(tot_cubs * cub_atual) if cub_atual else _fmt_brl(tot_desconto),
+        'resumo_pct':       _pct_fmt((tot_cubs * cub_atual) / tot_tab_mes_all * 100) if (cub_atual and tot_tab_mes_all) else _pct_fmt(pct_resumo),
+        'resumo_pct_neg':   (tot_cubs * cub_atual) / tot_tab_mes_all * 100 < 0 if (cub_atual and tot_tab_mes_all) else (pct_resumo is not None and pct_resumo < 0),
         'sort':           sort,
         'sort_dir':       sort_dir,
         'columns': [
@@ -2261,6 +2275,7 @@ def comparativo_valores(request):
             ('valor_contrato', 'VALOR CONTRATO'),
             ('desconto',       'DESCONTO'),
             ('pct_mes',        'Δ%'),
+            ('qtd_cubs',       'QTD CUBs'),
         ],
     })
 
@@ -2272,16 +2287,27 @@ def _get_descontos_rows():
 
     latest_comp = max(tabelas.keys(), default=None)
 
+    cub_map = {
+        d.data: float(d.valor)
+        for d in IndiceData.objects.filter(indice_id=1)
+    }
+
     rows = []
     tot_contrato = tot_tab_mes = 0.0
+    tot_tab_mes_all = tot_contrato_all = 0.0
     for v in Venda.objects.filter(valor_contrato__gt=0).order_by('cliente'):
         comp_mes = v.data_venda.replace(day=1) if v.data_venda else None
         vtm      = tabelas.get(comp_mes, {}).get(v.unidade) if comp_mes else None
         vc       = v.valor_contrato
+        tot_contrato_all += vc
+        if vtm:
+            tot_tab_mes_all += vtm
         desconto = (vtm - vc) if vtm else None
         if not desconto:
             continue
-        pct_mes = desconto / vtm * 100 if (vtm and vtm > 0) else None
+        pct_mes  = desconto / vtm * 100 if (vtm and vtm > 0) else None
+        cub_val  = cub_map.get(comp_mes) if comp_mes else None
+        qtd_cubs = desconto / cub_val if (cub_val and cub_val > 0) else None
         rows.append({
             'numero':             v.numero,
             'unidade':            v.unidade,
@@ -2292,15 +2318,20 @@ def _get_descontos_rows():
             'valor_contrato':     vc,
             'desconto':           desconto,
             'pct_mes':            pct_mes,
+            'qtd_cubs':           qtd_cubs,
         })
         tot_contrato += vc
         tot_tab_mes  += vtm or 0
 
-    tot_desconto = sum(r['desconto'] for r in rows)
-    return rows, tot_tab_mes, tot_contrato, tot_desconto, latest_comp
+    tot_desconto  = sum(r['desconto'] for r in rows)
+    tot_cubs      = sum(r['qtd_cubs'] for r in rows if r['qtd_cubs'] is not None)
+    cub_atual_obj = IndiceData.objects.filter(indice_id=1).order_by('-data').first()
+    cub_atual     = float(cub_atual_obj.valor) if cub_atual_obj else None
+    pct_resumo    = tot_desconto / tot_tab_mes_all * 100 if tot_tab_mes_all else None
+    return rows, tot_tab_mes, tot_contrato, tot_desconto, tot_cubs, cub_atual, tot_tab_mes_all, tot_contrato_all, pct_resumo, latest_comp
 
 
-def _export_descontos_pdf(rows, tot_tab_mes, tot_contrato, tot_desconto, latest_comp):
+def _export_descontos_pdf(rows, tot_tab_mes, tot_contrato, tot_desconto, tot_cubs, cub_atual, tot_tab_mes_all, tot_contrato_all, pct_resumo, latest_comp):
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
     from reportlab.platypus import HRFlowable
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -2333,13 +2364,14 @@ def _export_descontos_pdf(rows, tot_tab_mes, tot_contrato, tot_desconto, latest_
             ParagraphStyle('sub', parent=styles['Normal'], fontSize=9, spaceAfter=12)),
     ]
 
-    header = ['RESERVA', 'UNIDADE', 'CLIENTE', 'DATA VENDA', 'TAB. MÊS', 'VALOR CONTRATO', 'DESCONTO', 'Δ%']
+    header = ['RESERVA', 'UNIDADE', 'CLIENTE', 'DATA VENDA', 'TAB. MÊS', 'VALOR CONTRATO', 'DESCONTO', 'Δ%', 'QTD CUBs']
     data = [header]
     for r in rows:
         pct_str = ''
         if r['pct_mes'] is not None:
             sinal = '+' if r['pct_mes'] > 0 else ''
             pct_str = f"{sinal}{r['pct_mes']:.2f}%".replace('.', ',')
+        cubs_str = f"{r['qtd_cubs']:.2f}".replace('.', ',') if r['qtd_cubs'] is not None else '—'
         data.append([
             f"#{r['numero']}",
             r['unidade'],
@@ -2349,10 +2381,20 @@ def _export_descontos_pdf(rows, tot_tab_mes, tot_contrato, tot_desconto, latest_
             _fmt_brl(r['valor_contrato']),
             _fmt_brl(r['desconto']),
             pct_str,
+            cubs_str,
         ])
-    data.append(['', '', '', '', _fmt_brl(tot_tab_mes), _fmt_brl(tot_contrato), _fmt_brl(tot_desconto), ''])
+    tot_cubs_str = f'{tot_cubs:.2f}'.replace('.', ',')
+    tot_cubs_brl = _fmt_brl(tot_cubs * cub_atual) if cub_atual else '—'
+    cubs_brl_val = tot_cubs * cub_atual if cub_atual else None
+    if cubs_brl_val and tot_tab_mes:
+        pct_val = cubs_brl_val / tot_tab_mes * 100
+        sinal = '+' if pct_val > 0 else ''
+        tot_pct_cubs_str = f'{sinal}{pct_val:.2f}%'.replace('.', ',')
+    else:
+        tot_pct_cubs_str = ''
+    data.append(['', '', '', '', _fmt_brl(tot_tab_mes), _fmt_brl(tot_contrato), _fmt_brl(tot_desconto), tot_pct_cubs_str, f'{tot_cubs_str}\n{tot_cubs_brl}'])
 
-    col_widths = [1.6*cm, 2.2*cm, 6.5*cm, 2.4*cm, 3.2*cm, 3.5*cm, 3.5*cm, 1.8*cm]
+    col_widths = [1.6*cm, 2.2*cm, 5.8*cm, 2.4*cm, 3.0*cm, 3.2*cm, 3.2*cm, 1.6*cm, 2.0*cm]
     t = Table(data, colWidths=col_widths, repeatRows=1)
 
     num_rows = len(data)
@@ -2379,6 +2421,45 @@ def _export_descontos_pdf(rows, tot_tab_mes, tot_contrato, tot_desconto, latest_
 
     t.setStyle(TableStyle(styles_ts))
     story.append(t)
+
+    from reportlab.platypus import Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
+    _styles = getSampleStyleSheet()
+    cubs_brl_resumo = tot_cubs * cub_atual if cub_atual else None
+    desc_resumo_val = cubs_brl_resumo if cubs_brl_resumo is not None else tot_desconto
+    pct_resumo_val  = desc_resumo_val / tot_tab_mes_all * 100 if tot_tab_mes_all else pct_resumo
+    pct_str = ''
+    if pct_resumo_val is not None:
+        sinal = '+' if pct_resumo_val > 0 else ''
+        pct_str = f'{sinal}{pct_resumo_val:.2f}%'.replace('.', ',')
+    story.append(Spacer(1, 10))
+    resumo_data = [
+        [Paragraph('RESUMO GERAL', ParagraphStyle('rh', parent=_styles['Normal'],
+                   fontSize=7, fontName='Helvetica-Bold', textColor=colors.white, alignment=1))],
+        [Table([
+            [Paragraph('Total (Tabela vendas)', ParagraphStyle('rl', parent=_styles['Normal'], fontSize=7, textColor=colors.HexColor('#6c757d'))),
+             Paragraph(_fmt_brl(tot_tab_mes_all), ParagraphStyle('rv', parent=_styles['Normal'], fontSize=8, fontName='Helvetica-Bold', alignment=2))],
+            [Paragraph('Total (Contratos)', ParagraphStyle('rl2', parent=_styles['Normal'], fontSize=7, textColor=colors.HexColor('#6c757d'))),
+             Paragraph(_fmt_brl(tot_contrato_all), ParagraphStyle('rv2', parent=_styles['Normal'], fontSize=8, fontName='Helvetica-Bold', alignment=2))],
+            [Paragraph('Descontos (corrigido CUB)', ParagraphStyle('rl3', parent=_styles['Normal'], fontSize=7, textColor=colors.HexColor('#6c757d'))),
+             Paragraph(_fmt_brl(desc_resumo_val), ParagraphStyle('rv3', parent=_styles['Normal'], fontSize=8, fontName='Helvetica-Bold', alignment=2))],
+            [Paragraph('Percentual', ParagraphStyle('rl4', parent=_styles['Normal'], fontSize=7, textColor=colors.HexColor('#6c757d'))),
+             Paragraph(pct_str, ParagraphStyle('rv4', parent=_styles['Normal'], fontSize=8, fontName='Helvetica-Bold', alignment=2,
+                       textColor=(RED if (pct_resumo_val or 0) < 0 else GREEN)))],
+        ], colWidths=[4*cm, 4*cm])],
+    ]
+    resumo_tbl = Table(resumo_data, colWidths=[8*cm])
+    resumo_tbl.setStyle(TableStyle([
+        ('BACKGROUND',    (0, 0), (-1, 0), NAVY),
+        ('BACKGROUND',    (0, 1), (-1, 1), GRAY1),
+        ('BOX',           (0, 0), (-1, -1), 0.5, GRID),
+        ('TOPPADDING',    (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+    ]))
+    story.append(resumo_tbl)
+
     doc.build(story)
     buf.seek(0)
     resp = HttpResponse(buf, content_type='application/pdf')
@@ -2387,8 +2468,8 @@ def _export_descontos_pdf(rows, tot_tab_mes, tot_contrato, tot_desconto, latest_
 
 
 def export_descontos(request):
-    rows, tot_tab_mes, tot_contrato, tot_desconto, latest_comp = _get_descontos_rows()
-    return _export_descontos_pdf(rows, tot_tab_mes, tot_contrato, tot_desconto, latest_comp)
+    rows, tot_tab_mes, tot_contrato, tot_desconto, tot_cubs, cub_atual, tot_tab_mes_all, tot_contrato_all, pct_resumo, latest_comp = _get_descontos_rows()
+    return _export_descontos_pdf(rows, tot_tab_mes, tot_contrato, tot_desconto, tot_cubs, cub_atual, tot_tab_mes_all, tot_contrato_all, pct_resumo, latest_comp)
 
 
 def fluxo_mensal(request):
