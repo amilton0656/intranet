@@ -1590,19 +1590,12 @@ def dashboard(request):
     vgv_liquido   = vgv_tabela - vgv_permuta
 
     # ── Ranking por imobiliária ───────────────────────────────────────────────
-    cnt_por_imob = {
-        r['imobiliaria']: r['cnt']
+    venda_por_imob = {
+        r['imobiliaria']: {'cnt': r['cnt'], 'vgv': r['vgv'] or 0.0}
         for r in Venda.objects
             .exclude(imobiliaria='')
             .values('imobiliaria')
-            .annotate(cnt=Count('id'))
-    }
-    vgv_por_imob = {
-        r['imobiliaria']: r['total']
-        for r in FluxoContrato.objects
-            .exclude(imobiliaria='')
-            .values('imobiliaria')
-            .annotate(total=Sum('vgv'))
+            .annotate(cnt=Count('id'), vgv=Sum('valor_contrato'))
     }
     com_por_imob = {
         r['imobiliaria']: r['total'] or 0.0
@@ -1611,18 +1604,18 @@ def dashboard(request):
             .values('imobiliaria')
             .annotate(total=Sum('valor_comissao'))
     }
-    all_imobs = set(cnt_por_imob) | set(vgv_por_imob)
-    total_vgv_imob = sum(vgv_por_imob.values()) or 1.0
+    all_imobs = set(venda_por_imob)
+    total_vgv_imob = sum(v['vgv'] for v in venda_por_imob.values()) or 1.0
     ranking_imobiliaria = sorted(
         [
             {
                 'imobiliaria': imob,
-                'n_vendas':    cnt_por_imob.get(imob, 0),
-                'vgv':         vgv_por_imob.get(imob, 0.0),
-                'vgv_fmt':     _fmt_brl(vgv_por_imob.get(imob, 0.0)),
-                'pct':         f"{vgv_por_imob.get(imob, 0.0) / total_vgv_imob * 100:.1f}%",
+                'n_vendas':    venda_por_imob[imob]['cnt'],
+                'vgv':         venda_por_imob[imob]['vgv'],
+                'vgv_fmt':     _fmt_brl(venda_por_imob[imob]['vgv']),
+                'pct':         f"{venda_por_imob[imob]['vgv'] / total_vgv_imob * 100:.1f}%",
                 'com_fmt':     _fmt_brl(com_por_imob.get(imob, 0.0)),
-                'com_pct':     f"{com_por_imob.get(imob, 0.0) / vgv_por_imob.get(imob, 1.0) * 100:.1f}%" if vgv_por_imob.get(imob) else '—',
+                'com_pct':     f"{com_por_imob.get(imob, 0.0) / venda_por_imob[imob]['vgv'] * 100:.1f}%" if venda_por_imob[imob]['vgv'] else '—',
             }
             for imob in all_imobs
         ],
@@ -1998,19 +1991,12 @@ def export_dashboard(request):
         story.append(sum_table)
 
     # ── Ranking por imobiliária ───────────────────────────────────────────────
-    cnt_por_imob = {
-        r['imobiliaria']: r['cnt']
+    venda_por_imob_pdf = {
+        r['imobiliaria']: {'cnt': r['cnt'], 'vgv': r['vgv'] or 0.0}
         for r in Venda.objects
             .exclude(imobiliaria='')
             .values('imobiliaria')
-            .annotate(cnt=Count('id'))
-    }
-    vgv_por_imob = {
-        r['imobiliaria']: r['total']
-        for r in FluxoContrato.objects
-            .exclude(imobiliaria='')
-            .values('imobiliaria')
-            .annotate(total=Sum('vgv'))
+            .annotate(cnt=Count('id'), vgv=Sum('valor_contrato'))
     }
     com_por_imob = {
         r['imobiliaria']: r['total'] or 0.0
@@ -2019,17 +2005,17 @@ def export_dashboard(request):
             .values('imobiliaria')
             .annotate(total=Sum('valor_comissao'))
     }
-    all_imobs = set(cnt_por_imob) | set(vgv_por_imob)
-    total_vgv_imob = sum(vgv_por_imob.values()) or 1.0
+    all_imobs = set(venda_por_imob_pdf)
+    total_vgv_imob = sum(v['vgv'] for v in venda_por_imob_pdf.values()) or 1.0
     ranking_imob = sorted(
         [
             {
                 'imobiliaria': imob,
-                'n_vendas':    cnt_por_imob.get(imob, 0),
-                'vgv':         vgv_por_imob.get(imob, 0.0),
-                'pct':         f"{vgv_por_imob.get(imob, 0.0) / total_vgv_imob * 100:.1f}%",
+                'n_vendas':    venda_por_imob_pdf[imob]['cnt'],
+                'vgv':         venda_por_imob_pdf[imob]['vgv'],
+                'pct':         f"{venda_por_imob_pdf[imob]['vgv'] / total_vgv_imob * 100:.1f}%",
                 'com':         com_por_imob.get(imob, 0.0),
-                'com_pct':     f"{com_por_imob.get(imob, 0.0) / vgv_por_imob.get(imob, 1.0) * 100:.1f}%" if vgv_por_imob.get(imob) else '—',
+                'com_pct':     f"{com_por_imob.get(imob, 0.0) / venda_por_imob_pdf[imob]['vgv'] * 100:.1f}%" if venda_por_imob_pdf[imob]['vgv'] else '—',
             }
             for imob in all_imobs
         ],
