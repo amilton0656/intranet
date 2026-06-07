@@ -1012,7 +1012,7 @@ def _import_a_receber(file_obj, nome, sha256=''):
         if not titulo:
             continue
         vencimento = _require_date(row.get('dtVencto') or '', 'dtVencto', linha, erros)
-        v = _require_float(row.get('vlOriginal') or '', 'vlOriginal', linha, erros)
+        v = _require_float(row.get('vlTotal') or '', 'vlTotal', linha, erros)
         objs.append(Parcela(
             titulo=titulo,
             parcela=(row.get('nuParcelaApresentacao') or '').strip(),
