@@ -423,7 +423,7 @@ def _compute_resumos_tabela():
         'is_total': True,
     })
 
-    LIQUIDO_SITS = ['Disponível', 'Reservada', 'Vendida']
+    LIQUIDO_SITS = ['Disponível', 'Reservada', 'Bloqueada', 'Vendida']
     liq_vt = sum(sit_vt.get(s, 0.0) for s in LIQUIDO_SITS)
     liq_ap = sum(sit_ap.get(s, 0.0) for s in LIQUIDO_SITS)
     liq_n  = sum(sit_n.get(s, 0)    for s in LIQUIDO_SITS)
