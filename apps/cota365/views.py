@@ -1806,16 +1806,17 @@ def export_dashboard(request):
     story.append(Spacer(1, 4))
 
     desconto_val = total_vendido - total_fluxo
-    desconto_pct = f'{desconto_val / total_vendido * 100:.1f}%' if total_vendido else '0%'
     _, _, _, tot_desconto_cubs, tot_cubs, cub_atual, _, _, _, _ = _get_descontos_rows()
-    tot_cubs_brl = _fmt_brl(tot_cubs * cub_atual) if cub_atual else '—'
+    desconto_cub_val = tot_cubs * cub_atual if cub_atual else 0
+    tot_cubs_brl = _fmt_brl(desconto_cub_val) if cub_atual else '—'
     tot_cubs_fmt = f'{tot_cubs:.2f}'.replace('.', ',')
+    desconto_pct = f'{desconto_cub_val / total_vendido * 100:.1f}%' if total_vendido else '0%'
     story.append(Paragraph('Descontos', sec_s))
-    _dw = (W - 2*cm) / 5
+    _dw = W / 5
     desc_table = Table([
-        [th(''), th('VALOR TABELA'), th('VALOR CONTRATO'), th('DESCONTO'), th('% DESCONTO'), th('DESCONTOS EM CUBs')],
-        [td('Vendido'), tdrb(_fmt_brl(total_vendido)), tdrb(_fmt_brl(total_fluxo)), tdrb(_fmt_brl(desconto_val)), tdrb(desconto_pct), tdrb(f'{tot_cubs_fmt}  ({tot_cubs_brl})')],
-    ], colWidths=[2*cm, _dw, _dw, _dw, _dw, _dw])
+        [th('VALOR TABELA'), th('VALOR CONTRATO'), th('DESCONTO CORRIGIDO PELO CUB'), th('% DESCONTO MÉDIO'), th('DESCONTOS EM CUBs')],
+        [tdrb(_fmt_brl(total_vendido)), tdrb(_fmt_brl(total_fluxo)), tdrb(tot_cubs_brl), tdrb(desconto_pct), tdrb(tot_cubs_fmt)],
+    ], colWidths=[_dw, _dw, _dw, _dw, _dw])
     desc_table.setStyle(TableStyle([
         ('BACKGROUND',    (0, 0), (-1, 0), colors.HexColor('#1a1a2e')),
         ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white]),
@@ -1839,7 +1840,7 @@ def export_dashboard(request):
         for r in resumo_sit
     ]
     story.append(tbl(sit_header + sit_rows,
-                     [3*cm, 3.5*cm, 1.8*cm, 3*cm, 1.8*cm, 1.8*cm, 1.8*cm], total_last=True))
+                     [2.7*cm, 3.5*cm, 1.8*cm, 3*cm, 1.8*cm, 1.98*cm, 1.8*cm], total_last=True))
     story.append(Spacer(1, 6))
 
     story.append(Paragraph('Resumo por Situação (Sem permutas)', sec_s))
@@ -1853,7 +1854,7 @@ def export_dashboard(request):
         for r in resumo_sit_liquido
     ]
     story.append(tbl(liq_header + liq_rows,
-                     [3*cm, 3.5*cm, 1.8*cm, 3*cm, 1.8*cm, 1.8*cm, 1.8*cm], total_last=True))
+                     [2.7*cm, 3.5*cm, 1.8*cm, 3*cm, 1.8*cm, 1.98*cm, 1.8*cm], total_last=True))
     story.append(PageBreak())
 
     story.append(Paragraph('Resumo por Tipo', sec_s))
