@@ -88,7 +88,11 @@ def _get_cota365_info():
         area_comum      = sum(u.area_comum           for u in qs)
         area_total      = area_priv + area_priv_acess + area_comum
 
-        # Contagem por grupo tipológico (igual ao resumo_tip do dashboard)
+        # Contagem por grupo tipológico — filtra pela competência mais recente
+        # (igual a _tabela_qs do dashboard; Tabela tem 1 linha por unidade×mês)
+        from django.db.models import Max
+        latest_comp = Tabela.objects.aggregate(latest=Max('competencia'))['latest']
+
         def _grupo(t):
             tl = t.lower()
             if 'studio' in tl: return 'Studio'
@@ -96,7 +100,7 @@ def _get_cota365_info():
             return '2D'
 
         grp_n = defaultdict(int)
-        for t in Tabela.objects.all():
+        for t in Tabela.objects.filter(competencia=latest_comp):
             if t.tipologia:
                 grp_n[_grupo(t.tipologia)] += 1
 
