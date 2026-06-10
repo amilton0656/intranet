@@ -1930,30 +1930,32 @@ def export_dashboard(request):
                      [2.7*cm, 3.5*cm, 1.8*cm, 3*cm, 1.8*cm, 1.98*cm, 1.8*cm], total_last=True))
     story.append(PageBreak())
 
-    story.append(Paragraph('Resumo por Tipo', sec_s))
-    tip_header = [[th('QTDE'), th('TIPO'), th('M² PRIV.'), th('VALOR TABELA'), th('R$/M²'), th('PERM.')]]
-    tip_rows = [
-        [tdr(str(r['n'])), td(r['tipo']), tdr(r['ap_fmt']), tdr(r['vt_fmt']), tdr(r['rsm2']), tdr(str(r['perm_n']))]
-        for r in resumo_tip
-    ]
-    story.append(tbl(tip_header + tip_rows, [1.5*cm, 3.2*cm, 3.0*cm, 4.5*cm, 3.0*cm, 1.7*cm], total_last=True))
-    story.append(Paragraph(
-        f'Preço médio por unidade: {preco_medio_tipo}',
-        ps('PM', fontSize=8, textColor=NAVY, fontName='Helvetica-Bold', spaceBefore=4, spaceAfter=6),
-    ))
+    # -- Resumo por Tipo (oculto) --
+    # story.append(Paragraph('Resumo por Tipo', sec_s))
+    # tip_header = [[th('QTDE'), th('TIPO'), th('M² PRIV.'), th('VALOR TABELA'), th('R$/M²'), th('PERM.')]]
+    # tip_rows = [
+    #     [tdr(str(r['n'])), td(r['tipo']), tdr(r['ap_fmt']), tdr(r['vt_fmt']), tdr(r['rsm2']), tdr(str(r['perm_n']))]
+    #     for r in resumo_tip
+    # ]
+    # story.append(tbl(tip_header + tip_rows, [1.5*cm, 3.2*cm, 3.0*cm, 4.5*cm, 3.0*cm, 1.7*cm], total_last=True))
+    # story.append(Paragraph(
+    #     f'Preço médio por unidade: {preco_medio_tipo}',
+    #     ps('PM', fontSize=8, textColor=NAVY, fontName='Helvetica-Bold', spaceBefore=4, spaceAfter=6),
+    # ))
 
-    story.append(Spacer(1, 6))
-    story.append(Paragraph('Resumo por Tipo (Estoque)', sec_s))
-    est_header = [[th('QTDE'), th('TIPO'), th('M² PRIV.'), th('VALOR TABELA'), th('R$/M²')]]
-    est_rows = [
-        [tdr(str(r['n'])), td(r['tipo']), tdr(r['ap_fmt']), tdr(r['vt_fmt']), tdr(r['rsm2'])]
-        for r in resumo_tip_estoque
-    ]
-    story.append(tbl(est_header + est_rows, [1.5*cm, 3.5*cm, 3.0*cm, 4.5*cm, 4.4*cm], total_last=True))
-    story.append(Paragraph(
-        f'Preço médio por unidade (estoque): {preco_medio_estoque}',
-        ps('PM', fontSize=8, textColor=NAVY, fontName='Helvetica-Bold', spaceBefore=4, spaceAfter=6),
-    ))
+    # -- Resumo por Tipo (Estoque) (oculto) --
+    # story.append(Spacer(1, 6))
+    # story.append(Paragraph('Resumo por Tipo (Estoque)', sec_s))
+    # est_header = [[th('QTDE'), th('TIPO'), th('M² PRIV.'), th('VALOR TABELA'), th('R$/M²')]]
+    # est_rows = [
+    #     [tdr(str(r['n'])), td(r['tipo']), tdr(r['ap_fmt']), tdr(r['vt_fmt']), tdr(r['rsm2'])]
+    #     for r in resumo_tip_estoque
+    # ]
+    # story.append(tbl(est_header + est_rows, [1.5*cm, 3.5*cm, 3.0*cm, 4.5*cm, 4.4*cm], total_last=True))
+    # story.append(Paragraph(
+    #     f'Preço médio por unidade (estoque): {preco_medio_estoque}',
+    #     ps('PM', fontSize=8, textColor=NAVY, fontName='Helvetica-Bold', spaceBefore=4, spaceAfter=6),
+    # ))
 
     # ── Resumo por Tipo (Todos) ───────────────────────────────────────────────
     story.append(Spacer(1, 4))
@@ -2039,6 +2041,68 @@ def export_dashboard(request):
         ('SPAN',          (11, 0), (11, 1)),  # P abrange as 2 linhas de header
     ]))
     story.append(t_tot)
+    story.append(Spacer(1, 6))
+
+    # ── Preço Médio ───────────────────────────────────────────────────────────
+    story.append(Paragraph('Preço Médio', sec_s))
+
+    def _rsm2(vt, ap):
+        return _fmt_ap2(vt / ap) if ap else '—'
+
+    def _pm(vt, n):
+        return _fmt_ap2(vt / n) if n else '—'
+
+    PM_COL_W = [1.5*cm, 2.57*cm, 2.57*cm, 2.57*cm, 2.57*cm, 2.57*cm, 2.55*cm]
+
+    pm_hdr0 = [
+        th('Tipo'),
+        th('Tabela'), th(''),
+        th('Vendido'), th(''),
+        th('Estoque'), th(''),
+    ]
+    pm_hdr1 = [
+        th(''),
+        th('R$/m2'), th('Preço médio'),
+        th('R$/m2'), th('Preço médio'),
+        th('R$/m2'), th('Preço médio'),
+    ]
+
+    def _row_pm(r):
+        _b = r.get('is_total', False)
+        _f = tdrb if _b else tdr
+        _fl = tdb if _b else td
+        return [
+            _fl(r['tipo']),
+            _f(_rsm2(r['tot_vt'], r['tot_ap'])),
+            _f(_pm(r['tot_vt'],   r['tot_n'])),
+            _f(_rsm2(r['vnd_vt'], r['vnd_ap'])),
+            _f(_pm(r['vnd_vt'],   r['vnd_n'])),
+            _f(_rsm2(r['est_vt'], r['est_ap'])),
+            _f(_pm(r['est_vt'],   r['est_n'])),
+        ]
+
+    pm_data = [pm_hdr0, pm_hdr1] + [_row_pm(r) for r in resumo_tip_total]
+    n_pm = len(pm_data)
+
+    t_pm = Table(pm_data, colWidths=PM_COL_W, repeatRows=2)
+    t_pm.setStyle(TableStyle([
+        ('BACKGROUND',    (0, 0), (-1, 0), NAVY),
+        ('BACKGROUND',    (0, 1), (-1, 1), SUBHDR_BG),
+        ('ROWBACKGROUNDS',(0, 2), (-1, n_pm - 2), [colors.white, LIGHT]),
+        ('BACKGROUND',    (0, -1), (-1, -1), TOTAL_BG),
+        ('FONTNAME',      (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('GRID',          (0, 0), (-1, -1), 0.4, BORDER),
+        ('TOPPADDING',    (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
+        ('VALIGN',        (0, 0), (-1, 1), 'MIDDLE'),
+        ('SPAN',          (0, 0), (0, 1)),   # Tipo
+        ('SPAN',          (1, 0), (2, 0)),   # Tabela
+        ('SPAN',          (3, 0), (4, 0)),   # Vendido
+        ('SPAN',          (5, 0), (6, 0)),   # Estoque
+    ]))
+    story.append(t_pm)
     story.append(Spacer(1, 6))
 
     story.append(Paragraph('Receita por Ano', sec_s))
