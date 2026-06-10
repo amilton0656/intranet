@@ -1,0 +1,228 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Imagem para Word</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="{% static 'intranet/css/navbar.css' %}">
+  <style>
+    body { background: #f4f4f6; }
+
+    #img2word-navbar {
+      background: #A7A3AB !important;
+      padding: 0.6rem 1.5rem;
+      margin-top: -24px;
+      position: relative;
+      z-index: 100;
+    }
+    #img2word-navbar .navbar-brand {
+      color: #282828 !important;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .drop-zone {
+      border: 2px dashed #A7A3AB;
+      border-radius: 12px;
+      background: #fff;
+      transition: border-color .2s, background .2s;
+      cursor: pointer;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .drop-zone.dragover {
+      border-color: #6c63ff;
+      background: #f0eeff;
+    }
+    .drop-zone .drop-icon { font-size: 2.5rem; color: #A7A3AB; }
+    .drop-zone.has-file .drop-icon { color: #198754; }
+
+    #preview-img {
+      max-height: 280px;
+      max-width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+      display: none;
+    }
+
+    #btn-converter {
+      min-width: 180px;
+    }
+
+    #alert-erro {
+      display: none;
+    }
+
+    .spinner-border { width: 1.2rem; height: 1.2rem; }
+  </style>
+</head>
+<body>
+
+{% include 'intranet/intranet_navbar.html' %}
+
+<nav id="img2word-navbar" class="navbar">
+  <span class="navbar-brand">
+    <i class="bi bi-file-earmark-word me-2"></i>Imagem para Word
+  </span>
+</nav>
+
+<div class="container py-5" style="max-width: 720px;">
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-4">
+
+      <h5 class="fw-semibold mb-1">Converter imagem em documento Word</h5>
+      <p class="text-muted small mb-4">
+        Faça upload de uma imagem e o sistema extrai o conteúdo com formatação (títulos, parágrafos, tabelas, listas) e gera um arquivo <code>.docx</code> para download.
+      </p>
+
+      <div class="drop-zone mb-4" id="drop-zone">
+        <i class="bi bi-image drop-icon" id="drop-icon"></i>
+        <div id="drop-text" class="text-muted small text-center">
+          Arraste uma imagem aqui ou <span class="text-primary" style="cursor:pointer" onclick="document.getElementById('imagem-input').click()">clique para selecionar</span>
+          <br><span class="text-muted" style="font-size:0.78rem">JPG, PNG, WebP, GIF, BMP, TIFF</span>
+        </div>
+        <img id="preview-img" alt="Pré-visualização">
+        <input type="file" id="imagem-input" name="imagem" accept="image/*" class="d-none">
+      </div>
+
+      <div id="alert-erro" class="alert alert-danger py-2 small mb-3" role="alert">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        <span id="erro-msg"></span>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center">
+        <button id="btn-converter" class="btn btn-primary" onclick="converter()" disabled>
+          <span id="btn-texto"><i class="bi bi-arrow-right-circle me-2"></i>Converter e Baixar</span>
+          <span id="btn-loading" class="d-none">
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>Processando...
+          </span>
+        </button>
+        <button class="btn btn-link text-muted small" onclick="limpar()">
+          <i class="bi bi-x-circle me-1"></i>Limpar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <p class="text-center text-muted mt-4" style="font-size:0.78rem">
+    A conversão é feita por IA (GPT-4o). Documentos complexos podem exigir ajustes manuais.
+  </p>
+</div>
+
+<script>
+  const input = document.getElementById('imagem-input');
+  const dropZone = document.getElementById('drop-zone');
+  const dropIcon = document.getElementById('drop-icon');
+  const dropText = document.getElementById('drop-text');
+  const preview = document.getElementById('preview-img');
+  const btnConverter = document.getElementById('btn-converter');
+
+  input.addEventListener('change', () => {
+    if (input.files[0]) mostrarPreview(input.files[0]);
+  });
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      mostrarPreview(file);
+    }
+  });
+  dropZone.addEventListener('click', e => {
+    if (e.target !== input) input.click();
+  });
+
+  function mostrarPreview(file) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      preview.src = ev.target.result;
+      preview.style.display = 'block';
+      dropText.style.display = 'none';
+      dropIcon.style.display = 'none';
+      dropZone.classList.add('has-file');
+      btnConverter.disabled = false;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function limpar() {
+    input.value = '';
+    preview.src = '';
+    preview.style.display = 'none';
+    dropText.style.display = 'block';
+    dropIcon.style.display = 'block';
+    dropZone.classList.remove('has-file');
+    btnConverter.disabled = true;
+    esconderErro();
+  }
+
+  function mostrarErro(msg) {
+    document.getElementById('erro-msg').textContent = msg;
+    document.getElementById('alert-erro').style.display = 'block';
+  }
+
+  function esconderErro() {
+    document.getElementById('alert-erro').style.display = 'none';
+  }
+
+  async function converter() {
+    if (!input.files[0]) return;
+    esconderErro();
+
+    document.getElementById('btn-texto').classList.add('d-none');
+    document.getElementById('btn-loading').classList.remove('d-none');
+    btnConverter.disabled = true;
+
+    const formData = new FormData();
+    formData.append('imagem', input.files[0]);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    try {
+      const resp = await fetch('{% url "img2word:index" %}', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({ erro: 'Erro desconhecido.' }));
+        mostrarErro(data.erro || 'Erro ao processar a imagem.');
+        return;
+      }
+
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const nomeOriginal = input.files[0].name.replace(/\.[^.]+$/, '');
+      a.href = url;
+      a.download = nomeOriginal + '.docx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+    } catch (err) {
+      mostrarErro('Erro de conexão. Verifique sua rede e tente novamente.');
+    } finally {
+      document.getElementById('btn-texto').classList.remove('d-none');
+      document.getElementById('btn-loading').classList.add('d-none');
+      btnConverter.disabled = false;
+    }
+  }
+</script>
+
+</body>
+</html>

@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'apps.pessoas',
     'apps.propostas',
     'apps.contratos',
+    'apps.img2word',
 ]
 
 MIDDLEWARE = [

@@ -140,6 +140,7 @@ ADMIN_LINKS = [
     {"name": "Chat - IA", "url": reverse('chat:chat')},
     {"name": "Cota365", "url": reverse('cota365:index')},
     {"name": "Tabelas PDF", "url": reverse('intranet_uploads')},
+    {"name": "Imagem para Word", "url": reverse('img2word:index')},
 ]
 
 # reverse("indice_list")

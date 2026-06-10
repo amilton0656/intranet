@@ -376,8 +376,13 @@ def _compute_resumos_tabela():
     tip_est_vt = defaultdict(float)
     tip_est_ap = defaultdict(float)
     tip_est_n  = defaultdict(int)
+    tip_vnd_vt = defaultdict(float)
+    tip_vnd_ap = defaultdict(float)
+    tip_vnd_n  = defaultdict(int)
+    tip_perm_n = defaultdict(int)
 
     permutas = _load_permutas()
+    unidade_tip_map = {}  # unidade -> (tipologia, area_privativa)
 
     for t in _tabela_qs():
         sit = 'Permuta' if t.unidade in permutas else t.situacao
@@ -389,10 +394,21 @@ def _compute_resumos_tabela():
             tip_vt[tip] += t.valor_total
             tip_ap[tip] += t.area_privativa
             tip_n[tip]  += 1
-            if sit in ('Disponível', 'Reservada'):
+            if sit not in ('Vendida', 'Permuta'):
                 tip_est_vt[tip] += t.valor_total
                 tip_est_ap[tip] += t.area_privativa
                 tip_est_n[tip]  += 1
+            if sit == 'Permuta':
+                tip_perm_n[tip] += 1
+            unidade_tip_map[t.unidade] = (tip, t.area_privativa)
+
+    for v in Venda.objects.all():
+        entry = unidade_tip_map.get(v.unidade)
+        if entry:
+            tip, ap = entry
+            tip_vnd_vt[tip] += v.valor_contrato
+            tip_vnd_ap[tip] += ap
+            tip_vnd_n[tip]  += 1
 
     total_vt = sum(sit_vt.values()) or 1
     total_ap = sum(sit_ap.values()) or 1
@@ -459,12 +475,14 @@ def _compute_resumos_tabela():
 
     grp_vt = defaultdict(float)
     grp_ap = defaultdict(float)
-    grp_n  = defaultdict(int)
+    grp_n    = defaultdict(int)
+    grp_perm = defaultdict(int)
     for t in tip_n:
         g = _grupo(t)
-        grp_vt[g] += tip_vt[t]
-        grp_ap[g] += tip_ap[t]
-        grp_n[g]  += tip_n[t]
+        grp_vt[g]   += tip_vt[t]
+        grp_ap[g]   += tip_ap[t]
+        grp_n[g]    += tip_n[t]
+        grp_perm[g] += tip_perm_n[t]
 
     total_tip_vt = sum(grp_vt.values()) or 1
     total_tip_ap = sum(grp_ap.values()) or 1
@@ -483,6 +501,7 @@ def _compute_resumos_tabela():
             'ap_fmt': f"{grp_ap[g]:,.2f}".replace(',','X').replace('.',',').replace('X','.'),
             'vt_fmt': _fmt_brl(grp_vt[g]),
             'rsm2':   f"{rsm2:,.2f}".replace(',','X').replace('.',',').replace('X','.'),
+            'perm_n': grp_perm[g],
         })
     resumo_tip.append({
         'n':      total_tip_n,
@@ -491,6 +510,7 @@ def _compute_resumos_tabela():
         'vt_fmt': _fmt_brl(total_tip_vt),
         'rsm2':   f"{total_tip_vt/total_tip_ap:,.2f}".replace(',','X').replace('.',',').replace('X','.')
                   if total_tip_ap else '0,00',
+        'perm_n': sum(grp_perm.values()),
         'is_total': True,
     })
 
@@ -530,11 +550,64 @@ def _compute_resumos_tabela():
         'is_total': True,
     })
 
+    # ── Agrupa vendidas por grupo de tipologia ────────────────────────────────
+    vnd_grp_vt = defaultdict(float)
+    vnd_grp_ap = defaultdict(float)
+    vnd_grp_n  = defaultdict(int)
+    for t in tip_vnd_n:
+        g = _grupo(t)
+        vnd_grp_vt[g] += tip_vnd_vt[t]
+        vnd_grp_ap[g] += tip_vnd_ap[t]
+        vnd_grp_n[g]  += tip_vnd_n[t]
+
+    # ── Consolidado Total / Vendido / Estoque por grupo ──────────────────────
+    all_grps_union = sorted(
+        set(all_grps) | set(all_est_grps),
+        key=lambda g: GRP_ORDER.index(g) if g in GRP_ORDER else 99,
+    )
+    resumo_tip_total = []
+    for g in all_grps_union:
+        tot_n  = grp_n.get(g, 0)
+        tot_ap = grp_ap.get(g, 0.0)
+        tot_vt = grp_vt.get(g, 0.0)
+        vnd_n  = vnd_grp_n.get(g, 0)
+        vnd_ap = vnd_grp_ap.get(g, 0.0)
+        vnd_vt = vnd_grp_vt.get(g, 0.0)
+        est_n  = est_grp_n.get(g, 0)
+        est_ap = est_grp_ap.get(g, 0.0)
+        est_vt = est_grp_vt.get(g, 0.0)
+        pct    = vnd_vt / tot_vt * 100 if tot_vt else 0.0
+        resumo_tip_total.append({
+            'tipo':   g,
+            'tot_n':  tot_n,  'tot_ap': tot_ap,  'tot_vt': tot_vt,
+            'vnd_n':  vnd_n,  'vnd_ap': vnd_ap,  'vnd_vt': vnd_vt,  'pct': pct,
+            'est_n':  est_n,  'est_ap': est_ap,  'est_vt': est_vt,
+            'perm_n': grp_perm.get(g, 0),
+        })
+    _real_tot_ap  = sum(grp_ap.values())
+    _real_tot_vt  = sum(grp_vt.values())
+    _real_vnd_n   = sum(vnd_grp_n.values())
+    _real_vnd_ap  = sum(vnd_grp_ap.values())
+    _real_vnd_vt  = sum(vnd_grp_vt.values())
+    _real_est_ap  = sum(est_grp_ap.values())
+    _real_est_vt  = sum(est_grp_vt.values())
+    _real_est_n   = sum(est_grp_n.values())
+    resumo_tip_total.append({
+        'tipo':     'Total',
+        'tot_n':    total_tip_n,   'tot_ap': _real_tot_ap,  'tot_vt': _real_tot_vt,
+        'vnd_n':    _real_vnd_n,   'vnd_ap': _real_vnd_ap,  'vnd_vt': _real_vnd_vt,
+        'pct':      _real_vnd_vt / _real_tot_vt * 100 if _real_tot_vt else 0.0,
+        'est_n':    _real_est_n,   'est_ap': _real_est_ap,  'est_vt': _real_est_vt,
+        'perm_n':   sum(grp_perm.values()),
+        'is_total': True,
+    })
+
     return (
         resumo_sit,
         resumo_sit_liquido,
         resumo_tip,
         resumo_tip_estoque,
+        resumo_tip_total,
         _fmt_brl(preco_medio),
         _fmt_brl(preco_medio_estoque),
         sum(sit_vt.values()),
@@ -1579,7 +1652,7 @@ def dashboard(request):
     ]
 
     # ── KPIs de contrato via Venda + Tabela ───────────────────────────────────
-    resumo_sit, resumo_sit_liquido, resumo_tip, resumo_tip_estoque, \
+    resumo_sit, resumo_sit_liquido, resumo_tip, resumo_tip_estoque, resumo_tip_total, \
         preco_medio_tipo, preco_medio_estoque, \
         vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada, vgv_vendida = _compute_resumos_tabela()
     area_priv, area_priv_acess, total_priv, area_comum, area_total = _compute_areas()
@@ -1692,7 +1765,7 @@ def export_dashboard(request):
         ano_totals[str(yr)] += exp_monthly_rec[key] + exp_monthly_pend[key]
 
     # ── KPIs via Venda + Tabela ───────────────────────────────────────────────
-    resumo_sit, resumo_sit_liquido, resumo_tip, resumo_tip_estoque, \
+    resumo_sit, resumo_sit_liquido, resumo_tip, resumo_tip_estoque, resumo_tip_total, \
         preco_medio_tipo, preco_medio_estoque, \
         vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada, vgv_vendida = _compute_resumos_tabela()
     area_priv, area_priv_acess, total_priv, area_comum, area_total = _compute_areas()
@@ -1858,12 +1931,12 @@ def export_dashboard(request):
     story.append(PageBreak())
 
     story.append(Paragraph('Resumo por Tipo', sec_s))
-    tip_header = [[th('QTDE'), th('TIPO'), th('M² PRIV.'), th('VALOR TABELA'), th('R$/M²')]]
+    tip_header = [[th('QTDE'), th('TIPO'), th('M² PRIV.'), th('VALOR TABELA'), th('R$/M²'), th('PERM.')]]
     tip_rows = [
-        [tdr(str(r['n'])), td(r['tipo']), tdr(r['ap_fmt']), tdr(r['vt_fmt']), tdr(r['rsm2'])]
+        [tdr(str(r['n'])), td(r['tipo']), tdr(r['ap_fmt']), tdr(r['vt_fmt']), tdr(r['rsm2']), tdr(str(r['perm_n']))]
         for r in resumo_tip
     ]
-    story.append(tbl(tip_header + tip_rows, [1.5*cm, 3.5*cm, 3*cm, 4.5*cm, 4.2*cm], total_last=True))
+    story.append(tbl(tip_header + tip_rows, [1.5*cm, 3.2*cm, 3.0*cm, 4.5*cm, 3.0*cm, 1.7*cm], total_last=True))
     story.append(Paragraph(
         f'Preço médio por unidade: {preco_medio_tipo}',
         ps('PM', fontSize=8, textColor=NAVY, fontName='Helvetica-Bold', spaceBefore=4, spaceAfter=6),
@@ -1876,11 +1949,97 @@ def export_dashboard(request):
         [tdr(str(r['n'])), td(r['tipo']), tdr(r['ap_fmt']), tdr(r['vt_fmt']), tdr(r['rsm2'])]
         for r in resumo_tip_estoque
     ]
-    story.append(tbl(est_header + est_rows, [1.5*cm, 3.5*cm, 3*cm, 4.5*cm, 4.2*cm], total_last=True))
+    story.append(tbl(est_header + est_rows, [1.5*cm, 3.5*cm, 3.0*cm, 4.5*cm, 4.4*cm], total_last=True))
     story.append(Paragraph(
         f'Preço médio por unidade (estoque): {preco_medio_estoque}',
         ps('PM', fontSize=8, textColor=NAVY, fontName='Helvetica-Bold', spaceBefore=4, spaceAfter=6),
     ))
+
+    # ── Resumo por Tipo (Todos) ───────────────────────────────────────────────
+    story.append(Spacer(1, 4))
+    story.append(Paragraph('Resumo por Tipo (Todos)', sec_s))
+
+    SUBHDR_BG = colors.HexColor('#495057')
+
+    def _fmt_ap2(v):
+        return f'{v:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+
+    def _fmt_pct(v):
+        return f'{v:.1f}'.replace('.', ',')
+
+    COL_W = [
+        1.5*cm,   # Tipo
+        0.8*cm,   # tot_n
+        1.5*cm,   # tot_ap
+        2.3*cm,   # tot_vt
+        0.8*cm,   # vnd_n
+        1.5*cm,   # vnd_ap
+        2.3*cm,   # vnd_vt
+        0.85*cm,  # pct
+        0.8*cm,   # est_n
+        1.5*cm,   # est_ap
+        2.3*cm,   # est_vt
+        0.75*cm,  # perm
+    ]
+
+    tot_hdr = [
+        th('Tipo'),
+        th('Total'), th(''), th(''),
+        th('Vendido'), th(''), th(''), th(''),
+        th('Estoque'), th(''), th(''),
+        th('P'),
+    ]
+    sub_hdr = [
+        th(''),
+        th('Qt.'), th('A.Priv'), th('Valor (R$)'),
+        th('Qt.'), th('A.Priv'), th('Valor (R$)'), th('%'),
+        th('Qt.'), th('A.Priv'), th('Valor (R$)'),
+        th(''),
+    ]
+
+    def _row_tot(r):
+        _b = r.get('is_total', False)
+        _f = tdrb if _b else tdr
+        _fl = tdb if _b else td
+        return [
+            _fl(r['tipo']),
+            _f(str(r['tot_n'])),
+            _f(_fmt_ap2(r['tot_ap'])),
+            _f(_fmt_ap2(r['tot_vt'])),
+            _f(str(r['vnd_n'])),
+            _f(_fmt_ap2(r['vnd_ap'])),
+            _f(_fmt_ap2(r['vnd_vt'])),
+            _f(_fmt_pct(r['pct'])),
+            _f(str(r['est_n'])),
+            _f(_fmt_ap2(r['est_ap'])),
+            _f(_fmt_ap2(r['est_vt'])),
+            _f(str(r['perm_n'])),
+        ]
+
+    tot_data = [tot_hdr, sub_hdr] + [_row_tot(r) for r in resumo_tip_total]
+
+    t_tot = Table(tot_data, colWidths=COL_W, repeatRows=2)
+    n_tot_data = len(tot_data)
+    t_tot.setStyle(TableStyle([
+        ('BACKGROUND',    (0, 0), (-1, 0), NAVY),
+        ('BACKGROUND',    (0, 1), (-1, 1), SUBHDR_BG),
+        ('ROWBACKGROUNDS',(0, 2), (-1, n_tot_data - 2), [colors.white, LIGHT]),
+        ('BACKGROUND',    (0, -1), (-1, -1), TOTAL_BG),
+        ('FONTNAME',      (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('GRID',          (0, 0), (-1, -1), 0.4, BORDER),
+        ('TOPPADDING',    (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
+        ('VALIGN',        (0, 0), (-1, 1), 'MIDDLE'),
+        ('SPAN',          (0, 0), (0, 1)),    # Tipo abrange as 2 linhas de header
+        ('SPAN',          (1, 0), (3, 0)),    # Total
+        ('SPAN',          (4, 0), (7, 0)),    # Vendido
+        ('SPAN',          (8, 0), (10, 0)),   # Estoque
+        ('SPAN',          (11, 0), (11, 1)),  # P abrange as 2 linhas de header
+    ]))
+    story.append(t_tot)
+    story.append(Spacer(1, 6))
 
     story.append(Paragraph('Receita por Ano', sec_s))
     ano_header = [[th('ANO'), th('RECEITA PREVISTA'), th('% DO TOTAL')]]
@@ -1925,7 +2084,6 @@ def export_dashboard(request):
 
     # ── Resumo por Tipo (igual ao Fluxo Mensal) ───────────────────────────────
     if total_fluxo:
-        story.append(PageBreak())
         story.append(Paragraph('Resumo por Tipo de Parcela', sec_s))
 
         NAVY   = colors.HexColor('#1a1a2e')
@@ -2027,7 +2185,7 @@ def export_dashboard(request):
     _tot_com = sum(r['com'] for r in ranking_imob)
 
     if ranking_imob:
-        story.append(Spacer(1, 10))
+        story.append(PageBreak())
         story.append(Paragraph('Ranking de Vendas por Imobiliária', sec_s))
         rank_header = [[th('IMOBILIÁRIA'), th('VENDAS'), th('VGV'), th('%'), th('COMISSÕES'), th('% COM.')]]
         rank_rows = [
