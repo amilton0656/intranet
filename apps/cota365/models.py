@@ -173,3 +173,18 @@ class ComissaoObs(models.Model):
 
     def __str__(self):
         return f'Obs reserva {self.reserva}'
+
+
+class MinimoTabela(models.Model):
+    tipo        = models.CharField(max_length=50)
+    competencia = models.DateField()
+    valor_minimo = models.FloatField()
+    unidade     = models.CharField(max_length=50)
+    criado_em   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [('tipo', 'competencia')]
+        ordering = ['-competencia', 'tipo']
+
+    def __str__(self):
+        return f'{self.tipo} — {self.competencia:%m/%Y} — {self.unidade}'

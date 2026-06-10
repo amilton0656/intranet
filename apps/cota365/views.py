@@ -30,6 +30,7 @@ from reportlab.lib.units import cm
 from .models import (
     ImportLog, Tabela, Permuta, Vinculo, Venda,
     Unidade, FluxoContrato, FluxoParcela, Comissao, SerieContrato, Parcela, ComissaoObs,
+    MinimoTabela,
 )
 from apps.indices.models import IndiceData
 
@@ -692,6 +693,89 @@ def _col(*names):
     return getter
 
 
+def _grupo_tip(tipologia):
+    tl = tipologia.lower()
+    if 'studio' in tl: return 'Studio'
+    if 'loja'   in tl: return 'Loja'
+    return '2D'
+
+
+def _verificar_piso_preco(objs, competencia):
+    from django.core.mail import send_mail
+    from django.conf import settings
+
+    TIPOS_MONITORADOS = ['Studio', '2D']
+    EMAIL_DESTINO = 'amilton@cota.com.br'
+
+    permutas = set(Permuta.objects.values_list('unidade', flat=True))
+
+    minimos_novos = {}
+    for tipo in TIPOS_MONITORADOS:
+        candidatas = [
+            o for o in objs
+            if o.situacao == 'Disponível'
+            and o.unidade not in permutas
+            and o.tipologia
+            and _grupo_tip(o.tipologia) == tipo
+            and o.valor_total > 0
+        ]
+        if not candidatas:
+            continue
+        melhor = min(candidatas, key=lambda o: o.valor_total)
+        minimos_novos[tipo] = {'unidade': melhor.unidade, 'valor': melhor.valor_total}
+
+    if not minimos_novos:
+        return
+
+    linhas_email = []
+
+    for tipo, novo in minimos_novos.items():
+        # Busca o registro anterior: primeiro tenta a mesma competência (reimport),
+        # depois a competência mais recente anterior.
+        mesmo = MinimoTabela.objects.filter(tipo=tipo, competencia=competencia).first()
+        if mesmo:
+            ultimo = mesmo
+        else:
+            ultimo = (MinimoTabela.objects
+                      .filter(tipo=tipo)
+                      .exclude(competencia=competencia)
+                      .order_by('-competencia')
+                      .first())
+
+        MinimoTabela.objects.update_or_create(
+            tipo=tipo,
+            competencia=competencia,
+            defaults={'valor_minimo': novo['valor'], 'unidade': novo['unidade']},
+        )
+
+        if ultimo and novo['valor'] > ultimo.valor_minimo:
+            variacao = (novo['valor'] - ultimo.valor_minimo) / ultimo.valor_minimo * 100
+            linhas_email.append(
+                f"Tipo: {tipo}\n"
+                f"Unidade: {novo['unidade']}\n"
+                f"Novo valor mínimo: {_fmt_brl(novo['valor'])}\n"
+                f"Anterior ({ultimo.competencia:%m/%Y}): {_fmt_brl(ultimo.valor_minimo)}\n"
+                f"Variação: +{variacao:.1f}%"
+            )
+
+    if linhas_email:
+        comp_fmt = competencia.strftime('%m/%Y')
+        corpo = (
+            f"Cota 365 — Piso de preço atualizado ({comp_fmt})\n\n"
+            + "\n\n".join(linhas_email)
+        )
+        try:
+            send_mail(
+                subject=f'Cota 365 — Piso de preço subiu ({comp_fmt})',
+                message=corpo,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[EMAIL_DESTINO],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
+
+
 @transaction.atomic
 def _import_tabela(file_obj, nome, sha256='', competencia=None):
     if competencia is None:
@@ -723,6 +807,7 @@ def _import_tabela(file_obj, nome, sha256='', competencia=None):
     Tabela.objects.filter(competencia=competencia).delete()
     Tabela.objects.bulk_create(objs)
     ImportLog.objects.create(tipo='tabela', total_registros=len(objs), nome_arquivo=nome, sha256=sha256)
+    _verificar_piso_preco(objs, competencia)
     vgv = sum(o.valor_total for o in objs)
     return len(objs), {'Competência': competencia.strftime('%m/%Y'), 'VGV total': _fmt_brl(vgv)}
 
