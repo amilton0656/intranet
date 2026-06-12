@@ -577,7 +577,7 @@ def _compute_resumos_tabela():
         est_n  = est_grp_n.get(g, 0)
         est_ap = est_grp_ap.get(g, 0.0)
         est_vt = est_grp_vt.get(g, 0.0)
-        pct    = vnd_vt / tot_vt * 100 if tot_vt else 0.0
+        pct    = vnd_ap / tot_ap * 100 if tot_ap else 0.0
         resumo_tip_total.append({
             'tipo':   g,
             'tot_n':  tot_n,  'tot_ap': tot_ap,  'tot_vt': tot_vt,
