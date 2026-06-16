@@ -14,15 +14,21 @@
       margin: 2rem auto;
       padding: 0 1rem;
     }
-    .pdf-link {
+    .pdf-link, .copy-btn {
       display: inline-block;
       margin-bottom: 1.5rem;
       padding: 0.5rem 1rem;
       background: #1a1a2e;
       color: #fff;
       text-decoration: none;
+      border: none;
       border-radius: 6px;
       font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .copy-btn {
+      margin-left: 0.5rem;
+      background: #0d6efd;
     }
     pre {
       background: #fff;
@@ -38,6 +44,29 @@
 </head>
 <body>
   <a class="pdf-link" href="{{ pdf_url }}">Abrir PDF original</a>
-  <pre>{{ texto }}</pre>
+  <button type="button" class="copy-btn" id="copy-text-btn">Copiar texto</button>
+  <pre id="texto-resumo">{{ texto }}</pre>
+
+  <script>
+    document.getElementById('copy-text-btn').addEventListener('click', async function () {
+      const btn = this;
+      const original = btn.textContent;
+      const texto = document.getElementById('texto-resumo').textContent;
+      try {
+        await navigator.clipboard.writeText(texto);
+        btn.textContent = 'Copiado!';
+      } catch (err) {
+        const range = document.createRange();
+        range.selectNode(document.getElementById('texto-resumo'));
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        document.execCommand('copy');
+        window.getSelection().removeAllRanges();
+        btn.textContent = 'Copiado!';
+      } finally {
+        setTimeout(function () { btn.textContent = original; }, 2000);
+      }
+    });
+  </script>
 </body>
 </html>
