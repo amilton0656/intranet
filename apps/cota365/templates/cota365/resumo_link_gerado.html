@@ -19,11 +19,11 @@
 </div>
 
 <div class="main-content">
-  <div class="summary-card" style="max-width: 700px;">
-    <div class="label mb-2">Qualquer pessoa com este link pode abrir o PDF — sem necessidade de login</div>
+  <div class="summary-card mb-3" style="max-width: 700px;">
+    <div class="label mb-2">PDF — para abrir no navegador ou colar no WhatsApp</div>
     <div class="input-group">
-      <input type="text" id="link-publico" class="form-control" value="{{ link }}" readonly>
-      <button type="button" class="btn btn-outline-primary" id="copy-link-btn">
+      <input type="text" class="form-control link-input" value="{{ link }}" readonly>
+      <button type="button" class="btn btn-outline-primary copy-link-btn">
         <i class="bi bi-clipboard me-1"></i>Copiar link
       </button>
       <a href="{{ link }}" target="_blank" class="btn btn-outline-danger">
@@ -31,23 +31,37 @@
       </a>
     </div>
   </div>
+
+  <div class="summary-card" style="max-width: 700px;">
+    <div class="label mb-2">Texto (HTML) — para assistentes de IA que não leem PDF direto</div>
+    <div class="input-group">
+      <input type="text" class="form-control link-input" value="{{ link_html }}" readonly>
+      <button type="button" class="btn btn-outline-primary copy-link-btn">
+        <i class="bi bi-clipboard me-1"></i>Copiar link
+      </button>
+      <a href="{{ link_html }}" target="_blank" class="btn btn-outline-secondary">
+        <i class="bi bi-file-text me-1"></i>Abrir
+      </a>
+    </div>
+  </div>
 </div>
 
 <script>
-document.getElementById('copy-link-btn').addEventListener('click', async function () {
-  const input = document.getElementById('link-publico');
-  const btn = this;
-  const original = btn.innerHTML;
-  try {
-    await navigator.clipboard.writeText(input.value);
-    btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copiado!';
-  } catch (err) {
-    input.select();
-    document.execCommand('copy');
-    btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copiado!';
-  } finally {
-    setTimeout(function () { btn.innerHTML = original; }, 2000);
-  }
+document.querySelectorAll('.copy-link-btn').forEach(function (btn) {
+  btn.addEventListener('click', async function () {
+    const input = btn.closest('.input-group').querySelector('.link-input');
+    const original = btn.innerHTML;
+    try {
+      await navigator.clipboard.writeText(input.value);
+      btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copiado!';
+    } catch (err) {
+      input.select();
+      document.execCommand('copy');
+      btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copiado!';
+    } finally {
+      setTimeout(function () { btn.innerHTML = original; }, 2000);
+    }
+  });
 });
 </script>
 {% endblock %}

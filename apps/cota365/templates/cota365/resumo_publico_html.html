@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resumo Gerencial — Cota 365</title>
+  <meta name="robots" content="noindex">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f5f6fa;
+      color: #1a1a2e;
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    .pdf-link {
+      display: inline-block;
+      margin-bottom: 1.5rem;
+      padding: 0.5rem 1rem;
+      background: #1a1a2e;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    pre {
+      background: #fff;
+      border: 1px solid #e2e6ea;
+      border-radius: 8px;
+      padding: 1.25rem;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <a class="pdf-link" href="{{ pdf_url }}">Abrir PDF original</a>
+  <pre>{{ texto }}</pre>
+</body>
+</html>

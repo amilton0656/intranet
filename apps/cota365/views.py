@@ -1851,7 +1851,8 @@ def gerar_link_publico_resumo(request):
     token = uuid.uuid4()
     (_resumo_publico_dir() / f'{token}.pdf').write_bytes(pdf_bytes)
     link = request.build_absolute_uri(reverse('cota365:resumo_publico', args=[token]))
-    return render(request, 'cota365/resumo_link_gerado.html', {'link': link})
+    link_html = request.build_absolute_uri(reverse('cota365:resumo_publico_html', args=[token]))
+    return render(request, 'cota365/resumo_link_gerado.html', {'link': link, 'link_html': link_html})
 
 
 def resumo_publico(request, token):
@@ -1859,6 +1860,19 @@ def resumo_publico(request, token):
     if not file_path.exists():
         raise Http404
     return FileResponse(open(file_path, 'rb'), content_type='application/pdf', filename='resumo_cota365.pdf')
+
+
+def resumo_publico_html(request, token):
+    import fitz
+
+    file_path = _resumo_publico_dir() / f'{token}.pdf'
+    if not file_path.exists():
+        raise Http404
+    doc_pdf = fitz.open(file_path)
+    texto = '\n'.join(page.get_text() for page in doc_pdf)
+    doc_pdf.close()
+    pdf_url = reverse('cota365:resumo_publico', args=[token])
+    return render(request, 'cota365/resumo_publico_html.html', {'texto': texto, 'pdf_url': pdf_url})
 
 
 def _build_dashboard_pdf():

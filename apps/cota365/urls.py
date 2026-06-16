@@ -12,6 +12,7 @@ urlpatterns = [
     path('dashboard/whatsapp/', views.export_dashboard_whatsapp, name='export_dashboard_whatsapp'),
     path('dashboard/link/', views.gerar_link_publico_resumo, name='gerar_link_publico_resumo'),
     path('resumo/publico/<uuid:token>/', views.resumo_publico, name='resumo_publico'),
+    path('resumo/publico/<uuid:token>/html/', views.resumo_publico_html, name='resumo_publico_html'),
     path('unidades/', views.unidades, name='unidades'),
     path('unidades/export/', views.export_unidades, name='export_unidades'),
     path('vendas/export/', views.export_vendas, name='export_vendas'),
