@@ -118,7 +118,11 @@
                     <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                         {% for link in gerencial_links %}
                         <li>
+                            {% if link.copy_text %}
+                            <a class="dropdown-item copy-text-link" href="{{ link.url }}">{{link.name }}</a>
+                            {% else %}
                             <a class="dropdown-item" href="{{ link.url }}">{{link.name }}</a>
+                            {% endif %}
                         </li>
                         {% endfor %}
                     </ul>
@@ -190,3 +194,21 @@
         </div>
     </div>
 </nav>
+
+<script>
+document.querySelectorAll('.copy-text-link').forEach(function (link) {
+  link.addEventListener('click', async function (ev) {
+    ev.preventDefault();
+    const href = link.getAttribute('href');
+    const sep = href.includes('?') ? '&' : '?';
+    try {
+      const resp = await fetch(href + sep + 'format=json');
+      const data = await resp.json();
+      await navigator.clipboard.writeText(data.texto);
+      alert('Resumo copiado para a área de transferência. Cole (Ctrl+V) onde quiser.');
+    } catch (err) {
+      window.location = href;
+    }
+  });
+});
+</script>

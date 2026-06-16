@@ -12,7 +12,7 @@ from collections import defaultdict, OrderedDict
 
 from django.conf import settings
 from django.shortcuts import render, redirect
-from django.http import HttpResponse, FileResponse, Http404
+from django.http import HttpResponse, FileResponse, Http404, JsonResponse
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -1862,6 +1862,10 @@ def gerar_link_publico_resumo(request):
     link = request.build_absolute_uri(reverse('cota365:resumo_publico', args=[token]))
     link_html = request.build_absolute_uri(reverse('cota365:resumo_publico_html', args=[token]))
     texto = _extrair_texto_pdf(pdf_bytes)
+
+    if request.GET.get('format') == 'json':
+        return JsonResponse({'link': link, 'link_html': link_html, 'texto': texto})
+
     return render(request, 'cota365/resumo_link_gerado.html', {'link': link, 'link_html': link_html, 'texto': texto})
 
 
