@@ -95,11 +95,21 @@ class Command(BaseCommand):
             ctx = browser.contexts[0]
             page = next((pg for pg in ctx.pages if 'cvcrm.com.br' in pg.url), ctx.pages[0])
 
-            if page.locator('input[type="password"]').count() > 0:
-                self.stdout.write(self.style.WARNING(
-                    'Faça login manualmente na janela do Chrome (e-mail, senha e o desafio de segurança).'
-                ))
+            try:
+                page.wait_for_load_state('load', timeout=15000)
+            except Exception:
+                pass
+            page.wait_for_timeout(2000)
+
+            primeira_vez = True
+            while page.locator('input[type="password"]').count() > 0:
+                if primeira_vez:
+                    self.stdout.write(self.style.WARNING(
+                        'Faça login manualmente na janela do Chrome (e-mail, senha e o desafio de segurança).'
+                    ))
+                    primeira_vez = False
                 input('Pressione ENTER aqui depois de estar logado e na tela do empreendimento... ')
+                page.wait_for_timeout(2000)
 
             if 'administrar' not in page.url:
                 page.goto(target_url, wait_until='load', timeout=60000)
@@ -143,7 +153,14 @@ class Command(BaseCommand):
         text = resp.body().decode('utf-8-sig')
 
         lines = text.splitlines()
-        header_idx = next(i for i, l in enumerate(lines) if 'ID Unidade' in l)
+        try:
+            header_idx = next(i for i, l in enumerate(lines) if 'ID Unidade' in l)
+        except StopIteration:
+            trecho = text[:500].replace('\n', ' ')
+            raise CommandError(
+                'O download não trouxe o CSV esperado de Unidades (não encontrei "ID Unidade" no '
+                f'conteúdo). Provavelmente a sessão não estava realmente logada. Início da resposta: {trecho}'
+            )
         header_fields = lines[header_idx].count(';') + 1
 
         data_lines = []
