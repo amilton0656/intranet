@@ -5,4 +5,5 @@ __pycache__/
 *.pyc
 *.pyo
 media/
+.cvcrm_chrome_profile/
 
