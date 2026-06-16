@@ -101,6 +101,8 @@ class Command(BaseCommand):
                 pass
             page.wait_for_timeout(2000)
 
+            # fallback de segurança: se ainda aparecer login aqui (sessão expirou,
+            # ou o usuário não confirmou a tempo), pede de novo.
             primeira_vez = True
             while page.locator('input[type="password"]').count() > 0:
                 if primeira_vez:
@@ -128,22 +130,42 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f'Planilha salva em: {output_path}'))
 
     def _connect_or_launch(self, p, chrome_path, profile_dir, port, target_url):
-        try:
+        # Se já existe um Chrome com debugging port aberto (de uma execução anterior),
+        # o login provavelmente já foi feito antes — pode conectar direto.
+        if self._debug_port_alive(port):
             return p.chromium.connect_over_cdp(f'http://127.0.0.1:{port}')
+
+        subprocess.Popen([
+            chrome_path,
+            f'--remote-debugging-port={port}',
+            f'--user-data-dir={profile_dir}',
+            target_url,
+        ])
+        for _ in range(15):
+            time.sleep(1)
+            if self._debug_port_alive(port):
+                break
+        else:
+            raise CommandError('O Chrome não abriu a debugging port a tempo.')
+
+        # IMPORTANTE: só conectamos via CDP depois da confirmação do usuário.
+        # Conectar antes faz o Cloudflare Turnstile detectar automação e bloquear
+        # o captcha ("Falha na verificação"), mesmo sendo o Chrome de verdade.
+        self.stdout.write(self.style.WARNING(
+            'Faça login manualmente na janela do Chrome que abriu (e-mail, senha e o '
+            'desafio de segurança do Cloudflare).'
+        ))
+        input('Pressione ENTER aqui depois de estar logado e na tela do empreendimento... ')
+
+        return p.chromium.connect_over_cdp(f'http://127.0.0.1:{port}')
+
+    def _debug_port_alive(self, port):
+        import urllib.request
+        try:
+            urllib.request.urlopen(f'http://127.0.0.1:{port}/json/version', timeout=1)
+            return True
         except Exception:
-            subprocess.Popen([
-                chrome_path,
-                f'--remote-debugging-port={port}',
-                f'--user-data-dir={profile_dir}',
-                target_url,
-            ])
-            for _ in range(15):
-                time.sleep(1)
-                try:
-                    return p.chromium.connect_over_cdp(f'http://127.0.0.1:{port}')
-                except Exception:
-                    continue
-            raise CommandError('Não consegui conectar ao Chrome via debugging port.')
+            return False
 
     def _build_principal(self, page, base, emp_id):
         download_url = f'{base}/gestor/cadastros/empreendimentos/{emp_id}/exportar_unidades_download'
