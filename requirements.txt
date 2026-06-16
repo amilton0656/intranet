@@ -21,6 +21,7 @@ pycairo==1.28.0
 pycparser==2.23
 pyHanko==0.31.0
 pyhanko-certvalidator==0.29.0
+pymupdf==1.26.4
 pypdf==6.1.0
 python-bidi==0.6.6
 python-decouple==3.8

@@ -1,0 +1,92 @@
+{% extends 'cota365/base.html' %}
+
+{% block title %}Resumo — WhatsApp — Cota 365{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<style>
+  .wa-page-card {
+    background: #fff;
+    border: 1px solid #e2e6ea;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .wa-page-card img {
+    width: 100%;
+    border: 1px solid #e2e6ea;
+    border-radius: 6px;
+  }
+  .wa-page-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6c757d;
+  }
+</style>
+
+<!-- Page header -->
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1>Resumo — Copiar para WhatsApp</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'cota365:index' %}" class="text-decoration-none">Início</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'cota365:dashboard' %}" class="text-decoration-none">Resumo</a></li>
+        <li class="breadcrumb-item active">WhatsApp</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="pt-1 d-flex gap-2">
+    <a href="{% url 'cota365:export_dashboard' %}" class="btn btn-outline-danger btn-sm">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+    </a>
+  </div>
+</div>
+
+<div class="main-content">
+  <p class="text-muted mb-4">
+    Clique em <strong>Copiar imagem</strong> na página desejada e cole (Ctrl+V) direto na conversa do WhatsApp.
+  </p>
+
+  {% for page in pages %}
+  <div class="wa-page-card">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <span class="wa-page-title">Página {{ forloop.counter }}</span>
+      <button type="button" class="btn btn-outline-primary btn-sm copy-btn" data-target="wa-img-{{ forloop.counter }}">
+        <i class="bi bi-clipboard me-1"></i>Copiar imagem
+      </button>
+    </div>
+    <img id="wa-img-{{ forloop.counter }}" src="data:image/png;base64,{{ page }}" alt="Resumo página {{ forloop.counter }}">
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(function (btn) {
+  btn.addEventListener('click', async function () {
+    const img = document.getElementById(btn.dataset.target);
+    const original = btn.innerHTML;
+    try {
+      const response = await fetch(img.src);
+      const blob = await response.blob();
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copiado!';
+      btn.classList.remove('btn-outline-primary');
+      btn.classList.add('btn-success');
+    } catch (err) {
+      btn.innerHTML = '<i class="bi bi-x-lg me-1"></i>Falhou';
+      btn.classList.add('btn-danger');
+      alert('Não foi possível copiar a imagem. Seu navegador pode não suportar essa função (use Chrome ou Edge).');
+    } finally {
+      setTimeout(function () {
+        btn.innerHTML = original;
+        btn.classList.remove('btn-success', 'btn-danger');
+        btn.classList.add('btn-outline-primary');
+      }, 2000);
+    }
+  });
+});
+</script>
+{% endblock %}

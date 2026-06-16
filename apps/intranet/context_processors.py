@@ -130,6 +130,7 @@ USEFUL_LINKS = [
 GERENCIAL_LINKS = [
     {"name": "Bliss - Resumo", "url": reverse('bliss_resumo_pdf')},
     {"name": "Cota365 - Resumo", "url": reverse('cota365:export_dashboard')},
+    {"name": "Cota365 - Resumo (Link Público)", "url": reverse('cota365:gerar_link_publico_resumo')},
     {"name": "Cota365 - Fluxo Mensal", "url": reverse('cota365:export_fluxo') + '?format=pdf'},
     {"name": "Cota365 - Descontos", "url": reverse('cota365:export_descontos')},
 ]
@@ -139,6 +140,7 @@ ADMIN_LINKS = [
     {"name": "Tabela Bliss", "url": "/bliss/"},
     {"name": "Chat - IA", "url": reverse('chat:chat')},
     {"name": "Cota365", "url": reverse('cota365:index')},
+    {"name": "Cota365 - Resumo (Imagem WhatsApp)", "url": reverse('cota365:export_dashboard_whatsapp')},
     {"name": "Tabelas PDF", "url": reverse('intranet_uploads')},
     {"name": "Imagem para Word", "url": reverse('img2word:index')},
 ]

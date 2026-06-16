@@ -4,18 +4,21 @@ import io
 import json
 import logging
 import re
+import uuid
 from datetime import datetime, date
 
 logger = logging.getLogger(__name__)
 from collections import defaultdict, OrderedDict
 
+from django.conf import settings
 from django.shortcuts import render, redirect
-from django.http import HttpResponse
+from django.http import HttpResponse, FileResponse, Http404
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import F, Sum, Count, Q
 from django.db.models.functions import ExtractYear, ExtractMonth
+from django.urls import reverse
 
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -1816,6 +1819,49 @@ def dashboard(request):
 
 
 def export_dashboard(request):
+    pdf_bytes = _build_dashboard_pdf()
+    resp = HttpResponse(pdf_bytes, content_type='application/pdf')
+    resp['Content-Disposition'] = 'attachment; filename="resumo_cota365.pdf"'
+    return resp
+
+
+def export_dashboard_whatsapp(request):
+    import base64
+    import fitz
+
+    pdf_bytes = _build_dashboard_pdf()
+    doc_pdf = fitz.open(stream=pdf_bytes, filetype='pdf')
+    pages = []
+    for page in doc_pdf:
+        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+        pages.append(base64.b64encode(pix.tobytes('png')).decode('ascii'))
+    doc_pdf.close()
+
+    return render(request, 'cota365/resumo_whatsapp.html', {'pages': pages})
+
+
+def _resumo_publico_dir():
+    path = settings.MEDIA_ROOT / 'cota365' / 'resumo_publico'
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def gerar_link_publico_resumo(request):
+    pdf_bytes = _build_dashboard_pdf()
+    token = uuid.uuid4()
+    (_resumo_publico_dir() / f'{token}.pdf').write_bytes(pdf_bytes)
+    link = request.build_absolute_uri(reverse('cota365:resumo_publico', args=[token]))
+    return render(request, 'cota365/resumo_link_gerado.html', {'link': link})
+
+
+def resumo_publico(request, token):
+    file_path = _resumo_publico_dir() / f'{token}.pdf'
+    if not file_path.exists():
+        raise Http404
+    return FileResponse(open(file_path, 'rb'), content_type='application/pdf', filename='resumo_cota365.pdf')
+
+
+def _build_dashboard_pdf():
     from reportlab.platypus import HRFlowable
 
     # ── Fluxo via Parcela ─────────────────────────────────────────────────────
@@ -2357,9 +2403,7 @@ def export_dashboard(request):
 
     doc.build(story)
     buf.seek(0)
-    resp = HttpResponse(buf, content_type='application/pdf')
-    resp['Content-Disposition'] = 'attachment; filename="resumo_cota365.pdf"'
-    return resp
+    return buf.getvalue()
 
 
 def unidades(request):
