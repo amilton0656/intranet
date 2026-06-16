@@ -1846,13 +1846,23 @@ def _resumo_publico_dir():
     return path
 
 
+def _extrair_texto_pdf(pdf_bytes):
+    import fitz
+
+    doc_pdf = fitz.open(stream=pdf_bytes, filetype='pdf')
+    texto = '\n'.join(page.get_text() for page in doc_pdf)
+    doc_pdf.close()
+    return texto
+
+
 def gerar_link_publico_resumo(request):
     pdf_bytes = _build_dashboard_pdf()
     token = uuid.uuid4()
     (_resumo_publico_dir() / f'{token}.pdf').write_bytes(pdf_bytes)
     link = request.build_absolute_uri(reverse('cota365:resumo_publico', args=[token]))
     link_html = request.build_absolute_uri(reverse('cota365:resumo_publico_html', args=[token]))
-    return render(request, 'cota365/resumo_link_gerado.html', {'link': link, 'link_html': link_html})
+    texto = _extrair_texto_pdf(pdf_bytes)
+    return render(request, 'cota365/resumo_link_gerado.html', {'link': link, 'link_html': link_html, 'texto': texto})
 
 
 def resumo_publico(request, token):
@@ -1863,14 +1873,10 @@ def resumo_publico(request, token):
 
 
 def resumo_publico_html(request, token):
-    import fitz
-
     file_path = _resumo_publico_dir() / f'{token}.pdf'
     if not file_path.exists():
         raise Http404
-    doc_pdf = fitz.open(file_path)
-    texto = '\n'.join(page.get_text() for page in doc_pdf)
-    doc_pdf.close()
+    texto = _extrair_texto_pdf(file_path.read_bytes())
     pdf_url = reverse('cota365:resumo_publico', args=[token])
     return render(request, 'cota365/resumo_publico_html.html', {'texto': texto, 'pdf_url': pdf_url})
 

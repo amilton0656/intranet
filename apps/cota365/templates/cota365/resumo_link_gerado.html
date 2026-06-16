@@ -36,8 +36,8 @@
     <div class="label mb-2">Texto (HTML) — para assistentes de IA que não leem PDF direto</div>
     <div class="input-group">
       <input type="text" class="form-control link-input" value="{{ link_html }}" readonly>
-      <button type="button" class="btn btn-outline-primary copy-link-btn">
-        <i class="bi bi-clipboard me-1"></i>Copiar link
+      <button type="button" class="btn btn-outline-primary" id="copy-text-btn">
+        <i class="bi bi-clipboard me-1"></i>Copiar texto
       </button>
       <a href="{{ link_html }}" target="_blank" class="btn btn-outline-secondary">
         <i class="bi bi-file-text me-1"></i>Abrir
@@ -45,6 +45,8 @@
     </div>
   </div>
 </div>
+
+<pre id="texto-resumo" style="display:none">{{ texto }}</pre>
 
 <script>
 document.querySelectorAll('.copy-link-btn').forEach(function (btn) {
@@ -62,6 +64,26 @@ document.querySelectorAll('.copy-link-btn').forEach(function (btn) {
       setTimeout(function () { btn.innerHTML = original; }, 2000);
     }
   });
+});
+
+document.getElementById('copy-text-btn').addEventListener('click', async function () {
+  const btn = this;
+  const original = btn.innerHTML;
+  const texto = document.getElementById('texto-resumo').textContent;
+  try {
+    await navigator.clipboard.writeText(texto);
+    btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copiado!';
+  } catch (err) {
+    const range = document.createRange();
+    range.selectNode(document.getElementById('texto-resumo'));
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    document.execCommand('copy');
+    window.getSelection().removeAllRanges();
+    btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copiado!';
+  } finally {
+    setTimeout(function () { btn.innerHTML = original; }, 2000);
+  }
 });
 </script>
 {% endblock %}
