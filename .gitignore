@@ -7,3 +7,11 @@ __pycache__/
 media/
 .cvcrm_chrome_profile/
 
+# Arquivos de dados locais (não versionar)
+*.xlsx
+*.csv
+*.docx
+*.txt
+!requirements.txt
+logs/
+
