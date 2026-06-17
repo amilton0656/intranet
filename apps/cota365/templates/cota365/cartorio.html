@@ -1,0 +1,158 @@
+{% extends 'cota365/base.html' %}
+{% load static %}
+{% block title %}Cartório — Cota 365{% endblock %}
+{% block nav_cartorio %}active{% endblock %}
+
+{% block content %}
+<style>
+  /* ---- Tabs ---- */
+  .cart-tabs .nav-link {
+    font-size: 0.82rem; padding: 0.4rem 1rem;
+    border-radius: 20px; color: #495057; transition: background .15s;
+  }
+  .cart-tabs .nav-link.active { background: #1a1a2e; color: #fff; }
+  .cart-tabs .nav-link .badge { font-size:.68rem; margin-left:4px; vertical-align:middle; }
+
+  /* ---- Busca ---- */
+  .cart-search { max-width: 260px; font-size: 0.82rem; }
+
+  /* ---- Grupo: linha com principal + complementares ---- */
+  .cgroup {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0.4rem;
+    background: #f8f9fa;
+    border: 1px solid #e0e3e8;
+    border-radius: 10px;
+    padding: 0.4rem;
+    margin-bottom: 0.6rem;
+  }
+  .cgroup[hidden] { display: none !important; }
+  @media (max-width: 900px) { .cgroup { flex-wrap: wrap; } }
+
+  /* ---- Card individual dentro do grupo ---- */
+  .ccard {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid #e2e6ea;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 0.78rem;
+    min-width: 0;
+  }
+  /* principal: 40% do espaço; complementares dividem o resto igualmente */
+  .ccard.ccard-principal { flex: 2 1 240px; }
+  .ccard.ccard-compl     { flex: 1 1 160px; }
+
+  /* bordas coloridas por tipo */
+  .ccard.apt  { border-top: 3px solid #0d6efd; }
+  .ccard.loja { border-top: 3px solid #198754; }
+  .ccard.gar  { border-top: 3px solid #fd7e14; }
+  .ccard.hb   { border-top: 3px solid #6f42c1; }
+  .ccard.mot  { border-top: 3px solid #0dcaf0; }
+
+  .ccard-header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: .45rem .75rem .35rem; border-bottom: 1px solid #f0f2f5; gap: 4px;
+  }
+  .ccard-unit  { font-weight: 800; font-size: .95rem; color: #1a1a2e; white-space: nowrap; }
+  .ccard-loc   { font-size: .65rem; font-weight: 600; text-transform: uppercase;
+                 letter-spacing: .04em; color: #6c757d; text-align: right; flex-shrink: 0; }
+
+  .ccard-body  { padding: .4rem .75rem .4rem; flex: 1; }
+  .ccard-row   {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: .18rem 0; border-bottom: 1px solid #f3f4f6; gap: 4px;
+  }
+  .ccard-row:last-child { border-bottom: none; }
+  .ccard-lbl { color: #6c757d; font-size: .7rem; white-space: nowrap; flex-shrink: 0; }
+  .ccard-val { font-weight: 600; color: #212529; text-align: right; font-size: .78rem; }
+  .ccard-tipologia {
+    font-size: .68rem; font-weight: 700;
+    background: #f0f4ff; color: #3a5bd9;
+    border-radius: 4px; padding: 1px 6px;
+  }
+  .ccard-stub-note {
+    font-size: .68rem; color: #adb5bd; font-style: italic; padding: .1rem 0;
+  }
+
+  .ccard-mat {
+    padding: .3rem .75rem .45rem;
+    font-size: .62rem; color: #999; line-height: 1.3; font-style: italic;
+    border-top: 1px solid #f3f4f6;
+  }
+
+  /* empty state */
+  .cart-empty { text-align:center; color:#adb5bd; padding:2rem; font-size:.9rem; }
+  .cart-empty-search { display:none; text-align:center; color:#adb5bd; padding:2rem; font-size:.9rem; }
+</style>
+
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-journal-bookmark me-2"></i>Matrícula Cartório</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'cota365:index' %}">Cota 365</a></li>
+        <li class="breadcrumb-item active">Cartório</li>
+      </ol>
+    </nav>
+  </div>
+  <div>
+    <a href="{% url 'cota365:cartorio_pdf' %}" target="_blank"
+       class="btn btn-sm btn-outline-danger">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+    </a>
+  </div>
+</div>
+
+<div class="main-content">
+
+  <!-- Tabs -->
+  <ul class="nav cart-tabs mb-3" role="tablist">
+    <li class="nav-item">
+      <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-apt" type="button">
+        Apartamentos
+        <span class="badge bg-primary rounded-pill">{{ totais.apartamentos }}</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-loja" type="button">
+        Lojas
+        <span class="badge bg-success rounded-pill">{{ totais.lojas }}</span>
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content">
+
+    <div class="tab-pane fade show active" id="tab-apt">
+      {% include 'cota365/_cartorio_tab.html' with group_list=grupos.apartamentos tipo_principal='apt' %}
+    </div>
+
+    <div class="tab-pane fade" id="tab-loja">
+      {% include 'cota365/_cartorio_tab.html' with group_list=grupos.lojas tipo_principal='loja' %}
+    </div>
+
+  </div>
+
+</div><!-- main-content -->
+
+<script>
+document.querySelectorAll('.cart-search-input').forEach(input => {
+  input.addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    const pane = this.closest('.tab-pane');
+    let visible = 0;
+    pane.querySelectorAll('.cgroup').forEach(g => {
+      const match = !q || (g.dataset.search || '').includes(q);
+      g.hidden = !match;
+      if (match) visible++;
+    });
+    const emptyEl = pane.querySelector('.cart-empty-search');
+    if (emptyEl) emptyEl.style.display = visible === 0 ? '' : 'none';
+  });
+});
+</script>
+{% endblock %}

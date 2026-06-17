@@ -30,4 +30,6 @@ urlpatterns = [
     path('areas/comparativo/', views.export_areas_comparativo, name='export_areas_comparativo'),
     path('descontos/', views.comparativo_valores, name='descontos'),
     path('descontos/export/', views.export_descontos, name='export_descontos'),
+    path('cartorio/', views.cartorio_view, name='cartorio'),
+    path('cartorio/pdf/', views.cartorio_pdf, name='cartorio_pdf'),
 ]

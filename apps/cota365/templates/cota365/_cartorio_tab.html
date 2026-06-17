@@ -1,0 +1,157 @@
+{# Partial: aba do cartório com grupos principal + complementares             #}
+{# Recebe: group_list (list de groups), tipo_principal ('apt' | 'loja')       #}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <span class="text-muted" style="font-size:.82rem">{{ group_list|length }} unidade{{ group_list|length|pluralize }}</span>
+  <input type="search" class="form-control form-control-sm cart-search-input cart-search"
+         placeholder="Buscar unidade, pavimento…" autocomplete="off">
+</div>
+
+{% for group in group_list %}
+{% with p=group.principal %}
+<div class="cgroup"
+     data-search="{{ p.unidade|lower }} {{ p.localizacao|lower }} {{ p.tipologia|lower }}{% for g in group.garagens %} {{ g.unidade|lower }}{% endfor %}{% for h in group.hobby_boxes %} {{ h.unidade|lower }}{% endfor %}">
+
+  {# ---- Card principal ---- #}
+  <div class="ccard {{ tipo_principal }} ccard-principal">
+    <div class="ccard-header">
+      <span class="ccard-unit">{{ p.unidade }}</span>
+      <span class="ccard-loc">{{ p.localizacao|default:"—" }}</span>
+    </div>
+    <div class="ccard-body">
+      {% if p.tipologia %}
+      <div class="ccard-row">
+        <span class="ccard-lbl">Tipologia</span>
+        <span class="ccard-tipologia">{{ p.tipologia }}</span>
+      </div>
+      {% endif %}
+      <div class="ccard-row">
+        <span class="ccard-lbl">Área Privativa</span>
+        <span class="ccard-val">{% if p.ap %}{{ p.ap|floatformat:2 }} m²{% else %}—{% endif %}</span>
+      </div>
+      {% if p.apa %}
+      <div class="ccard-row">
+        <span class="ccard-lbl">Área Priv. Aces.</span>
+        <span class="ccard-val">{{ p.apa|floatformat:2 }} m²</span>
+      </div>
+      {% endif %}
+      <div class="ccard-row">
+        <span class="ccard-lbl">Área Priv. Total</span>
+        <span class="ccard-val">{% if p.apt %}{{ p.apt|floatformat:2 }} m²{% else %}—{% endif %}</span>
+      </div>
+      <div class="ccard-row">
+        <span class="ccard-lbl">Área Comum</span>
+        <span class="ccard-val">{% if p.ac %}{{ p.ac|floatformat:2 }} m²{% else %}—{% endif %}</span>
+      </div>
+      <div class="ccard-row">
+        <span class="ccard-lbl">Área Real Total</span>
+        <span class="ccard-val">{% if p.art %}{{ p.art|floatformat:2 }} m²{% else %}—{% endif %}</span>
+      </div>
+      <div class="ccard-row">
+        <span class="ccard-lbl">Fração Ideal</span>
+        <span class="ccard-val">{% if p.fi %}{{ p.fi|floatformat:3 }}%{% else %}—{% endif %}</span>
+      </div>
+    </div>
+    {% if p.matricula %}
+    <div class="ccard-mat">{{ p.matricula }}</div>
+    {% endif %}
+  </div>
+
+  {# ---- Cards de garagem ---- #}
+  {% for g in group.garagens %}
+  <div class="ccard gar ccard-compl">
+    <div class="ccard-header">
+      <span class="ccard-unit">{{ g.unidade }}</span>
+      <span class="ccard-loc">{{ g.localizacao|default:"—" }}</span>
+    </div>
+    <div class="ccard-body">
+      {% if g.tipologia %}
+      <div class="ccard-row">
+        <span class="ccard-lbl">Tipologia</span>
+        <span class="ccard-tipologia">{{ g.tipologia }}</span>
+      </div>
+      {% endif %}
+      <div class="ccard-row">
+        <span class="ccard-lbl">Área Privativa</span>
+        <span class="ccard-val">{% if g.ap %}{{ g.ap|floatformat:2 }} m²{% else %}—{% endif %}</span>
+      </div>
+      {% if g.apa %}
+      <div class="ccard-row">
+        <span class="ccard-lbl">Área Priv. Aces.</span>
+        <span class="ccard-val">{{ g.apa|floatformat:2 }} m²</span>
+      </div>
+      {% endif %}
+      <div class="ccard-row">
+        <span class="ccard-lbl">Área Priv. Total</span>
+        <span class="ccard-val">{% if g.apt %}{{ g.apt|floatformat:2 }} m²{% else %}—{% endif %}</span>
+      </div>
+      <div class="ccard-row">
+        <span class="ccard-lbl">Área Comum</span>
+        <span class="ccard-val">{% if g.ac %}{{ g.ac|floatformat:2 }} m²{% else %}—{% endif %}</span>
+      </div>
+      <div class="ccard-row">
+        <span class="ccard-lbl">Área Real Total</span>
+        <span class="ccard-val">{% if g.art %}{{ g.art|floatformat:2 }} m²{% else %}—{% endif %}</span>
+      </div>
+      <div class="ccard-row">
+        <span class="ccard-lbl">Fração Ideal</span>
+        <span class="ccard-val">{% if g.fi %}{{ g.fi|floatformat:3 }}%{% else %}—{% endif %}</span>
+      </div>
+    </div>
+    {% if g.matricula %}
+    <div class="ccard-mat">{{ g.matricula }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  {# ---- Cards de hobby box ---- #}
+  {% for h in group.hobby_boxes %}
+  <div class="ccard hb ccard-compl">
+    <div class="ccard-header">
+      <span class="ccard-unit">{{ h.unidade }}</span>
+      <span class="ccard-loc">{{ h.localizacao|default:"—" }}</span>
+    </div>
+    <div class="ccard-body">
+      <div class="ccard-row">
+        <span class="ccard-lbl">Área Privativa</span>
+        <span class="ccard-val">{% if h.ap %}{{ h.ap|floatformat:2 }} m²{% else %}—{% endif %}</span>
+      </div>
+      <div class="ccard-row">
+        <span class="ccard-lbl">Área Priv. Total</span>
+        <span class="ccard-val">{% if h.apt %}{{ h.apt|floatformat:2 }} m²{% else %}—{% endif %}</span>
+      </div>
+      {% if h.ac %}
+      <div class="ccard-row">
+        <span class="ccard-lbl">Área Comum</span>
+        <span class="ccard-val">{{ h.ac|floatformat:2 }} m²</span>
+      </div>
+      {% endif %}
+      {% if h.art %}
+      <div class="ccard-row">
+        <span class="ccard-lbl">Área Real Total</span>
+        <span class="ccard-val">{{ h.art|floatformat:2 }} m²</span>
+      </div>
+      {% endif %}
+      {% if h.fi %}
+      <div class="ccard-row">
+        <span class="ccard-lbl">Fração Ideal</span>
+        <span class="ccard-val">{{ h.fi|floatformat:3 }}%</span>
+      </div>
+      {% endif %}
+      {% if h.stub %}
+      <div class="ccard-stub-note">Acessória — ver garagem</div>
+      {% endif %}
+    </div>
+    {% if h.matricula %}
+    <div class="ccard-mat">{{ h.matricula }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+</div>{# .cgroup #}
+{% endwith %}
+{% empty %}
+<div class="cart-empty">Nenhuma unidade.</div>
+{% endfor %}
+
+<div class="cart-empty-search">Nenhum resultado para a busca.</div>
