@@ -351,7 +351,16 @@ def exportar_pdf(request):
         ))
         story.append(HRFlowable(width='100%', thickness=1, color=_C_GREEN, spaceBefore=6))
         story.append(Spacer(1, 0.5*cm))
-        story.append(Image(str(planta_path), width=W, height=W * 0.48, kind='proportional'))
+        img = Image(str(planta_path), width=W - 0.4*cm, height=(W - 0.4*cm) * 0.48, kind='proportional')
+        img_table = Table([[img]], colWidths=[W])
+        img_table.setStyle(TableStyle([
+            ('BOX',          (0, 0), (-1, -1), 1, _C_GREEN),
+            ('TOPPADDING',   (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING',(0, 0), (-1, -1), 4),
+            ('LEFTPADDING',  (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        story.append(img_table)
 
     doc.build(story)
     buf.seek(0)
