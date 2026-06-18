@@ -337,6 +337,18 @@ def exportar_pdf(request):
     tbl.setStyle(TableStyle(tbl_cmds))
     story.append(tbl)
 
+    # ── Página 2: planta baixa ───────────────────────────────────────────────
+    planta_path = Path(__file__).parent / 'static' / 'maxflora' / 'img' / 'planta_baixa.jpg'
+    if planta_path.exists():
+        story.append(PageBreak())
+        story.append(Spacer(1, 0.5*cm))
+        story.append(Paragraph(
+            '<b><font size="11" color="#1a7a4a">PLANTA BAIXA — MAX &amp; FLORA SHOPPING</font></b>',
+            ps('pb_title', alignment=1, leading=14),
+        ))
+        story.append(Spacer(1, 0.4*cm))
+        story.append(Image(str(planta_path), width=W, height=W * 0.48, kind='proportional'))
+
     doc.build(story)
     buf.seek(0)
     resp = FileResponse(buf, content_type='application/pdf')
