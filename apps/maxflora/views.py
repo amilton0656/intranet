@@ -195,7 +195,7 @@ def exportar_pdf(request):
     doc = SimpleDocTemplate(
         buf, pagesize=landscape(A4),
         leftMargin=1.4*cm, rightMargin=1.4*cm,
-        topMargin=1.2*cm, bottomMargin=1.2*cm,
+        topMargin=0.72*cm, bottomMargin=1.2*cm,
     )
     W = doc.width
     styles = getSampleStyleSheet()
@@ -203,7 +203,7 @@ def exportar_pdf(request):
     def ps(name, **kw):
         return ParagraphStyle(name, parent=styles['Normal'], **kw)
 
-    hdr_s   = ps('mfh', fontSize=6,   leading=8,  alignment=1, textColor=_C_WHITE,
+    hdr_s   = ps('mfh', fontSize=6,   leading=8,  alignment=1, textColor=colors.HexColor('#333333'),
                  fontName='Helvetica-Bold')
     cell_s  = ps('mfc', fontSize=7,   leading=9)
     cell_r  = ps('mfcr', fontSize=7,  leading=9,  alignment=2)
@@ -301,9 +301,9 @@ def exportar_pdf(request):
 
     # Estilos base
     tbl_cmds = [
-        # Cabeçalhos
-        ('BACKGROUND',    (0, 0), (-1, 1), _C_NAVY),
-        ('TEXTCOLOR',     (0, 0), (-1, 1), _C_WHITE),
+        # Cabeçalhos — cinza bem claro
+        ('BACKGROUND',    (0, 0), (-1, 1), colors.HexColor('#e8e8e8')),
+        ('TEXTCOLOR',     (0, 0), (-1, 1), colors.HexColor('#333333')),
         # Span de "ÁREA PRIV." nas 3 colunas
         ('SPAN',          (3, 0), (5, 0)),
         # Células vazias do segundo header mergeadas
@@ -326,7 +326,7 @@ def exportar_pdf(request):
         ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
         ('VALIGN',        (0, 2), (-1, -1), 'MIDDLE'),
         # Sub-header: mesma cor da primeira linha
-        ('BACKGROUND',    (0, 1), (-1, 1), _C_NAVY),
+        ('BACKGROUND',    (0, 1), (-1, 1), colors.HexColor('#e8e8e8')),
     ]
 
     # Zebra sutil nas linhas de dados (sem cor por situação)
