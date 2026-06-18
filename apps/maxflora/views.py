@@ -252,34 +252,6 @@ def exportar_pdf(request):
     ]))
     story.append(hdr_table)
 
-    # ── Barra de estatísticas ────────────────────────────────────────────────
-    def stat_cell(val, label):
-        return [
-            Paragraph(f'<b><font size="13" color="white">{val}</font></b>',
-                      ps('sv', alignment=1, leading=14)),
-            Paragraph(f'<font size="6" color="#b8ebd0">{label}</font>',
-                      ps('sl', alignment=1, leading=9)),
-        ]
-
-    stat_data = [[
-        stat_cell(stats['total'],        'UNIDADES'),
-        stat_cell(stats['locadas'],      'LOCADAS'),
-        stat_cell(stats['disponiveis'],  'DISPONÍVEIS'),
-        stat_cell(f"{stats['pct_locado']}%", 'OCUPAÇÃO'),
-        stat_cell(f"{stats['area_total']} m²", 'ÁREA TOTAL PRIVATIVA'),
-        stat_cell(stats['valor_total'],  'VALOR TOTAL CARTEIRA'),
-    ]]
-    stat_w = W / 6
-    stat_tbl = Table([stat_data[0]], colWidths=[stat_w] * 6)
-    stat_tbl.setStyle(TableStyle([
-        ('BACKGROUND',    (0, 0), (-1, -1), _C_GREEN),
-        ('GRID',          (0, 0), (-1, -1), 0.5, colors.HexColor('#2e8f60')),
-        ('TOPPADDING',    (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
-    ]))
-    story.append(Spacer(1, 0.25*cm))
-    story.append(stat_tbl)
     story.append(Spacer(1, 0.3*cm))
 
     # ── Tabela de dados ──────────────────────────────────────────────────────
