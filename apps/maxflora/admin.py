@@ -5,7 +5,7 @@ from .models import ImportacaoMaxFlora, UnidadeMaxFlora
 class UnidadeInline(admin.TabularInline):
     model = UnidadeMaxFlora
     extra = 0
-    readonly_fields = ('euc', 'espaco', 'locatario', 'situacao', 'area_total',
+    readonly_fields = ('loja', 'locatario', 'situacao', 'area_total',
                        'valor_vendas', 'valor_aluguel', 'locado_ate')
 
 
@@ -17,6 +17,6 @@ class ImportacaoAdmin(admin.ModelAdmin):
 
 @admin.register(UnidadeMaxFlora)
 class UnidadeAdmin(admin.ModelAdmin):
-    list_display = ('euc', 'espaco', 'locatario', 'situacao', 'area_total',
+    list_display = ('loja', 'locatario', 'situacao', 'area_total',
                     'valor_vendas', 'valor_aluguel', 'locado_ate')
     list_filter = ('situacao',)
