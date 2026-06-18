@@ -2403,7 +2403,7 @@ def _build_dashboard_pdf():
         )
         if clientes_pe:
             story.append(Spacer(1, 8))
-            story.append(Paragraph('Clientes com Permuta de Serviços/Materiais', sec_s))
+            story.append(Paragraph('Clientes com Permuta por Serviços/Materiais', sec_s))
             pe_data = [[shdr('Cliente'), shdr('Total PE')]]
             for row in clientes_pe:
                 pe_data.append([
