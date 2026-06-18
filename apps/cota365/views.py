@@ -2392,6 +2392,40 @@ def _build_dashboard_pdf():
         ]))
         story.append(sum_table)
 
+        # ── Clientes com Permuta (PE) ─────────────────────────────────────────
+        clientes_pe = (
+            Parcela.objects
+            .filter(tipo='PE')
+            .exclude(cliente='')
+            .values('cliente')
+            .annotate(total=Sum('valor'))
+            .order_by('cliente')
+        )
+        if clientes_pe:
+            story.append(Spacer(1, 8))
+            story.append(Paragraph('Clientes com Permuta (PE)', sec_s))
+            pe_data = [[shdr('Cliente'), shdr('Total PE')]]
+            for row in clientes_pe:
+                pe_data.append([
+                    Paragraph(row['cliente'],
+                              ParagraphStyle('cl', fontSize=8)),
+                    Paragraph(_fmt_num(row['total']),
+                              ParagraphStyle('cr', fontSize=8, alignment=2)),
+                ])
+            pe_table = Table(pe_data, colWidths=[8*cm, 3.5*cm])
+            pe_table.setStyle(TableStyle([
+                ('BACKGROUND',    (0, 0), (-1, 0),  NAVY),
+                ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+                ('ALIGN',         (1, 1), (-1, -1), 'RIGHT'),
+                ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, LIGHT]),
+                ('GRID',          (0, 0), (-1, -1), 0.4, BORDER),
+                ('TOPPADDING',    (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ('LEFTPADDING',   (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
+            ]))
+            story.append(pe_table)
+
     # ── Ranking por imobiliária ───────────────────────────────────────────────
     venda_por_imob_pdf = {
         r['imobiliaria']: {'cnt': r['cnt'], 'vgv': r['vgv'] or 0.0}
