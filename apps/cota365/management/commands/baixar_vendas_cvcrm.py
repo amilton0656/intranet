@@ -188,34 +188,25 @@ class Command(BaseCommand):
                 page.locator(f'#{for_id}').fill(valor)
 
     def _selecionar_empreendimento(self, page, nome):
-        """Tenta select nativo, depois Select2, depois input text."""
-        # Select nativo
-        sel = page.locator('select').filter(
-            has=page.locator(f'option:has-text("{nome}")')
-        ).first
+        """Seleciona empreendimento pelo name do campo (q[1|e.idempreendimento]) e valor 3."""
+        # Nome do campo vem da URL do relatório: q[1|e.idempreendimento]=3
+        sel = page.locator('select[name="q[1|e.idempreendimento]"]')
         if sel.count() > 0:
-            sel.select_option(label=nome)
+            sel.select_option(value='3')
             return
 
-        # Select2 / searchable — clica no container e digita
-        containers = page.locator('.select2-container, [class*="select2"]').all()
-        for container in containers:
-            if container.is_visible():
-                container.click()
-                page.wait_for_timeout(300)
-                search = page.locator('.select2-search__field, .select2-input').first
-                if search.is_visible():
-                    search.fill(nome)
-                    page.wait_for_timeout(500)
-                    option = page.locator(f'.select2-results__option:has-text("{nome}")').first
-                    if option.is_visible():
-                        option.click()
-                        return
-                page.keyboard.press('Escape')
+        # Fallback: procura por option com o nome do empreendimento em qualquer select
+        sel2 = page.locator('select').filter(
+            has=page.locator(f'option:has-text("{nome}")')
+        ).first
+        if sel2.count() > 0:
+            sel2.select_option(label=nome)
+            return
 
         self.stdout.write(self.style.WARNING(
-            f'  Não conseguiu selecionar empreendimento "{nome}" automaticamente.'
+            f'  Não encontrou o select de empreendimento. Selecione "{nome}" manualmente.'
         ))
+        input('  Pressione ENTER após selecionar... ')
 
     def _set_checkbox_por_label(self, page, label_txt, checked: bool):
         """Marca/desmarca checkbox pelo texto do label."""
