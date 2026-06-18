@@ -1212,7 +1212,7 @@ def _import_recebidas(file_obj, nome, sha256=''):
             tipo=(row.get('CodigoDoTipoDeCondicao') or '').strip(),
             vencimento=vencimento.date() if vencimento else None,
             data_pagamento=data_pagamento.date() if data_pagamento else None,
-            valor=_require_float(row.get('ValorDaBaixa') or '', 'ValorDaBaixa', linha, erros),
+            valor=_require_float(row.get('ValorLiquido') or '', 'ValorLiquido', linha, erros),
             valor_original=0,
             cliente=(row.get('NomeDoCliente') or '').strip(),
         ))
