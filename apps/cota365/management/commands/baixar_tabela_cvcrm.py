@@ -1,19 +1,14 @@
 """
 Baixa o arquivo tabela.csv da Tabela de Preços do CV CRM (Cota 365).
 
-Fluxo automatizado:
-  1. Abre Chrome real via CDP (evita Cloudflare Turnstile — mesma técnica do importar_cvcrm)
-  2. Pede login manual na primeira vez; sessão fica salva entre execuções
-  3. Navega para Empreendimentos → Cota 365 → Tabela de Preços
-  4. Localiza o item indicado (padrão: contém "R00" ou "Tabela Curta")
-  5. Clica em Opções → Gerar/Imprimir → Baixar planilha
-  6. Salva o arquivo no destino configurado
+Abordagem: acessa a URL do relatório diretamente após o login,
+tenta baixar o CSV via endpoint direto (/csv), senão clica no
+botão "Baixar planilha" da página HTML.
 
 Uso:
     python manage.py baixar_tabela_cvcrm
     python manage.py baixar_tabela_cvcrm --output="G:/Meu Drive/_intranet/cota365/tabela.csv"
-    python manage.py baixar_tabela_cvcrm --busca="Tabela Curta"
-    python manage.py baixar_tabela_cvcrm --empreendimento=3
+    python manage.py baixar_tabela_cvcrm --idtabela=69
 """
 
 import subprocess
@@ -31,26 +26,34 @@ CHROME_CANDIDATES = [
 
 DESTINO_PADRAO = r"G:\Meu Drive\_intranet\cota365\tabela.csv"
 
+BASE_URL  = 'https://cota.cvcrm.com.br'
+EMP_ID    = 3
+PARAMS    = (
+    'q[1|e.idempreendimento]=3'
+    '&situacao[]=5&situacao[]=4&situacao[]=3&situacao[]=2&situacao[]=1'
+    '&situacao_reserva[]=11&situacao_reserva[]=4&situacao_reserva[]=13'
+    '&situacao_reserva[]=3&situacao_reserva[]=17&situacao_reserva[]=22'
+    '&situacao_reserva[]=21&situacao_reserva[]=24&situacao_reserva[]=16'
+    '&situacao_reserva[]=15&situacao_reserva[]=19&situacao_reserva[]=23'
+    '&situacao_reserva[]=18&situacao_reserva[]=12&situacao_reserva[]=1'
+)
+
 
 def find_chrome():
     for path in CHROME_CANDIDATES:
         if Path(path).exists():
             return path
-    raise CommandError(
-        'Chrome não encontrado. Use --chrome-path para indicar o executável.'
-    )
+    raise CommandError('Chrome não encontrado. Use --chrome-path para indicar o executável.')
 
 
 class Command(BaseCommand):
     help = 'Baixa tabela.csv da Tabela de Preços do CV CRM.'
 
     def add_arguments(self, parser):
-        parser.add_argument('--empreendimento', type=int, default=3,
-                            help='ID do empreendimento no CV CRM (padrão: 3 = Cota 365)')
-        parser.add_argument('--busca', type=str, default='R00',
-                            help='Texto para localizar a tabela na lista (padrão: "R00")')
+        parser.add_argument('--idtabela', type=int, default=69,
+                            help='ID da tabela no CV CRM (padrão: 69)')
         parser.add_argument('--output', type=str, default=DESTINO_PADRAO,
-                            help=f'Caminho de destino do arquivo (padrão: {DESTINO_PADRAO})')
+                            help=f'Caminho de destino (padrão: {DESTINO_PADRAO})')
         parser.add_argument('--chrome-path', type=str, default=None)
         parser.add_argument('--debug-port', type=int, default=9222)
         parser.add_argument('--profile-dir', type=str, default=None)
@@ -58,8 +61,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         from playwright.sync_api import sync_playwright
 
-        emp_id      = options['empreendimento']
-        busca       = options['busca']
+        idtabela    = options['idtabela']
         output_path = Path(options['output'])
         port        = options['debug_port']
         chrome_path = options['chrome_path'] or find_chrome()
@@ -69,11 +71,12 @@ class Command(BaseCommand):
         Path(profile_dir).mkdir(parents=True, exist_ok=True)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        base       = 'https://cota.cvcrm.com.br'
-        admin_url  = f'{base}/gestor/cadastros/empreendimentos/{emp_id}/administrar'
+        params_com_tabela = f'q[1|t.idtabela]={idtabela}&{PARAMS}'
+        url_html = f'{BASE_URL}/gestor/relatorios/tabeladepreco/html?{params_com_tabela}'
+        url_csv  = f'{BASE_URL}/gestor/relatorios/tabeladepreco/csv?{params_com_tabela}'
 
         with sync_playwright() as p:
-            browser = self._connect_or_launch(p, chrome_path, profile_dir, port, admin_url)
+            browser = self._connect_or_launch(p, chrome_path, profile_dir, port, url_html)
             ctx  = browser.contexts[0]
             page = next(
                 (pg for pg in ctx.pages if 'cvcrm.com.br' in pg.url),
@@ -84,7 +87,6 @@ class Command(BaseCommand):
                 page.wait_for_load_state('load', timeout=15000)
             except Exception:
                 pass
-            page.wait_for_timeout(1500)
 
             # Garante login caso a sessão tenha expirado
             while page.locator('input[type="password"]').count() > 0:
@@ -94,53 +96,44 @@ class Command(BaseCommand):
                 input('Pressione ENTER após estar logado... ')
                 page.wait_for_timeout(2000)
 
-            # ── Navega para o empreendimento ──────────────────────────────────
-            if f'empreendimentos/{emp_id}' not in page.url:
-                self.stdout.write(f'Navegando para o empreendimento {emp_id}...')
-                page.goto(admin_url, wait_until='load', timeout=30000)
-                page.wait_for_timeout(1500)
+            # ── Tenta baixar CSV direto via request (sem clique) ──────────────
+            self.stdout.write('Tentando download direto via endpoint /csv...')
+            resp = page.request.get(url_csv)
+            content_type = resp.headers.get('content-type', '')
+            body = resp.body()
 
-            # ── Clica na aba "Tabela de Preços" ──────────────────────────────
-            self.stdout.write('Abrindo aba Tabela de Preços...')
-            tab = (
-                page.get_by_role('link', name='Tabela de preços')
-                .or_(page.get_by_role('tab', name='Tabela de preços'))
-                .or_(page.locator('a', has_text='Tabela de preços'))
-                .first
-            )
-            tab.click(timeout=10000)
+            if resp.status == 200 and body and ('csv' in content_type or 'text' in content_type or b';' in body[:500]):
+                output_path.write_bytes(body)
+                self.stdout.write(self.style.SUCCESS(
+                    f'✓ tabela.csv salvo via /csv em: {output_path}  ({len(body):,} bytes)'
+                ))
+                return
+
+            # ── Fallback: navega até a página HTML e clica "Baixar planilha" ──
+            self.stdout.write(f'Endpoint /csv não retornou CSV (status={resp.status}, type={content_type}).')
+            self.stdout.write(f'Abrindo página HTML: {url_html}')
+            page.goto(url_html, wait_until='load', timeout=30000)
             page.wait_for_timeout(2000)
 
-            # ── Localiza a linha com o texto de busca ─────────────────────────
-            self.stdout.write(f'Procurando item com "{busca}"...')
-            linha = page.locator('tr', has=page.locator(f'text={busca}')).first
-            linha.wait_for(timeout=10000)
+            self.stdout.write('Procurando botão "Baixar planilha"...')
+            btn = (
+                page.get_by_role('link', name='Baixar planilha')
+                .or_(page.get_by_role('button', name='Baixar planilha'))
+                .or_(page.locator('a', has_text='Baixar planilha'))
+                .or_(page.locator('a[href*="csv"], a[href*="excel"], a[href*="planilha"]'))
+                .first
+            )
 
-            # ── Clica no botão "Opções" da linha ─────────────────────────────
-            btn_opcoes = linha.get_by_role('button').or_(
-                linha.locator('[class*="opcoes"], [data-toggle="dropdown"], .dropdown-toggle')
-            ).first
-            btn_opcoes.click(timeout=5000)
-            page.wait_for_timeout(800)
-
-            # ── Clica em "Gerar / Imprimir" ───────────────────────────────────
-            page.get_by_text('Gerar').or_(page.get_by_text('Gerar / Imprimir')).first.click(timeout=5000)
-            page.wait_for_timeout(1500)
-
-            # ── Clica em "Baixar planilha" e captura o download ───────────────
-            self.stdout.write('Aguardando download...')
             with page.expect_download(timeout=60000) as dl_info:
-                page.get_by_text('Baixar planilha').or_(
-                    page.get_by_role('link', name='Baixar planilha')
-                ).first.click(timeout=10000)
+                btn.click(timeout=10000)
 
             download = dl_info.value
             download.save_as(str(output_path))
             self.stdout.write(self.style.SUCCESS(
-                f'✓ tabela.csv salvo em: {output_path}'
+                f'✓ tabela.csv salvo via clique em: {output_path}'
             ))
 
-    # ── Infra Chrome CDP (igual ao importar_cvcrm) ────────────────────────────
+    # ── Infra Chrome CDP ──────────────────────────────────────────────────────
 
     def _connect_or_launch(self, p, chrome_path, profile_dir, port, target_url):
         if self._debug_port_alive(port):
