@@ -1134,6 +1134,10 @@ def _reconcile_parcelas():
     a_receber e recebidas, o saldo pendente = valor_original - soma_recebida.
     Incluir vencimento na chave evita matches falsos em contratos renegociados,
     onde a numeração de parcelas é reiniciada mas as datas diferem.
+
+    Se paid > valor_original, o CSV de a_receber já exportou o saldo reduzido
+    (o sistema source fez a reconciliação antes da exportação). Nesse caso não
+    tocamos na parcela pendente para não apagá-la indevidamente.
     """
     from collections import defaultdict
     paid_by_key = defaultdict(float)
@@ -1149,6 +1153,9 @@ def _reconcile_parcelas():
         key = (p.titulo, p.parcela, p.tipo, p.vencimento)
         paid = paid_by_key.get(key, 0.0)
         if paid <= 0:
+            continue
+        # paid > valor_original: CSV já exportou o saldo; não reconciliar novamente
+        if paid > p.valor_original + 0.01:
             continue
         remaining = round(p.valor_original - paid, 2)
         if remaining <= 0:
