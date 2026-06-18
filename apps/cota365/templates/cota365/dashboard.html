@@ -383,6 +383,7 @@
                 <th>Mês</th>
                 <th class="text-end">Recebido</th>
                 <th class="text-end">A receber</th>
+                <th class="text-end">Permutas</th>
                 <th class="text-end">Total</th>
                 <th class="text-end">Acumulado</th>
               </tr>
@@ -393,6 +394,7 @@
                 <td>{{ r.mes }}</td>
                 <td class="text-end text-success">{{ r.recebido_fmt }}</td>
                 <td class="text-end text-danger">{{ r.a_receber_fmt }}</td>
+                <td class="text-end text-warning">{{ r.permutas_fmt }}</td>
                 <td class="text-end fw-bold">{{ r.total_fmt }}</td>
                 <td class="text-end text-muted">{{ r.acumulado_fmt }}</td>
               </tr>
@@ -401,6 +403,7 @@
                 <td>Total</td>
                 <td class="text-end text-success">—</td>
                 <td class="text-end text-danger">—</td>
+                <td class="text-end text-warning">—</td>
                 <td class="text-end">{{ total_fluxo_fmt }}</td>
                 <td class="text-end"></td>
               </tr>

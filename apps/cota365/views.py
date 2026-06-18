@@ -1701,34 +1701,39 @@ def dashboard(request):
     # ── Fluxo mensal via Parcela ──────────────────────────────────────────────
     monthly_rec  = {}
     monthly_pend = {}
+    monthly_perm = {}
     for r in (Parcela.objects
               .filter(vencimento__isnull=False)
               .annotate(ano=ExtractYear('vencimento'), mes=ExtractMonth('vencimento'))
               .values('ano', 'mes')
               .annotate(
                   rec=Sum('valor', filter=Q(data_pagamento__isnull=False)),
-                  pend=Sum('valor', filter=Q(data_pagamento__isnull=True)),
+                  pend=Sum('valor', filter=Q(data_pagamento__isnull=True) & ~Q(tipo='PE')),
+                  perm=Sum('valor', filter=Q(data_pagamento__isnull=True) & Q(tipo='PE')),
               )
               .order_by('ano', 'mes')):
         key = (r['ano'], r['mes'])
         monthly_rec[key]  = r['rec']  or 0.0
         monthly_pend[key] = r['pend'] or 0.0
+        monthly_perm[key] = r['perm'] or 0.0
 
-    all_keys    = sorted(set(monthly_rec) | set(monthly_pend))
-    total_fluxo = sum(monthly_rec[k] + monthly_pend[k] for k in all_keys)
+    all_keys    = sorted(set(monthly_rec) | set(monthly_pend) | set(monthly_perm))
+    total_fluxo = sum(monthly_rec.get(k, 0) + monthly_pend.get(k, 0) + monthly_perm.get(k, 0) for k in all_keys)
 
     acumulado = 0.0
     fluxo_mensal_rows = []
     for key in all_keys:
         yr, mo  = key
-        rec     = monthly_rec[key]
-        pend    = monthly_pend[key]
-        total   = rec + pend
+        rec     = monthly_rec.get(key, 0.0)
+        pend    = monthly_pend.get(key, 0.0)
+        perm    = monthly_perm.get(key, 0.0)
+        total   = rec + pend + perm
         acumulado += total
         fluxo_mensal_rows.append({
             'mes':           f'{mo:02d}/{yr}',
             'recebido_fmt':  _fmt_brl(rec),
             'a_receber_fmt': _fmt_brl(pend),
+            'permutas_fmt':  _fmt_brl(perm),
             'total_fmt':     _fmt_brl(total),
             'acumulado_fmt': _fmt_brl(acumulado),
         })
@@ -1898,11 +1903,13 @@ def _build_dashboard_pdf():
     # ── Fluxo via Parcela ─────────────────────────────────────────────────────
     exp_monthly_rec  = defaultdict(float)
     exp_monthly_pend = defaultdict(float)
+    exp_monthly_perm = defaultdict(float)
     poupanca_total = 0.0
     fi_total = 0.0
     tipo_totals = defaultdict(float)
-    total_recebido  = 0.0
-    total_a_receber = 0.0
+    total_recebido      = 0.0
+    total_a_receber     = 0.0
+    total_permutas_pend = 0.0
     for p in Parcela.objects.all():
         if p.data_pagamento:
             key_rec = (p.data_pagamento.year, p.data_pagamento.month)
@@ -1910,16 +1917,20 @@ def _build_dashboard_pdf():
             total_recebido           += p.valor
         elif p.vencimento:
             key_pend = (p.vencimento.year, p.vencimento.month)
-            exp_monthly_pend[key_pend] += p.valor
-            total_a_receber            += p.valor
+            if p.tipo == 'PE':
+                exp_monthly_perm[key_pend] += p.valor
+                total_permutas_pend        += p.valor
+            else:
+                exp_monthly_pend[key_pend] += p.valor
+                total_a_receber            += p.valor
         tipo_totals[p.tipo] += p.valor
         if p.tipo == 'FI':
             fi_total += p.valor
         else:
             poupanca_total += p.valor
 
-    exp_all_keys = sorted(set(exp_monthly_rec) | set(exp_monthly_pend))
-    total_fluxo  = sum(exp_monthly_rec[k] + exp_monthly_pend[k] for k in exp_all_keys)
+    exp_all_keys = sorted(set(exp_monthly_rec) | set(exp_monthly_pend) | set(exp_monthly_perm))
+    total_fluxo  = sum(exp_monthly_rec[k] + exp_monthly_pend[k] + exp_monthly_perm[k] for k in exp_all_keys)
 
     ano_totals = defaultdict(float)
     for key in exp_all_keys:
@@ -2279,23 +2290,27 @@ def _build_dashboard_pdf():
     story.append(Spacer(1, 6))
 
     story.append(Paragraph('Fluxo de Caixa Mensal', sec_s))
-    fm_header = [[th('MÊS'), th('RECEBIDO'), th('A RECEBER'), th('TOTAL'), th('ACUMULADO')]]
+    fm_header = [[th('MÊS'), th('RECEBIDO'), th('A RECEBER'), th('PERMUTAS'), th('TOTAL'), th('ACUMULADO')]]
     fm_rows = []
     acumulado = 0.0
     total_rec_acc  = 0.0
     total_pend_acc = 0.0
+    total_perm_acc = 0.0
     for key in exp_all_keys:
         yr, mo  = key
         rec     = exp_monthly_rec[key]
         pend    = exp_monthly_pend[key]
-        total   = rec + pend
+        perm    = exp_monthly_perm[key]
+        total   = rec + pend + perm
         acumulado      += total
         total_rec_acc  += rec
         total_pend_acc += pend
+        total_perm_acc += perm
         fm_rows.append([
             td(f'{mo:02d}/{yr}'),
             tdr(_fmt_brl(rec)),
             tdr(_fmt_brl(pend)),
+            tdr(_fmt_brl(perm)),
             tdr(_fmt_brl(total)),
             tdr(_fmt_brl(acumulado)),
         ])
@@ -2303,10 +2318,11 @@ def _build_dashboard_pdf():
         tdb('TOTAL'),
         tdrb(_fmt_brl(total_rec_acc)),
         tdrb(_fmt_brl(total_pend_acc)),
+        tdrb(_fmt_brl(total_perm_acc)),
         tdrb(_fmt_brl(total_fluxo)),
         tdrb(''),
     ])
-    story.append(tbl(fm_header + fm_rows, [2.5*cm, 4*cm, 4*cm, 4*cm, 4*cm], total_last=True))
+    story.append(tbl(fm_header + fm_rows, [2.5*cm, 3.5*cm, 3.5*cm, 3.5*cm, 3.5*cm, 3.5*cm], total_last=True))
 
     # ── Resumo por Tipo (igual ao Fluxo Mensal) ───────────────────────────────
     if total_fluxo:
@@ -2325,7 +2341,7 @@ def _build_dashboard_pdf():
             ('AT', 'Ato'),
             ('PM', 'Mensais'),
             ('RA', 'Ref. Anuais'),
-            ('PE', 'Permuta'),
+            ('PE', 'Permuta (Terreno)'),
             ('CH', 'Chaves'),
         ]
 
@@ -2352,6 +2368,7 @@ def _build_dashboard_pdf():
         sum_data.append(list(sr('Total',         total_fluxo,    bold=True)))
         sum_data.append(list(sr('Recebido',      total_recebido)))
         sum_data.append(list(sr('A receber',     total_a_receber)))
+        sum_data.append(list(sr('Permuta (Serviços/Materiais)', total_permutas_pend)))
 
         # índices no sum_data (0 = header)
         IDX_POUPANCA = 6   # linha Poupança
