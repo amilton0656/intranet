@@ -1804,6 +1804,62 @@ def dashboard(request):
         'com_pct':  f"{_tot_com / _tot_vgv * 100:.1f}%" if _tot_vgv else '—',
     }
 
+    # ── Descontos ─────────────────────────────────────────────────────────────
+    _, _, _, _tot_desc, _tot_cubs, _cub_atual, _, _, _, _ = _get_descontos_rows()
+    _desc_cub_val = _tot_cubs * _cub_atual if _cub_atual else 0
+
+    # ── Preço Médio — formata resumo_tip_total ────────────────────────────────
+    for r in resumo_tip_total:
+        r.setdefault('is_total', False)
+        r['tot_ap_fmt'] = _fmt_m2(r['tot_ap'])
+        r['tot_vt_fmt'] = _fmt_brl(r['tot_vt'])
+        r['vnd_ap_fmt'] = _fmt_m2(r['vnd_ap'])
+        r['vnd_vt_fmt'] = _fmt_brl(r['vnd_vt'])
+        r['est_ap_fmt'] = _fmt_m2(r['est_ap'])
+        r['est_vt_fmt'] = _fmt_brl(r['est_vt'])
+        r['pct_fmt']    = f'{r["pct"]:.1f}%'
+
+    # ── Resumo por Tipo de Parcela ────────────────────────────────────────────
+    _tipo_t = {
+        r['tipo']: r['s'] or 0
+        for r in Parcela.objects.values('tipo').annotate(s=Sum('valor'))
+    }
+    _TIPOS_P = [
+        ('AT', 'Ato'), ('PM', 'Mensais'), ('RA', 'Ref. Anuais'),
+        ('PE', 'Permuta (Terreno)'), ('CH', 'Chaves'),
+    ]
+    _poupa_p = sum(_tipo_t.get(t, 0) for t, _ in _TIPOS_P)
+    _fi_p    = _tipo_t.get('FI', 0)
+    _grand_p = _poupa_p + _fi_p
+
+    def _pf(v):
+        return f'{v / _grand_p * 100:.2f}%'.replace('.', ',') if _grand_p else '0,00%'
+
+    _rec_p  = Parcela.objects.filter(data_pagamento__isnull=False).aggregate(s=Sum('valor'))['s'] or 0
+    _pend_p = Parcela.objects.filter(data_pagamento__isnull=True).exclude(tipo='PE').aggregate(s=Sum('valor'))['s'] or 0
+    _perm_p = Parcela.objects.filter(data_pagamento__isnull=True, tipo='PE').aggregate(s=Sum('valor'))['s'] or 0
+
+    tipos_parcela_rows = []
+    for _code, _label in _TIPOS_P:
+        _v = _tipo_t.get(_code, 0) or 0
+        tipos_parcela_rows.append({'tipo': _label, 'total_fmt': _fmt_brl(_v), 'pct': _pf(_v)})
+    tipos_parcela_rows += [
+        {'tipo': 'Poupança',                      'total_fmt': _fmt_brl(_poupa_p),            'pct': _pf(_poupa_p),            'bold': True},
+        {'tipo': 'Financiamento',                 'total_fmt': _fmt_brl(_fi_p),               'pct': _pf(_fi_p),               'bold': True},
+        {'tipo': 'Total',                         'total_fmt': _fmt_brl(_grand_p),            'pct': '100,00%',                'bold': True, 'is_total': True},
+        {'tipo': 'Recebido',                      'total_fmt': _fmt_brl(_rec_p),              'pct': _pf(_rec_p),              'muted': True},
+        {'tipo': 'A receber',                     'total_fmt': _fmt_brl(_pend_p),             'pct': _pf(_pend_p),             'muted': True},
+        {'tipo': 'Permuta (Serviços/Materiais)',   'total_fmt': _fmt_brl(_perm_p),             'pct': _pf(_perm_p),             'muted': True},
+        {'tipo': 'Total a receber',               'total_fmt': _fmt_brl(_pend_p + _perm_p),  'pct': _pf(_pend_p + _perm_p),  'bold': True},
+    ]
+
+    # ── Clientes com Permuta ──────────────────────────────────────────────────
+    clientes_pe = [
+        {'cliente': r['cliente'], 'total_fmt': _fmt_brl(r['s'] or 0)}
+        for r in Parcela.objects.filter(tipo='PE').exclude(cliente='')
+                          .values('cliente').annotate(s=Sum('valor')).order_by('cliente')
+    ]
+
     context = {
         'total_geral':          _fmt_brl(vgv_tabela),
         'vgv_liquido':          _fmt_brl(vgv_liquido),
@@ -1819,11 +1875,18 @@ def dashboard(request):
         'resumo_sit_liquido':   resumo_sit_liquido,
         'resumo_tip':           resumo_tip,
         'resumo_tip_estoque':   resumo_tip_estoque,
+        'resumo_tip_total':     resumo_tip_total,
         'preco_medio_tipo':     preco_medio_tipo,
         'preco_medio_estoque':  preco_medio_estoque,
+        'vgv_vendida_fmt':      _fmt_brl(vgv_vendida),
+        'desconto_val':         _fmt_brl(_desc_cub_val),
+        'desconto_pct':         f'{_desc_cub_val / vgv_vendida * 100:.1f}%' if vgv_vendida else '0%',
+        'desconto_cubs':        f'{_tot_cubs:.2f}'.replace('.', ','),
         'receita_por_ano':      receita_por_ano,
         'total_fluxo_fmt':      _fmt_brl(total_fluxo),
         'fluxo_mensal_rows':    fluxo_mensal_rows,
+        'tipos_parcela_rows':   tipos_parcela_rows,
+        'clientes_pe':          clientes_pe,
         'ranking_imobiliaria':  ranking_imobiliaria,
         'ranking_total':        ranking_total,
     }

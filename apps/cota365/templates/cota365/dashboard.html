@@ -205,6 +205,37 @@
     </div>
   </div>
 
+  <!-- ── Descontos ──────────────────────────────────────────────────────────── -->
+  <div class="row g-3 mb-3">
+    <div class="col-12">
+      <div class="chart-card">
+        <div class="chart-title"><i class="bi bi-scissors me-1"></i>Descontos</div>
+        <div style="overflow-x:auto;">
+          <table class="table top-table mb-0">
+            <thead>
+              <tr>
+                <th class="text-end">Valor Tabela</th>
+                <th class="text-end">Valor Contrato</th>
+                <th class="text-end">Desconto Corrigido pelo CUB</th>
+                <th class="text-end">% Desconto Médio</th>
+                <th class="text-end">Descontos em CUBs</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="font-weight:700;">
+                <td class="text-end">{{ vgv_vendida_fmt }}</td>
+                <td class="text-end">{{ total_fluxo_fmt }}</td>
+                <td class="text-end">{{ desconto_val }}</td>
+                <td class="text-end">{{ desconto_pct }}</td>
+                <td class="text-end">{{ desconto_cubs }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Resumo por Situação (Com / Sem permutas) ────────────────────────── -->
   <div class="row g-3 mb-3">
     <div class="col-lg-6">
@@ -343,6 +374,54 @@
     </div>
   </div>
 
+  <!-- ── Preço Médio ─────────────────────────────────────────────────────── -->
+  <div class="row g-3 mb-3">
+    <div class="col-12">
+      <div class="chart-card">
+        <div class="chart-title"><i class="bi bi-cash-stack me-1"></i>Preço Médio por Tipo</div>
+        <div style="overflow-x:auto;">
+          <table class="table top-table mb-0">
+            <thead>
+              <tr>
+                <th rowspan="2" class="align-middle">Tipo</th>
+                <th colspan="3" class="text-center">Tabela</th>
+                <th colspan="3" class="text-center">Vendido</th>
+                <th colspan="3" class="text-center">Estoque</th>
+                <th rowspan="2" class="text-end align-middle">% Vendido</th>
+              </tr>
+              <tr>
+                <th class="text-end">Qtde</th><th class="text-end">M² Priv.</th><th class="text-end">Valor</th>
+                <th class="text-end">Qtde</th><th class="text-end">M² Priv.</th><th class="text-end">Valor</th>
+                <th class="text-end">Qtde</th><th class="text-end">M² Priv.</th><th class="text-end">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in resumo_tip_total %}
+              <tr {% if r.is_total %}style="font-weight:700; background:#f0f2f5; border-top:2px solid #dee2e6;"{% endif %}>
+                <td>{{ r.tipo }}</td>
+                <td class="text-end">{{ r.tot_n }}</td>
+                <td class="text-end">{{ r.tot_ap_fmt }}</td>
+                <td class="text-end">{{ r.tot_vt_fmt }}</td>
+                <td class="text-end">{{ r.vnd_n }}</td>
+                <td class="text-end">{{ r.vnd_ap_fmt }}</td>
+                <td class="text-end">{{ r.vnd_vt_fmt }}</td>
+                <td class="text-end">{{ r.est_n }}</td>
+                <td class="text-end">{{ r.est_ap_fmt }}</td>
+                <td class="text-end">{{ r.est_vt_fmt }}</td>
+                <td class="text-end text-muted">{{ r.pct_fmt }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-2 d-flex gap-4" style="font-size:.82rem; font-weight:700; color:#1a1a2e;">
+          <span>Preço médio (tabela): {{ preco_medio_tipo }}</span>
+          <span>Preço médio (estoque): {{ preco_medio_estoque }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Receita por Ano + Fluxo Mensal ──────────────────────────────────── -->
   <div class="row g-3 mb-3">
     <div class="col-lg-4">
@@ -412,6 +491,57 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- ── Resumo por Tipo de Parcela + Clientes com Permuta ──────────────── -->
+  <div class="row g-3 mb-3">
+    <div class="col-lg-5">
+      <div class="chart-card h-100">
+        <div class="chart-title"><i class="bi bi-pie-chart me-1"></i>Resumo por Tipo de Parcela</div>
+        <table class="table top-table mb-0">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th class="text-end">Total</th>
+              <th class="text-end">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in tipos_parcela_rows %}
+            <tr class="{% if r.is_total %}fw-bold{% elif r.bold %}fw-semibold{% elif r.muted %}text-muted{% endif %}"
+                {% if r.is_total %}style="background:#f0f2f5; border-top:2px solid #dee2e6;"{% endif %}>
+              <td>{{ r.tipo }}</td>
+              <td class="text-end">{{ r.total_fmt }}</td>
+              <td class="text-end">{{ r.pct }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% if clientes_pe %}
+    <div class="col-lg-7">
+      <div class="chart-card h-100">
+        <div class="chart-title"><i class="bi bi-person-lines-fill me-1"></i>Clientes com Permuta por Serviços/Materiais</div>
+        <table class="table top-table mb-0">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th class="text-end">Total da permuta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in clientes_pe %}
+            <tr>
+              <td>{{ c.cliente }}</td>
+              <td class="text-end fw-semibold">{{ c.total_fmt }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
   </div>
 
   <!-- Ranking por imobiliária -->
