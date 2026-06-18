@@ -342,7 +342,7 @@ def exportar_pdf(request):
     # ── Planta baixa — logo abaixo da lista ─────────────────────────────────
     planta_path = Path(__file__).parent / 'static' / 'maxflora' / 'img' / 'planta_baixa.jpg'
     if planta_path.exists():
-        story.append(Spacer(1, 1.2*cm))
+        story.append(Spacer(1, 2.4*cm))
         story.append(Paragraph(
             '<b><font size="11" color="#1a7a4a">PLANTA BAIXA — MAX &amp; FLORA SHOPPING</font></b>',
             ps('pb_title', alignment=1, leading=14),
