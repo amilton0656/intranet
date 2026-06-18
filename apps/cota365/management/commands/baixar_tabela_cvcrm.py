@@ -96,33 +96,15 @@ class Command(BaseCommand):
                 input('Pressione ENTER após estar logado... ')
                 page.wait_for_timeout(2000)
 
-            # ── Tenta baixar CSV direto via request (sem clique) ──────────────
-            self.stdout.write('Tentando download direto via endpoint /csv...')
-            resp = page.request.get(url_csv)
-            content_type = resp.headers.get('content-type', '')
-            body = resp.body()
-
-            if resp.status == 200 and body and ('csv' in content_type or 'text' in content_type or b';' in body[:500]):
-                output_path.write_bytes(body)
-                self.stdout.write(self.style.SUCCESS(
-                    f'✓ tabela.csv salvo via /csv em: {output_path}  ({len(body):,} bytes)'
-                ))
-                return
-
-            # ── Fallback: navega até a página HTML e clica "Baixar planilha" ──
-            self.stdout.write(f'Endpoint /csv não retornou CSV (status={resp.status}, type={content_type}).')
-            self.stdout.write(f'Abrindo página HTML: {url_html}')
+            # ── Navega para a página HTML do relatório ────────────────────────
+            self.stdout.write(f'Abrindo relatório: {url_html}')
             page.goto(url_html, wait_until='load', timeout=30000)
             page.wait_for_timeout(2000)
 
-            self.stdout.write('Procurando botão "Baixar planilha"...')
-            btn = (
-                page.get_by_role('link', name='Baixar planilha')
-                .or_(page.get_by_role('button', name='Baixar planilha'))
-                .or_(page.locator('a', has_text='Baixar planilha'))
-                .or_(page.locator('a[href*="csv"], a[href*="excel"], a[href*="planilha"]'))
-                .first
-            )
+            # ── Clica em "BAIXAR PLANILHA" e captura o download ───────────────
+            self.stdout.write('Clicando em BAIXAR PLANILHA...')
+            import re as _re
+            btn = page.get_by_text(_re.compile('baixar planilha', _re.IGNORECASE)).first
 
             with page.expect_download(timeout=60000) as dl_info:
                 btn.click(timeout=10000)
@@ -130,7 +112,7 @@ class Command(BaseCommand):
             download = dl_info.value
             download.save_as(str(output_path))
             self.stdout.write(self.style.SUCCESS(
-                f'✓ tabela.csv salvo via clique em: {output_path}'
+                f'✓ tabela.csv salvo em: {output_path}  ({output_path.stat().st_size:,} bytes)'
             ))
 
     # ── Infra Chrome CDP ──────────────────────────────────────────────────────
