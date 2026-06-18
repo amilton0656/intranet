@@ -77,6 +77,42 @@
       font-size: .7rem; padding: .4rem .85rem; border: none;
       text-align: center; white-space: nowrap;
     }
+
+    /* ── Cards mobile ── */
+    .mf-cards { display: none; margin: 1rem; }
+    .mf-card {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      margin-bottom: .85rem; overflow: hidden;
+    }
+    .mf-card-header {
+      background: var(--mf-dark); color: #fff;
+      padding: .55rem 1rem; display: flex; align-items: center; gap: .75rem;
+    }
+    .mf-card-loja {
+      font-size: 1.1rem; font-weight: 800; min-width: 2rem; text-align: center;
+    }
+    .mf-card-locatario { font-size: .85rem; opacity: .9; flex: 1; }
+    .mf-card-body { padding: .65rem 1rem; }
+    .mf-card-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: .3rem 0; border-bottom: 1px solid #f0f0f0; font-size: .82rem;
+    }
+    .mf-card-row:last-child { border-bottom: none; }
+    .mf-card-lbl { color: #6c757d; font-size: .75rem; text-transform: uppercase;
+                   letter-spacing: .04em; }
+    .mf-card-val { font-weight: 600; text-align: right; }
+    .mf-card-val.verde { color: var(--mf-green); }
+
+    @media (max-width: 768px) {
+      .mf-table-wrap { display: none; }
+      .mf-cards { display: block; }
+      .stat-bar { gap: 1rem; padding: .65rem 1rem; }
+      .stat-item .val { font-size: 1.1rem; }
+      .mf-header { padding: .75rem 1rem; gap: 1rem; }
+      .mf-logo { height: 48px; }
+      .mf-footer { padding: .5rem 1rem 1rem; flex-direction: column; gap: .25rem; }
+    }
     .mf-table tbody td { padding: .55rem .85rem; border-bottom: 1px solid #eef1ee; vertical-align: middle; }
     .mf-table tbody tr:last-child td { border-bottom: none; }
     .mf-table tbody tr.row-locado { background: #f0faf5; }
@@ -254,6 +290,57 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
+
+<!-- ── Cards mobile ──────────────────────────────────────────────────────── -->
+<div class="mf-cards">
+  {% for u in unidades %}
+  <div class="mf-card">
+    <div class="mf-card-header">
+      <span class="mf-card-loja">{{ u.loja }}</span>
+      <span class="mf-card-locatario">{{ u.locatario|default:"—" }}</span>
+      {% if u.locado %}
+        <span class="badge-locado">LOCADO</span>
+      {% else %}
+        <span class="badge-disponivel">DISPONÍVEL</span>
+      {% endif %}
+    </div>
+    <div class="mf-card-body">
+      <div class="mf-card-row">
+        <span class="mf-card-lbl">Área total</span>
+        <span class="mf-card-val">{{ u.area_total|brl_m2 }} m²</span>
+      </div>
+      {% if u.loja != 'Estac.' %}
+      <div class="mf-card-row">
+        <span class="mf-card-lbl">Valor de vendas</span>
+        <span class="mf-card-val verde">{{ u.valor_vendas|brl }}</span>
+      </div>
+      {% endif %}
+      <div class="mf-card-row">
+        <span class="mf-card-lbl">Aluguel</span>
+        <span class="mf-card-val">{{ u.valor_aluguel|brl }}</span>
+      </div>
+      {% if u.locado_ate %}
+      <div class="mf-card-row">
+        <span class="mf-card-lbl">Locado até</span>
+        <span class="mf-card-val">{{ u.locado_ate|date:"d/m/Y" }}</span>
+      </div>
+      {% endif %}
+      <div class="mf-card-row">
+        <span class="mf-card-lbl">Condomínio</span>
+        <span class="mf-card-val">{{ u.condominio|brl }}</span>
+      </div>
+      <div class="mf-card-row">
+        <span class="mf-card-lbl">IPTU (anual)</span>
+        <span class="mf-card-val">{{ u.iptu|brl }}</span>
+      </div>
+      <div class="mf-card-row">
+        <span class="mf-card-lbl">TCRS (anual)</span>
+        <span class="mf-card-val">{{ u.tcrs|brl }}</span>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
 </div>
 
 <div class="mf-footer">
