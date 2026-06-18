@@ -50,38 +50,44 @@
     Clique em <strong>Copiar imagem</strong> na página desejada e cole (Ctrl+V) direto na conversa do WhatsApp.
   </p>
 
-  <div class="wa-page-card">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <span class="wa-page-title">Resumo Cota 365</span>
-      <button type="button" class="btn btn-outline-primary btn-sm" id="copy-btn">
-        <i class="bi bi-clipboard me-1"></i>Copiar imagem
-      </button>
-    </div>
-    <img id="wa-img" src="data:image/png;base64,{{ merged_image }}" alt="Resumo Cota 365">
+  <!-- Imagem mesclada oculta — usada apenas para cópia -->
+  <img id="wa-merged" src="data:image/png;base64,{{ merged_image }}" alt="" style="display:none">
+
+  <!-- Botão único de cópia -->
+  <div class="d-flex justify-content-end mb-3">
+    <button type="button" class="btn btn-primary" id="copy-btn">
+      <i class="bi bi-clipboard me-1"></i>Copiar imagem completa
+    </button>
   </div>
+
+  <!-- Prévia legível página a página -->
+  {% for page in pages %}
+  <div class="wa-page-card">
+    <span class="wa-page-title d-block mb-2">Página {{ forloop.counter }}</span>
+    <img src="data:image/png;base64,{{ page }}" alt="Resumo página {{ forloop.counter }}">
+  </div>
+  {% endfor %}
 </div>
 
 <script>
 document.getElementById('copy-btn').addEventListener('click', async function () {
-  const img = document.getElementById('wa-img');
   const btn = this;
   const original = btn.innerHTML;
   try {
-    const response = await fetch(img.src);
+    const response = await fetch(document.getElementById('wa-merged').src);
     const blob = await response.blob();
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
     btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copiado!';
-    btn.classList.remove('btn-outline-primary');
-    btn.classList.add('btn-success');
+    btn.classList.replace('btn-primary', 'btn-success');
   } catch (err) {
     btn.innerHTML = '<i class="bi bi-x-lg me-1"></i>Falhou';
-    btn.classList.add('btn-danger');
-    alert('Não foi possível copiar a imagem. Seu navegador pode não suportar essa função (use Chrome ou Edge).');
+    btn.classList.replace('btn-primary', 'btn-danger');
+    alert('Não foi possível copiar a imagem. Use Chrome ou Edge.');
   } finally {
     setTimeout(function () {
       btn.innerHTML = original;
       btn.classList.remove('btn-success', 'btn-danger');
-      btn.classList.add('btn-outline-primary');
+      btn.classList.add('btn-primary');
     }, 2000);
   }
 });

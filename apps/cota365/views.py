@@ -1859,7 +1859,11 @@ def export_dashboard_whatsapp(request):
     merged.save(buf, format='PNG')
     merged_b64 = base64.b64encode(buf.getvalue()).decode('ascii')
 
-    return render(request, 'cota365/resumo_whatsapp.html', {'merged_image': merged_b64})
+    pages = [base64.b64encode(p.tobytes('png')).decode('ascii') for p in pix_list]
+    return render(request, 'cota365/resumo_whatsapp.html', {
+        'pages':        pages,
+        'merged_image': merged_b64,
+    })
 
 
 def _resumo_publico_dir():
