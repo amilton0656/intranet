@@ -208,7 +208,7 @@ def exportar_pdf(request):
     cell_s  = ps('mfc', fontSize=7,   leading=9)
     cell_r  = ps('mfcr', fontSize=7,  leading=9,  alignment=2)
     cell_c  = ps('mfcc', fontSize=7,  leading=9,  alignment=1)
-    euc_s   = ps('mfe', fontSize=7,   leading=9,  fontName='Helvetica-Bold')
+    euc_s   = ps('mfe', fontSize=7,   leading=9,  fontName='Helvetica-Bold', alignment=1)
     brl_s   = ps('mfb', fontSize=7,   leading=9,  alignment=2, fontName='Helvetica-Bold')
     loc_s   = ps('mfl', fontSize=6.5, leading=8.5)
     sit_loc = ps('mfsl', fontSize=7,  leading=9,  alignment=1, fontName='Helvetica-Bold',
@@ -272,7 +272,7 @@ def exportar_pdf(request):
         [h('EUC'), h('ESP.\nCOM.'), h('LOCATÁRIO'),
          h('ÁREA PRIV. (m²)'), h(''), h(''),
          h('VALOR DE\nVENDAS'), h('SITUAÇÃO'),
-         h('VALOR DO\nALUGUEL'), h('LOCADO\nATÉ'), h('CONDOMÍNIO'), h('IPTU /\nTCRS')],
+         h('VALOR DO\nALUGUEL'), h('LOCADO\nATÉ'), h('VALOR DO\nCONDOMÍNIO'), h('VALOR DO\nIPTU / TCRS')],
         [h(''), h(''), h(''),
          h('Térreo'), h('Mezanino'), h('Total'),
          h(''), h(''), h(''), h(''), h(''), h('')],
