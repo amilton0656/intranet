@@ -22,11 +22,10 @@ class UnidadeMaxFlora(models.Model):
         ('DISPONIVEL',  'Disponível'),
     ]
 
-    importacao = models.ForeignKey(
+    importacao    = models.ForeignKey(
         ImportacaoMaxFlora, on_delete=models.CASCADE, related_name='unidades'
     )
-    euc           = models.CharField(max_length=20)           # "1 e 2", "3", "Estac."
-    espaco        = models.PositiveSmallIntegerField(null=True, blank=True)
+    loja          = models.CharField(max_length=20)
     locatario     = models.CharField(max_length=255, blank=True, default='')
     area_terreo   = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     area_mezanino = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -37,7 +36,8 @@ class UnidadeMaxFlora(models.Model):
     valor_aluguel = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     locado_ate    = models.DateField(null=True, blank=True)
     condominio    = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    iptu_tcrs     = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    iptu          = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    tcrs          = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     ordem         = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
@@ -46,7 +46,7 @@ class UnidadeMaxFlora(models.Model):
         verbose_name_plural = 'Unidades Max & Flora'
 
     def __str__(self):
-        return f'EUC {self.euc}'
+        return f'Loja {self.loja}'
 
     @property
     def locado(self):

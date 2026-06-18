@@ -95,22 +95,24 @@ class Command(BaseCommand):
             if not euc_str:
                 continue
 
-            situacao_raw = str(row[6] or '').strip().upper()
+            # Nova estrutura: A=Lojas B=Térreo C=Mez D=Total E=V.Vendas
+            #                 F=Situação G=Aluguel H=Locado até I=Cond J=IPTU K=TCRS
+            situacao_raw = str(row[5] or '').strip().upper()
             situacao = 'LOCADO' if situacao_raw == 'LOCADO' else 'DISPONIVEL'
 
             unidades_data.append({
-                'euc':           euc_str,
-                'espaco':        int(row[1]) if row[1] is not None else None,
+                'loja':          euc_str,
                 'locatario':     locatarios.get(euc_str, ''),
-                'area_terreo':   _to_float(row[2]),
-                'area_mezanino': _to_float(row[3]),
-                'area_total':    _to_float(row[4]),
-                'valor_vendas':  _to_float(row[5]),
+                'area_terreo':   _to_float(row[1]),
+                'area_mezanino': _to_float(row[2]),
+                'area_total':    _to_float(row[3]),
+                'valor_vendas':  _to_float(row[4]),
                 'situacao':      situacao,
-                'valor_aluguel': _to_float(row[7]),
-                'locado_ate':    _to_date(row[8]),
-                'condominio':    _to_float(row[9]),
-                'iptu_tcrs':     _to_float(row[10]),
+                'valor_aluguel': _to_float(row[6]),
+                'locado_ate':    _to_date(row[7]),
+                'condominio':    _to_float(row[8]),
+                'iptu':          _to_float(row[9]),
+                'tcrs':          _to_float(row[10]),
                 'ordem':         ordem,
             })
 

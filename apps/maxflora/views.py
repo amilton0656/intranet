@@ -40,7 +40,7 @@ def _build_stats(importacao):
     locadas = qs.filter(situacao='LOCADO').count()
     disponiveis = total - locadas
     area = qs.aggregate(s=Sum('area_total'))['s'] or 0
-    val = qs.exclude(euc='Estac.').aggregate(s=Sum('valor_vendas'))['s'] or 0
+    val = qs.exclude(loja='Estac.').aggregate(s=Sum('valor_vendas'))['s'] or 0
     return {
         'total': total,
         'locadas': locadas,
@@ -99,21 +99,23 @@ def _parse_excel(fileobj):
                     pass
             return None
 
-        sit = str(row[6] or '').strip().upper()
+        # Nova estrutura: A=Lojas B=Térreo C=Mez D=Total E=V.Vendas
+        #                 F=Situação G=Aluguel H=Locado até I=Cond J=IPTU K=TCRS
+        sit = str(row[5] or '').strip().upper()
         result.append({
-            'euc': euc_str,
-            'espaco': int(row[1]) if row[1] is not None else None,
-            'locatario': locatarios.get(euc_str, ''),
-            'area_terreo': _f(row[2]),
-            'area_mezanino': _f(row[3]),
-            'area_total': _f(row[4]),
-            'valor_vendas': _f(row[5]),
-            'situacao': 'LOCADO' if sit == 'LOCADO' else 'DISPONIVEL',
-            'valor_aluguel': _f(row[7]),
-            'locado_ate': _d(row[8]),
-            'condominio': _f(row[9]),
-            'iptu_tcrs': _f(row[10]),
-            'ordem': ordem,
+            'loja':          euc_str,
+            'locatario':     locatarios.get(euc_str, ''),
+            'area_terreo':   _f(row[1]),
+            'area_mezanino': _f(row[2]),
+            'area_total':    _f(row[3]),
+            'valor_vendas':  _f(row[4]),
+            'situacao':      'LOCADO' if sit == 'LOCADO' else 'DISPONIVEL',
+            'valor_aluguel': _f(row[6]),
+            'locado_ate':    _d(row[7]),
+            'condominio':    _f(row[8]),
+            'iptu':          _f(row[9]),
+            'tcrs':          _f(row[10]),
+            'ordem':         ordem,
         })
     return result
 
@@ -255,45 +257,45 @@ def exportar_pdf(request):
 
     # ── Tabela de dados ──────────────────────────────────────────────────────
     # Larguras (total = W ≈ 26.7cm)
-    # EUC | Esp | Locatário | Térreo | Mez | Total | V.Vendas | Sit | Aluguel | Loc.até | Cond | IPTU
+    # Lojas | Locatário | Térreo | Mez | Total | V.Vendas | Sit | Aluguel | Loc.até | Cond | IPTU | TCRS
     COL_W = [
-        1.5*cm, 1.2*cm, 5.0*cm,
+        1.5*cm, 5.0*cm,
         1.8*cm, 1.8*cm, 1.8*cm,
         3.0*cm, 2.0*cm,
-        2.5*cm, 1.8*cm, 2.3*cm, 2.3*cm,
+        2.5*cm, 1.8*cm, 2.0*cm, 2.0*cm, 2.0*cm,
     ]
-    # Ajusta última coluna para preencher a largura exata
     COL_W[-1] = W - sum(COL_W[:-1])
 
     def h(txt):
         return Paragraph(f'<b>{txt}</b>', hdr_s)
 
     HEADERS = [
-        [h('EUC'), h('ESP.\nCOM.'), h('LOCATÁRIO'),
+        [h('LOJAS'), h('LOCATÁRIO'),
          h('ÁREA PRIV. (m²)'), h(''), h(''),
          h('VALOR DE\nVENDAS'), h('SITUAÇÃO'),
-         h('VALOR DO\nALUGUEL'), h('LOCADO\nATÉ'), h('VALOR DO\nCONDOMÍNIO'), h('VALOR DO\nIPTU / TCRS')],
-        [h(''), h(''), h(''),
+         h('VALOR DO\nALUGUEL'), h('LOCADO\nATÉ'), h('VALOR DO\nCONDOMÍNIO'),
+         h('VALOR DO\nIPTU\n(Anual c/ desc.)'), h('VALOR DA\nTCRS\n(Anual)')],
+        [h(''), h(''),
          h('Térreo'), h('Mezanino'), h('Total'),
-         h(''), h(''), h(''), h(''), h(''), h('')],
+         h(''), h(''), h(''), h(''), h(''), h(''), h('')],
     ]
 
     def make_row(u):
         sit_par = Paragraph('LOCADO',    sit_loc) if u.locado else Paragraph('DISPONÍVEL', sit_dis)
         return [
-            Paragraph(str(u.euc), euc_s),
-            Paragraph(str(u.espaco or ''), cell_c),
+            Paragraph(str(u.loja), euc_s),
             Paragraph(u.locatario or '', loc_s),
             Paragraph(_fmt_m2(u.area_terreo),   cell_r),
             Paragraph(_fmt_m2(u.area_mezanino),  cell_r),
             Paragraph(_fmt_m2(u.area_total),     ps('atot', fontSize=7, leading=9,
                                                    alignment=2, fontName='Helvetica-Bold')),
-            Paragraph(_fmt_brl(u.valor_vendas) if u.euc != 'Estac.' else '', brl_s),
+            Paragraph(_fmt_brl(u.valor_vendas) if u.loja != 'Estac.' else '', brl_s),
             sit_par,
             Paragraph(_fmt_brl(u.valor_aluguel), cell_r),
             Paragraph(u.locado_ate.strftime('%d/%m/%Y') if u.locado_ate else '', cell_c),
             Paragraph(_fmt_brl(u.condominio),    cell_r),
-            Paragraph(_fmt_brl(u.iptu_tcrs),     cell_r),
+            Paragraph(_fmt_brl(u.iptu),          cell_r),
+            Paragraph(_fmt_brl(u.tcrs),          cell_r),
         ]
 
     table_data = HEADERS + [make_row(u) for u in unidades]
@@ -304,12 +306,12 @@ def exportar_pdf(request):
         # Cabeçalhos — cinza bem claro
         ('BACKGROUND',    (0, 0), (-1, 1), colors.HexColor('#e8e8e8')),
         ('TEXTCOLOR',     (0, 0), (-1, 1), colors.HexColor('#333333')),
-        # Span de "ÁREA PRIV." nas 3 colunas
-        ('SPAN',          (3, 0), (5, 0)),
-        # Células vazias do segundo header mergeadas
+        # Span de "ÁREA PRIV." nas 3 colunas (cols 2-4)
+        ('SPAN',          (2, 0), (4, 0)),
+        # Células simples mergeadas entre as duas linhas de header
         ('SPAN',          (0, 0), (0, 1)),
         ('SPAN',          (1, 0), (1, 1)),
-        ('SPAN',          (2, 0), (2, 1)),
+        ('SPAN',          (5, 0), (5, 1)),
         ('SPAN',          (6, 0), (6, 1)),
         ('SPAN',          (7, 0), (7, 1)),
         ('SPAN',          (8, 0), (8, 1)),

@@ -211,8 +211,7 @@
   <table class="table mf-table">
     <thead>
       <tr>
-        <th rowspan="2">EUC</th>
-        <th rowspan="2">Espaço<br>Comercial</th>
+        <th rowspan="2">Lojas</th>
         <th rowspan="2">Locatário</th>
         <th colspan="3">Área Privativa (m²)</th>
         <th rowspan="2">Valor de<br>Vendas</th>
@@ -220,7 +219,8 @@
         <th rowspan="2">Valor do<br>Aluguel</th>
         <th rowspan="2">Locado até</th>
         <th rowspan="2">Condomínio</th>
-        <th rowspan="2">IPTU / TCRS</th>
+        <th rowspan="2">Valor do IPTU<br><small>(Anual c/ desc.)</small></th>
+        <th rowspan="2">Valor da TCRS<br><small>(Anual)</small></th>
       </tr>
       <tr>
         <th>Térreo</th>
@@ -230,14 +230,13 @@
     </thead>
     <tbody>
       {% for u in unidades %}
-      <tr class="{% if u.euc == 'Estac.' %}row-estac{% elif u.locado %}row-locado{% else %}row-disp{% endif %}">
-        <td class="td-euc">{{ u.euc }}</td>
-        <td class="text-center">{% if u.espaco %}{{ u.espaco }}{% endif %}</td>
+      <tr class="{% if u.loja == 'Estac.' %}row-estac{% elif u.locado %}row-locado{% else %}row-disp{% endif %}">
+        <td class="td-euc">{{ u.loja }}</td>
         <td class="td-loc">{{ u.locatario }}</td>
         <td class="td-num">{{ u.area_terreo|brl_m2 }}</td>
         <td class="td-num">{{ u.area_mezanino|brl_m2 }}</td>
         <td class="td-num" style="font-weight:600">{{ u.area_total|brl_m2 }}</td>
-        <td class="td-venda">{% if u.euc != 'Estac.' %}{{ u.valor_vendas|brl }}{% endif %}</td>
+        <td class="td-venda">{% if u.loja != 'Estac.' %}{{ u.valor_vendas|brl }}{% endif %}</td>
         <td class="text-center">
           {% if u.locado %}<span class="badge-locado">LOCADO</span>
           {% else %}<span class="badge-disponivel">DISPONÍVEL</span>{% endif %}
@@ -247,7 +246,8 @@
           {% if u.locado_ate %}{{ u.locado_ate|date:"d/m/Y" }}{% endif %}
         </td>
         <td class="td-valor">{{ u.condominio|brl }}</td>
-        <td class="td-valor">{{ u.iptu_tcrs|brl }}</td>
+        <td class="td-valor">{{ u.iptu|brl }}</td>
+        <td class="td-valor">{{ u.tcrs|brl }}</td>
       </tr>
       {% empty %}
       <tr><td colspan="12" class="mf-empty">Nenhuma unidade encontrada.</td></tr>
