@@ -12,154 +12,116 @@
     :root {
       --mf-green:  #1a7a4a;
       --mf-green2: #23a563;
-      --mf-gold:   #c8a951;
       --mf-dark:   #1a1a2e;
       --mf-light:  #f4f9f6;
     }
-
     body { background: #f0f4f2; font-family: 'Segoe UI', sans-serif; font-size: .88rem; }
 
-    /* ── Navbar secundária ─────────────────────────────────── */
+    /* ── Navbar secundária ── */
     #mf-navbar { background: #1a7a4a !important; padding: .5rem 1.5rem; }
     #mf-navbar .navbar-brand { color: #fff !important; font-weight: 700; font-size: 1rem; }
     #mf-navbar .nav-link { color: rgba(255,255,255,.85) !important; font-size: .82rem;
       padding: .35rem .85rem !important; border-radius: 6px; transition: background .18s; }
     #mf-navbar .nav-link:hover,
     #mf-navbar .nav-link.active { background: rgba(255,255,255,.18); color: #fff !important; }
+    #mf-navbar .btn-mf-pdf {
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.35);
+      color: #fff; font-size: .78rem; padding: .3rem .85rem; border-radius: 6px;
+      transition: background .18s;
+    }
+    #mf-navbar .btn-mf-pdf:hover { background: rgba(255,255,255,.28); }
+    #mf-navbar .btn-mf-import {
+      background: #c8a951; border: none;
+      color: #1a1a2e; font-size: .78rem; font-weight: 700;
+      padding: .3rem .85rem; border-radius: 6px; transition: background .18s;
+    }
+    #mf-navbar .btn-mf-import:hover { background: #d9bb65; }
 
-    /* ── Cabeçalho da tabela ────────────────────────────────── */
+    /* ── Cabeçalho ── */
     .mf-header {
-      background: #fff;
-      border-bottom: 3px solid var(--mf-green);
-      padding: 1rem 1.5rem .8rem;
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
+      background: #fff; border-bottom: 3px solid var(--mf-green);
+      padding: 1rem 1.5rem .8rem; display: flex; align-items: center; gap: 1.5rem;
     }
     .mf-logo { height: 64px; object-fit: contain; flex-shrink: 0; }
-    .mf-header-text {}
     .mf-header-text h1 {
       font-size: 1.15rem; font-weight: 800; color: var(--mf-green); margin: 0 0 2px;
       letter-spacing: .02em; text-transform: uppercase;
     }
     .mf-header-text p { font-size: .78rem; color: #6c757d; margin: 0; }
 
-    /* ── Stat cards ─────────────────────────────────────────── */
+    /* ── Stat bar ── */
     .stat-bar {
-      background: var(--mf-green);
-      padding: .65rem 1.5rem;
-      display: flex;
-      gap: 2rem;
-      align-items: center;
-      flex-wrap: wrap;
+      background: var(--mf-green); padding: .65rem 1.5rem;
+      display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;
     }
     .stat-item { color: #fff; }
-    .stat-item .val {
-      font-size: 1.35rem; font-weight: 800; line-height: 1; display: block;
-    }
-    .stat-item .lbl { font-size: .68rem; text-transform: uppercase;
-      letter-spacing: .07em; opacity: .8; }
+    .stat-item .val { font-size: 1.35rem; font-weight: 800; line-height: 1; display: block; }
+    .stat-item .lbl { font-size: .68rem; text-transform: uppercase; letter-spacing: .07em; opacity: .8; }
     .stat-divider { width: 1px; height: 36px; background: rgba(255,255,255,.25); }
 
-    /* ── Tabela ──────────────────────────────────────────────── */
+    /* ── Tabela ── */
     .mf-table-wrap {
       margin: 1.25rem 1.5rem;
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 2px 12px rgba(0,0,0,.07);
-      overflow: hidden;
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07); overflow: hidden;
     }
-    .mf-table {
-      font-size: .82rem;
-      margin: 0;
-      border-collapse: separate;
-      border-spacing: 0;
-    }
+    .mf-table { font-size: .82rem; margin: 0; }
     .mf-table thead tr:first-child th {
-      background: var(--mf-dark);
-      color: #fff;
-      font-size: .72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      padding: .65rem .85rem;
-      border: none;
-      white-space: nowrap;
-      vertical-align: middle;
-      text-align: center;
+      background: var(--mf-dark); color: #fff; font-size: .72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .06em;
+      padding: .65rem .85rem; border: none; white-space: nowrap;
+      vertical-align: middle; text-align: center;
     }
     .mf-table thead tr:last-child th {
-      background: #2a4a3a;
-      color: rgba(255,255,255,.75);
-      font-size: .7rem;
-      padding: .4rem .85rem;
-      border: none;
-      text-align: center;
-      white-space: nowrap;
+      background: #2a4a3a; color: rgba(255,255,255,.75);
+      font-size: .7rem; padding: .4rem .85rem; border: none;
+      text-align: center; white-space: nowrap;
     }
-    .mf-table tbody td {
-      padding: .55rem .85rem;
-      border-bottom: 1px solid #eef1ee;
-      vertical-align: middle;
-    }
+    .mf-table tbody td { padding: .55rem .85rem; border-bottom: 1px solid #eef1ee; vertical-align: middle; }
     .mf-table tbody tr:last-child td { border-bottom: none; }
-    .mf-table tbody tr:hover { background: #f4f9f6; }
+    .mf-table tbody tr.row-locado { background: #f0faf5; }
+    .mf-table tbody tr.row-locado:hover { background: #e4f5ed; }
+    .mf-table tbody tr.row-disp:hover { background: #f4f9f6; }
+    .mf-table tbody tr.row-estac { background: #fafaf0; font-style: italic; }
 
-    /* ── Estacionamento (linha especial) ─────────────────────── */
-    .mf-table tbody tr.row-estac { background: #f8f8f0; font-style: italic; }
-    .mf-table tbody tr.row-estac td { color: #666; }
-
-    /* ── Células ─────────────────────────────────────────────── */
     .td-euc   { font-weight: 700; color: var(--mf-dark); min-width: 60px; }
     .td-num   { text-align: right; font-variant-numeric: tabular-nums; }
-    .td-valor { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
-    .td-venda { text-align: right; font-weight: 700; color: var(--mf-dark);
-                font-variant-numeric: tabular-nums; }
+    .td-valor { text-align: right; font-variant-numeric: tabular-nums; }
+    .td-venda { text-align: right; font-weight: 700; color: var(--mf-dark); font-variant-numeric: tabular-nums; }
     .td-loc   { font-size: .78rem; color: #444; max-width: 220px; }
 
-    /* ── Badges de situação ──────────────────────────────────── */
-    .badge-locado {
-      background: #d4edda; color: #155724;
-      font-weight: 700; font-size: .7rem; padding: .28em .75em;
-      border-radius: 20px; letter-spacing: .04em; white-space: nowrap;
-    }
-    .badge-disponivel {
-      background: #e8f4ff; color: #0a58ca;
-      font-weight: 700; font-size: .7rem; padding: .28em .75em;
-      border-radius: 20px; letter-spacing: .04em; white-space: nowrap;
-    }
+    .badge-locado    { background: #d4edda; color: #155724; font-weight: 700; font-size: .7rem;
+                       padding: .28em .75em; border-radius: 20px; letter-spacing: .04em; white-space: nowrap; }
+    .badge-disponivel{ background: #dbeafe; color: #0a58ca; font-weight: 700; font-size: .7rem;
+                       padding: .28em .75em; border-radius: 20px; letter-spacing: .04em; white-space: nowrap; }
 
-    /* ── Linha de totais ─────────────────────────────────────── */
-    .mf-table tfoot td {
-      background: #f0f4f2;
-      font-weight: 700;
-      padding: .6rem .85rem;
-      border-top: 2px solid #c8d8cf;
-      font-size: .82rem;
-    }
-
-    /* ── Rodapé ──────────────────────────────────────────────── */
+    /* ── Rodapé ── */
     .mf-footer {
-      padding: .6rem 1.5rem 1.2rem;
-      font-size: .72rem;
-      color: #999;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: .5rem;
+      padding: .6rem 1.5rem 1.2rem; font-size: .72rem; color: #999;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem;
     }
 
-    /* ── Sem dados ───────────────────────────────────────────── */
-    .mf-empty {
-      text-align: center; padding: 3rem 1.5rem; color: #aaa;
+    /* ── Estado vazio ── */
+    .mf-empty { text-align: center; padding: 3rem 1.5rem; color: #aaa; }
+
+    /* ── Modal de importação ── */
+    .drop-zone {
+      border: 2px dashed #c8d8cf; border-radius: 10px;
+      padding: 2.5rem 1.5rem; text-align: center; cursor: pointer;
+      transition: border-color .2s, background .2s;
     }
+    .drop-zone.hover { border-color: var(--mf-green); background: #f4faf7; }
+    .drop-zone i { font-size: 2.5rem; color: #c8d8cf; display: block; margin-bottom: .75rem; }
+    .drop-zone small { color: #aaa; font-size: .78rem; }
+    #arquivoInput { display: none; }
+    #nomeArquivo { font-size: .82rem; color: #495057; margin-top: .5rem; }
   </style>
 </head>
 <body>
 
 {% include 'intranet/intranet_navbar.html' %}
 
+<!-- Navbar Max & Flora -->
 <nav id="mf-navbar" class="navbar navbar-expand-lg">
   <div class="container-fluid">
     <a class="navbar-brand" href="{% url 'maxflora:tabela' %}">
@@ -174,10 +136,34 @@
         </li>
       </ul>
     </div>
+    <!-- Botões de ação -->
+    <div class="d-flex align-items-center gap-2 ms-auto">
+      {% if importacao %}
+      <a href="{% url 'maxflora:pdf' %}" target="_blank" class="btn-mf-pdf">
+        <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+      </a>
+      {% endif %}
+      <button class="btn-mf-import" data-bs-toggle="modal" data-bs-target="#modalImportar">
+        <i class="bi bi-upload me-1"></i>Importar Arquivo
+      </button>
+    </div>
   </div>
 </nav>
 
-<!-- Cabeçalho com logo -->
+<!-- ── Mensagens flash ─────────────────────────────────────────────────── -->
+{% if messages %}
+<div style="margin: .75rem 1.5rem 0;">
+  {% for msg in messages %}
+  <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}{{ msg.tags }}{% endif %} alert-dismissible fade show py-2 px-3" role="alert" style="font-size:.84rem">
+    <i class="bi bi-{% if msg.tags == 'error' %}exclamation-triangle{% else %}check-circle{% endif %} me-2"></i>
+    {{ msg }}
+    <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ── Cabeçalho com logo ──────────────────────────────────────────────── -->
 <div class="mf-header">
   <img src="{% static 'maxflora/img/logo.jpg' %}" alt="Max &amp; Flora Shopping" class="mf-logo">
   <div class="mf-header-text">
@@ -187,7 +173,7 @@
 </div>
 
 {% if importacao %}
-<!-- Barra de indicadores -->
+<!-- ── Barra de indicadores ─────────────────────────────────────────────── -->
 <div class="stat-bar">
   <div class="stat-item">
     <span class="val">{{ stats.total }}</span>
@@ -213,9 +199,14 @@
     <span class="val">{{ stats.area_total }} m²</span>
     <span class="lbl">Área Total Privativa</span>
   </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <span class="val">{{ stats.valor_total }}</span>
+    <span class="lbl">Valor Total Carteira</span>
+  </div>
 </div>
 
-<!-- Tabela -->
+<!-- ── Tabela ─────────────────────────────────────────────────────────────── -->
 <div class="mf-table-wrap">
   <table class="table mf-table">
     <thead>
@@ -239,7 +230,7 @@
     </thead>
     <tbody>
       {% for u in unidades %}
-      <tr class="{% if u.euc == 'Estac.' %}row-estac{% endif %}">
+      <tr class="{% if u.euc == 'Estac.' %}row-estac{% elif u.locado %}row-locado{% else %}row-disp{% endif %}">
         <td class="td-euc">{{ u.euc }}</td>
         <td class="text-center">{% if u.espaco %}{{ u.espaco }}{% endif %}</td>
         <td class="td-loc">{{ u.locatario }}</td>
@@ -248,11 +239,8 @@
         <td class="td-num" style="font-weight:600">{{ u.area_total|brl_m2 }}</td>
         <td class="td-venda">{% if u.euc != 'Estac.' %}{{ u.valor_vendas|brl }}{% endif %}</td>
         <td class="text-center">
-          {% if u.locado %}
-            <span class="badge-locado">LOCADO</span>
-          {% else %}
-            <span class="badge-disponivel">DISPONÍVEL</span>
-          {% endif %}
+          {% if u.locado %}<span class="badge-locado">LOCADO</span>
+          {% else %}<span class="badge-disponivel">DISPONÍVEL</span>{% endif %}
         </td>
         <td class="td-valor">{{ u.valor_aluguel|brl }}</td>
         <td class="text-center" style="white-space:nowrap; font-size:.78rem">
@@ -278,15 +266,101 @@
 </div>
 
 {% else %}
-<div class="mf-empty" style="margin:3rem auto; background:#fff; border-radius:10px; max-width:480px; padding:3rem;">
-  <i class="bi bi-inbox" style="font-size:3rem; color:#ccc;"></i>
-  <p class="mt-3 mb-1" style="font-size:1rem; font-weight:600; color:#666;">Nenhum dado importado ainda</p>
-  <p class="text-muted" style="font-size:.85rem">
-    Execute <code>python manage.py importar_maxflora</code> para carregar a tabela.
+<!-- ── Estado vazio ───────────────────────────────────────────────────────── -->
+<div style="margin: 3rem auto; background: #fff; border-radius: 10px; max-width: 480px; padding: 3rem; text-align: center;">
+  <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+  <p class="mt-3 mb-1" style="font-size: 1rem; font-weight: 600; color: #666;">Nenhum dado importado ainda</p>
+  <p class="text-muted mb-3" style="font-size: .85rem">
+    Importe a planilha Excel para visualizar a tabela.
   </p>
+  <button class="btn btn-sm" style="background:#1a7a4a; color:#fff;"
+          data-bs-toggle="modal" data-bs-target="#modalImportar">
+    <i class="bi bi-upload me-1"></i>Importar Arquivo
+  </button>
 </div>
 {% endif %}
 
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Modal de Importação -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="modalImportar" tabindex="-1" aria-labelledby="modalImportarLabel">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header" style="background: #1a7a4a;">
+        <h5 class="modal-title text-white" id="modalImportarLabel">
+          <i class="bi bi-upload me-2"></i>Importar Tabela de Vendas
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'maxflora:importar' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p class="text-muted mb-3" style="font-size: .82rem">
+            Selecione o arquivo <strong>Excel (.xlsx)</strong> da Tabela de Vendas do Max &amp; Flora.<br>
+            Os dados existentes serão substituídos pela nova importação.
+          </p>
+
+          <div class="drop-zone" id="dropZone" onclick="document.getElementById('arquivoInput').click()">
+            <i class="bi bi-file-earmark-spreadsheet"></i>
+            <div>Clique para selecionar ou arraste o arquivo aqui</div>
+            <small>.xlsx — MaxFlora - Tabela de Vendas</small>
+          </div>
+          <input type="file" name="arquivo" id="arquivoInput" accept=".xlsx,.xls">
+          <div id="nomeArquivo" class="text-center"></div>
+
+          {% if importacao %}
+          <div class="mt-3 p-2 rounded" style="background: #f4f9f6; font-size: .78rem; color: #555;">
+            <i class="bi bi-info-circle me-1 text-success"></i>
+            Importação atual: <strong>{{ stats.arquivo }}</strong> —
+            {{ stats.importado_em|date:"d/m/Y H:i" }}
+            ({{ stats.total }} unidades)
+          </div>
+          {% endif %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" id="btnImportar" class="btn btn-sm text-white" style="background:#1a7a4a;" disabled>
+            <i class="bi bi-upload me-1"></i>Importar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const input    = document.getElementById('arquivoInput');
+const nomeEl   = document.getElementById('nomeArquivo');
+const btnImp   = document.getElementById('btnImportar');
+const dropZone = document.getElementById('dropZone');
+
+function setFile(file) {
+  if (!file) return;
+  nomeEl.textContent = '📄 ' + file.name;
+  nomeEl.style.color = '#1a7a4a';
+  nomeEl.style.fontWeight = '600';
+  dropZone.style.borderColor = '#1a7a4a';
+  dropZone.style.background  = '#f4faf7';
+  btnImp.disabled = false;
+  // Inject file into the real input if came from drag-drop
+  if (file !== input.files[0]) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+  }
+}
+
+input.addEventListener('change', () => setFile(input.files[0]));
+
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('hover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'));
+dropZone.addEventListener('drop',      e => {
+  e.preventDefault();
+  dropZone.classList.remove('hover');
+  const file = e.dataTransfer.files[0];
+  if (file) setFile(file);
+});
+</script>
 </body>
 </html>
