@@ -236,8 +236,7 @@ def exportar_pdf(request):
         ps('sp', alignment=0, leading=12),
     )
     date_p   = Paragraph(
-        f'<font size="7" color="#aaaaaa">Gerado em {datetime.now():%d/%m/%Y %H:%M} &nbsp;·&nbsp; '
-        f'Importação: {stats["importado_em"]:%d/%m/%Y %H:%M}</font>',
+        f'<font size="7" color="#aaaaaa">Gerado em {datetime.now():%d/%m/%Y %H:%M}</font>',
         ps('dp', alignment=0, leading=10),
     )
 
@@ -337,28 +336,6 @@ def exportar_pdf(request):
 
     tbl.setStyle(TableStyle(tbl_cmds))
     story.append(tbl)
-
-    # ── Rodapé ───────────────────────────────────────────────────────────────
-    story.append(Spacer(1, 0.3*cm))
-    footer_data = [[
-        Paragraph(
-            f'<font size="7" color="#555555">'
-            f'Última importação: <b>{stats["importado_em"]:%d/%m/%Y %H:%M}</b> &nbsp;·&nbsp; '
-            f'{stats["arquivo"]}</font>',
-            ps('fl', alignment=0),
-        ),
-        Paragraph(
-            f'<font size="7" color="#555555">'
-            f'Valor total carteira: <b>{stats["valor_total"]}</b></font>',
-            ps('fr', alignment=2),
-        ),
-    ]]
-    footer_tbl = Table(footer_data, colWidths=[W * 0.6, W * 0.4])
-    footer_tbl.setStyle(TableStyle([
-        ('TOPPADDING',    (0, 0), (-1, -1), 4),
-        ('LINEABOVE',     (0, 0), (-1, 0), 0.5, colors.HexColor('#c8d8cf')),
-    ]))
-    story.append(footer_tbl)
 
     doc.build(story)
     buf.seek(0)
