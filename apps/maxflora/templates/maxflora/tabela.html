@@ -1,0 +1,292 @@
+{% load static mf_filters %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Max & Flora — Tabela de Vendas</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="{% static 'intranet/css/navbar.css' %}">
+  <style>
+    :root {
+      --mf-green:  #1a7a4a;
+      --mf-green2: #23a563;
+      --mf-gold:   #c8a951;
+      --mf-dark:   #1a1a2e;
+      --mf-light:  #f4f9f6;
+    }
+
+    body { background: #f0f4f2; font-family: 'Segoe UI', sans-serif; font-size: .88rem; }
+
+    /* ── Navbar secundária ─────────────────────────────────── */
+    #mf-navbar { background: #1a7a4a !important; padding: .5rem 1.5rem; }
+    #mf-navbar .navbar-brand { color: #fff !important; font-weight: 700; font-size: 1rem; }
+    #mf-navbar .nav-link { color: rgba(255,255,255,.85) !important; font-size: .82rem;
+      padding: .35rem .85rem !important; border-radius: 6px; transition: background .18s; }
+    #mf-navbar .nav-link:hover,
+    #mf-navbar .nav-link.active { background: rgba(255,255,255,.18); color: #fff !important; }
+
+    /* ── Cabeçalho da tabela ────────────────────────────────── */
+    .mf-header {
+      background: #fff;
+      border-bottom: 3px solid var(--mf-green);
+      padding: 1rem 1.5rem .8rem;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .mf-logo { height: 64px; object-fit: contain; flex-shrink: 0; }
+    .mf-header-text {}
+    .mf-header-text h1 {
+      font-size: 1.15rem; font-weight: 800; color: var(--mf-green); margin: 0 0 2px;
+      letter-spacing: .02em; text-transform: uppercase;
+    }
+    .mf-header-text p { font-size: .78rem; color: #6c757d; margin: 0; }
+
+    /* ── Stat cards ─────────────────────────────────────────── */
+    .stat-bar {
+      background: var(--mf-green);
+      padding: .65rem 1.5rem;
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .stat-item { color: #fff; }
+    .stat-item .val {
+      font-size: 1.35rem; font-weight: 800; line-height: 1; display: block;
+    }
+    .stat-item .lbl { font-size: .68rem; text-transform: uppercase;
+      letter-spacing: .07em; opacity: .8; }
+    .stat-divider { width: 1px; height: 36px; background: rgba(255,255,255,.25); }
+
+    /* ── Tabela ──────────────────────────────────────────────── */
+    .mf-table-wrap {
+      margin: 1.25rem 1.5rem;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+      overflow: hidden;
+    }
+    .mf-table {
+      font-size: .82rem;
+      margin: 0;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    .mf-table thead tr:first-child th {
+      background: var(--mf-dark);
+      color: #fff;
+      font-size: .72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: .65rem .85rem;
+      border: none;
+      white-space: nowrap;
+      vertical-align: middle;
+      text-align: center;
+    }
+    .mf-table thead tr:last-child th {
+      background: #2a4a3a;
+      color: rgba(255,255,255,.75);
+      font-size: .7rem;
+      padding: .4rem .85rem;
+      border: none;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .mf-table tbody td {
+      padding: .55rem .85rem;
+      border-bottom: 1px solid #eef1ee;
+      vertical-align: middle;
+    }
+    .mf-table tbody tr:last-child td { border-bottom: none; }
+    .mf-table tbody tr:hover { background: #f4f9f6; }
+
+    /* ── Estacionamento (linha especial) ─────────────────────── */
+    .mf-table tbody tr.row-estac { background: #f8f8f0; font-style: italic; }
+    .mf-table tbody tr.row-estac td { color: #666; }
+
+    /* ── Células ─────────────────────────────────────────────── */
+    .td-euc   { font-weight: 700; color: var(--mf-dark); min-width: 60px; }
+    .td-num   { text-align: right; font-variant-numeric: tabular-nums; }
+    .td-valor { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .td-venda { text-align: right; font-weight: 700; color: var(--mf-dark);
+                font-variant-numeric: tabular-nums; }
+    .td-loc   { font-size: .78rem; color: #444; max-width: 220px; }
+
+    /* ── Badges de situação ──────────────────────────────────── */
+    .badge-locado {
+      background: #d4edda; color: #155724;
+      font-weight: 700; font-size: .7rem; padding: .28em .75em;
+      border-radius: 20px; letter-spacing: .04em; white-space: nowrap;
+    }
+    .badge-disponivel {
+      background: #e8f4ff; color: #0a58ca;
+      font-weight: 700; font-size: .7rem; padding: .28em .75em;
+      border-radius: 20px; letter-spacing: .04em; white-space: nowrap;
+    }
+
+    /* ── Linha de totais ─────────────────────────────────────── */
+    .mf-table tfoot td {
+      background: #f0f4f2;
+      font-weight: 700;
+      padding: .6rem .85rem;
+      border-top: 2px solid #c8d8cf;
+      font-size: .82rem;
+    }
+
+    /* ── Rodapé ──────────────────────────────────────────────── */
+    .mf-footer {
+      padding: .6rem 1.5rem 1.2rem;
+      font-size: .72rem;
+      color: #999;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: .5rem;
+    }
+
+    /* ── Sem dados ───────────────────────────────────────────── */
+    .mf-empty {
+      text-align: center; padding: 3rem 1.5rem; color: #aaa;
+    }
+  </style>
+</head>
+<body>
+
+{% include 'intranet/intranet_navbar.html' %}
+
+<nav id="mf-navbar" class="navbar navbar-expand-lg">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{% url 'maxflora:tabela' %}">
+      <i class="bi bi-shop me-2"></i>Max &amp; Flora
+    </a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-3 gap-1">
+        <li class="nav-item">
+          <a class="nav-link active" href="{% url 'maxflora:tabela' %}">
+            <i class="bi bi-table me-1"></i>Tabela de Vendas
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Cabeçalho com logo -->
+<div class="mf-header">
+  <img src="{% static 'maxflora/img/logo.jpg' %}" alt="Max &amp; Flora Shopping" class="mf-logo">
+  <div class="mf-header-text">
+    <h1>Tabela de Vendas</h1>
+    <p>Max &amp; Flora Center Administradora de Shoppings Ltda.</p>
+  </div>
+</div>
+
+{% if importacao %}
+<!-- Barra de indicadores -->
+<div class="stat-bar">
+  <div class="stat-item">
+    <span class="val">{{ stats.total }}</span>
+    <span class="lbl">Unidades</span>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <span class="val">{{ stats.locadas }}</span>
+    <span class="lbl">Locadas</span>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <span class="val">{{ stats.disponiveis }}</span>
+    <span class="lbl">Disponíveis</span>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <span class="val">{{ stats.pct_locado }}%</span>
+    <span class="lbl">Ocupação</span>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <span class="val">{{ stats.area_total }} m²</span>
+    <span class="lbl">Área Total Privativa</span>
+  </div>
+</div>
+
+<!-- Tabela -->
+<div class="mf-table-wrap">
+  <table class="table mf-table">
+    <thead>
+      <tr>
+        <th rowspan="2">EUC</th>
+        <th rowspan="2">Espaço<br>Comercial</th>
+        <th rowspan="2">Locatário</th>
+        <th colspan="3">Área Privativa (m²)</th>
+        <th rowspan="2">Valor de<br>Vendas</th>
+        <th rowspan="2">Situação</th>
+        <th rowspan="2">Valor do<br>Aluguel</th>
+        <th rowspan="2">Locado até</th>
+        <th rowspan="2">Condomínio</th>
+        <th rowspan="2">IPTU / TCRS</th>
+      </tr>
+      <tr>
+        <th>Térreo</th>
+        <th>Mezanino</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in unidades %}
+      <tr class="{% if u.euc == 'Estac.' %}row-estac{% endif %}">
+        <td class="td-euc">{{ u.euc }}</td>
+        <td class="text-center">{% if u.espaco %}{{ u.espaco }}{% endif %}</td>
+        <td class="td-loc">{{ u.locatario }}</td>
+        <td class="td-num">{{ u.area_terreo|brl_m2 }}</td>
+        <td class="td-num">{{ u.area_mezanino|brl_m2 }}</td>
+        <td class="td-num" style="font-weight:600">{{ u.area_total|brl_m2 }}</td>
+        <td class="td-venda">{% if u.euc != 'Estac.' %}{{ u.valor_vendas|brl }}{% endif %}</td>
+        <td class="text-center">
+          {% if u.locado %}
+            <span class="badge-locado">LOCADO</span>
+          {% else %}
+            <span class="badge-disponivel">DISPONÍVEL</span>
+          {% endif %}
+        </td>
+        <td class="td-valor">{{ u.valor_aluguel|brl }}</td>
+        <td class="text-center" style="white-space:nowrap; font-size:.78rem">
+          {% if u.locado_ate %}{{ u.locado_ate|date:"d/m/Y" }}{% endif %}
+        </td>
+        <td class="td-valor">{{ u.condominio|brl }}</td>
+        <td class="td-valor">{{ u.iptu_tcrs|brl }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="12" class="mf-empty">Nenhuma unidade encontrada.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="mf-footer">
+  <span>
+    <i class="bi bi-clock me-1"></i>
+    Última importação: <strong>{{ stats.importado_em|date:"d/m/Y H:i" }}</strong>
+    &nbsp;·&nbsp; {{ stats.arquivo }}
+  </span>
+  <span>Valor total carteira: <strong>{{ stats.valor_total }}</strong></span>
+</div>
+
+{% else %}
+<div class="mf-empty" style="margin:3rem auto; background:#fff; border-radius:10px; max-width:480px; padding:3rem;">
+  <i class="bi bi-inbox" style="font-size:3rem; color:#ccc;"></i>
+  <p class="mt-3 mb-1" style="font-size:1rem; font-weight:600; color:#666;">Nenhum dado importado ainda</p>
+  <p class="text-muted" style="font-size:.85rem">
+    Execute <code>python manage.py importar_maxflora</code> para carregar a tabela.
+  </p>
+</div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

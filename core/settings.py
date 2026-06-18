@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'apps.propostas',
     'apps.contratos',
     'apps.img2word',
+    'apps.maxflora',
 ]
 
 MIDDLEWARE = [
