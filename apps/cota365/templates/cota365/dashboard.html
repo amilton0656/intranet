@@ -131,8 +131,8 @@
 
 <div class="main-content">
 
-  <!-- ── Empreendimento + Cards de Área ──────────────────────────────────── -->
-  <div class="d-flex flex-wrap gap-3 mb-3">
+  <!-- ── Empreendimento + Cards de Área (desktop) ────────────────────────── -->
+  <div class="d-none d-md-flex flex-wrap gap-3 mb-3">
     <div class="summary-card" style="border-left:3px solid var(--navy);">
       <div class="label" style="color:var(--muted);">Empreendimento</div>
       <div class="value" style="font-size:1rem; color:var(--navy);">Cota 365</div>
@@ -159,8 +159,37 @@
     </div>
   </div>
 
-  <!-- ── KPI Cards ─────────────────────────────────────────────────────────── -->
-  <div class="row g-3 mb-4">
+  <!-- ── Tabelas mobile: Áreas + KPIs ─────────────────────────────────────── -->
+  <div class="d-md-none mb-3">
+    <div class="chart-card mb-2">
+      <div class="chart-title"><i class="bi bi-building me-1"></i>Empreendimento &amp; Áreas</div>
+      <table class="table top-table mb-0">
+        <tbody>
+          <tr><td class="text-muted" style="width:55%">Empreendimento</td><td class="fw-bold">Cota 365</td></tr>
+          <tr><td class="text-muted">Área Privativa</td><td class="fw-semibold" style="color:var(--purple)">{{ area_priv }} m²</td></tr>
+          <tr><td class="text-muted">Área Priv. Acessória</td><td class="fw-semibold" style="color:var(--purple)">{{ area_priv_acess }} m²</td></tr>
+          <tr><td class="text-muted">Total Área Privativa</td><td class="fw-semibold" style="color:var(--purple)">{{ total_priv }} m²</td></tr>
+          <tr><td class="text-muted">Área Comum</td><td class="fw-semibold" style="color:var(--teal-dark)">{{ area_comum }} m²</td></tr>
+          <tr><td class="text-muted">Área Total</td><td class="fw-bold">{{ area_total }} m²</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><i class="bi bi-graph-up me-1"></i>Indicadores</div>
+      <table class="table top-table mb-0">
+        <tbody>
+          <tr><td class="text-muted" style="width:55%">VGV Total</td><td class="fw-bold">{{ total_geral }}</td></tr>
+          <tr><td class="text-muted">VGV Líquido</td><td class="fw-bold">{{ vgv_liquido }}</td></tr>
+          <tr><td class="text-muted">Contratos</td><td class="fw-bold">{{ n_contratos }}</td></tr>
+          <tr><td class="text-muted">Ticket Médio</td><td class="fw-semibold">{{ ticket_medio }}</td></tr>
+          <tr><td class="text-muted">Total Vendido</td><td class="fw-semibold">{{ total_vendido }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── KPI Cards (desktop) ───────────────────────────────────────────────── -->
+  <div class="d-none d-md-flex row g-3 mb-4">
     <div class="col-6 col-lg">
       <div class="kpi-card">
         <div class="kpi-icon" style="background:color-mix(in srgb,var(--accent) 15%,white);">
