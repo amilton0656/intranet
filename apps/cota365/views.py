@@ -2322,7 +2322,7 @@ def _build_dashboard_pdf():
         tdrb(_fmt_brl(total_fluxo)),
         tdrb(''),
     ])
-    story.append(tbl(fm_header + fm_rows, [2.5*cm, 3.5*cm, 3.5*cm, 3.5*cm, 3.5*cm, 3.5*cm], total_last=True))
+    story.append(tbl(fm_header + fm_rows, [1.5*cm, 3.08*cm, 3.08*cm, 3.08*cm, 3.08*cm, 3.08*cm], total_last=True))
 
     # ── Resumo por Tipo (igual ao Fluxo Mensal) ───────────────────────────────
     if total_fluxo:
