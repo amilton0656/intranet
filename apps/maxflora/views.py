@@ -342,12 +342,15 @@ def exportar_pdf(request):
     # ── Planta baixa — logo abaixo da lista ─────────────────────────────────
     planta_path = Path(__file__).parent / 'static' / 'maxflora' / 'img' / 'planta_baixa.jpg'
     if planta_path.exists():
+        from reportlab.platypus import HRFlowable
         story.append(Spacer(1, 2.4*cm))
+        story.append(HRFlowable(width='100%', thickness=1, color=_C_GREEN, spaceAfter=6))
         story.append(Paragraph(
-            '<b><font size="11" color="#1a7a4a">PLANTA BAIXA — MAX &amp; FLORA SHOPPING</font></b>',
-            ps('pb_title', alignment=1, leading=14),
+            '<b><font size="12" color="#1a7a4a">SHOPPING MAX &amp; FLORA — LOJAS</font></b>',
+            ps('pb_title', alignment=1, leading=16),
         ))
-        story.append(Spacer(1, 0.4*cm))
+        story.append(HRFlowable(width='100%', thickness=1, color=_C_GREEN, spaceBefore=6))
+        story.append(Spacer(1, 0.5*cm))
         story.append(Image(str(planta_path), width=W, height=W * 0.48, kind='proportional'))
 
     doc.build(story)
