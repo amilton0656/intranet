@@ -344,12 +344,12 @@ def exportar_pdf(request):
     if planta_path.exists():
         from reportlab.platypus import HRFlowable
         story.append(Spacer(1, 2.4*cm))
-        story.append(HRFlowable(width='100%', thickness=1, color=_C_GREEN, spaceAfter=6))
+        story.append(HRFlowable(width=W, thickness=1, color=_C_GREEN, spaceAfter=6))
         story.append(Paragraph(
             '<b><font size="12" color="#1a7a4a">SHOPPING MAX &amp; FLORA — LOJAS</font></b>',
             ps('pb_title', alignment=1, leading=16),
         ))
-        story.append(HRFlowable(width='100%', thickness=1, color=_C_GREEN, spaceBefore=6))
+        story.append(HRFlowable(width=W, thickness=1, color=_C_GREEN, spaceBefore=6))
         story.append(Spacer(1, 0.5*cm))
         img = Image(str(planta_path), width=W - 0.4*cm, height=(W - 0.4*cm) * 0.48, kind='proportional')
         img_table = Table([[img]], colWidths=[W])
