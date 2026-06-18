@@ -1840,16 +1840,26 @@ def export_dashboard(request):
 def export_dashboard_whatsapp(request):
     import base64
     import fitz
+    from PIL import Image
 
     pdf_bytes = _build_dashboard_pdf()
     doc_pdf = fitz.open(stream=pdf_bytes, filetype='pdf')
-    pages = []
-    for page in doc_pdf:
-        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-        pages.append(base64.b64encode(pix.tobytes('png')).decode('ascii'))
+    pix_list = [page.get_pixmap(matrix=fitz.Matrix(2, 2)) for page in doc_pdf]
     doc_pdf.close()
 
-    return render(request, 'cota365/resumo_whatsapp.html', {'pages': pages})
+    images = [Image.open(io.BytesIO(p.tobytes('png'))) for p in pix_list]
+    total_height = sum(img.height for img in images)
+    max_width    = max(img.width  for img in images)
+    merged = Image.new('RGB', (max_width, total_height), 'white')
+    y = 0
+    for img in images:
+        merged.paste(img, (0, y))
+        y += img.height
+    buf = io.BytesIO()
+    merged.save(buf, format='PNG')
+    merged_b64 = base64.b64encode(buf.getvalue()).decode('ascii')
+
+    return render(request, 'cota365/resumo_whatsapp.html', {'merged_image': merged_b64})
 
 
 def _resumo_publico_dir():

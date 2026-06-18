@@ -50,43 +50,40 @@
     Clique em <strong>Copiar imagem</strong> na página desejada e cole (Ctrl+V) direto na conversa do WhatsApp.
   </p>
 
-  {% for page in pages %}
   <div class="wa-page-card">
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <span class="wa-page-title">Página {{ forloop.counter }}</span>
-      <button type="button" class="btn btn-outline-primary btn-sm copy-btn" data-target="wa-img-{{ forloop.counter }}">
+      <span class="wa-page-title">Resumo Cota 365</span>
+      <button type="button" class="btn btn-outline-primary btn-sm" id="copy-btn">
         <i class="bi bi-clipboard me-1"></i>Copiar imagem
       </button>
     </div>
-    <img id="wa-img-{{ forloop.counter }}" src="data:image/png;base64,{{ page }}" alt="Resumo página {{ forloop.counter }}">
+    <img id="wa-img" src="data:image/png;base64,{{ merged_image }}" alt="Resumo Cota 365">
   </div>
-  {% endfor %}
 </div>
 
 <script>
-document.querySelectorAll('.copy-btn').forEach(function (btn) {
-  btn.addEventListener('click', async function () {
-    const img = document.getElementById(btn.dataset.target);
-    const original = btn.innerHTML;
-    try {
-      const response = await fetch(img.src);
-      const blob = await response.blob();
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copiado!';
-      btn.classList.remove('btn-outline-primary');
-      btn.classList.add('btn-success');
-    } catch (err) {
-      btn.innerHTML = '<i class="bi bi-x-lg me-1"></i>Falhou';
-      btn.classList.add('btn-danger');
-      alert('Não foi possível copiar a imagem. Seu navegador pode não suportar essa função (use Chrome ou Edge).');
-    } finally {
-      setTimeout(function () {
-        btn.innerHTML = original;
-        btn.classList.remove('btn-success', 'btn-danger');
-        btn.classList.add('btn-outline-primary');
-      }, 2000);
-    }
-  });
+document.getElementById('copy-btn').addEventListener('click', async function () {
+  const img = document.getElementById('wa-img');
+  const btn = this;
+  const original = btn.innerHTML;
+  try {
+    const response = await fetch(img.src);
+    const blob = await response.blob();
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copiado!';
+    btn.classList.remove('btn-outline-primary');
+    btn.classList.add('btn-success');
+  } catch (err) {
+    btn.innerHTML = '<i class="bi bi-x-lg me-1"></i>Falhou';
+    btn.classList.add('btn-danger');
+    alert('Não foi possível copiar a imagem. Seu navegador pode não suportar essa função (use Chrome ou Edge).');
+  } finally {
+    setTimeout(function () {
+      btn.innerHTML = original;
+      btn.classList.remove('btn-success', 'btn-danger');
+      btn.classList.add('btn-outline-primary');
+    }, 2000);
+  }
 });
 </script>
 {% endblock %}
