@@ -2369,6 +2369,7 @@ def _build_dashboard_pdf():
         sum_data.append(list(sr('Recebido',      total_recebido)))
         sum_data.append(list(sr('A receber',     total_a_receber)))
         sum_data.append(list(sr('Permuta (Serviços/Materiais)', total_permutas_pend)))
+        sum_data.append(list(sr('Total a receber', total_a_receber + total_permutas_pend, bold=True)))
 
         # índices no sum_data (0 = header)
         IDX_POUPANCA = 6   # linha Poupança
