@@ -228,15 +228,15 @@ def exportar_pdf(request):
                                                 textColor=_C_GREEN))
 
     title_p  = Paragraph(
-        '<b><font size="16" color="white">TABELA DE VENDAS</font></b>',
+        '<b><font size="16" color="#1a7a4a">TABELA DE VENDAS</font></b>',
         ps('tp', alignment=0, leading=18),
     )
     sub_p    = Paragraph(
-        '<font size="8" color="#b8d4e8">Max &amp; Flora Center Administradora de Shoppings Ltda.</font>',
+        '<font size="8" color="#6c757d">Max &amp; Flora Center Administradora de Shoppings Ltda.</font>',
         ps('sp', alignment=0, leading=12),
     )
     date_p   = Paragraph(
-        f'<font size="7" color="#8aafc8">Gerado em {datetime.now():%d/%m/%Y %H:%M} &nbsp;·&nbsp; '
+        f'<font size="7" color="#aaaaaa">Gerado em {datetime.now():%d/%m/%Y %H:%M} &nbsp;·&nbsp; '
         f'Importação: {stats["importado_em"]:%d/%m/%Y %H:%M}</font>',
         ps('dp', alignment=0, leading=10),
     )
@@ -246,11 +246,9 @@ def exportar_pdf(request):
         colWidths=[3.8*cm, W - 3.8*cm],
     )
     hdr_table.setStyle(TableStyle([
-        ('BACKGROUND',    (0, 0), (-1, -1), _C_NAVY),
         ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
         ('LEFTPADDING',   (1, 0), (1, 0), 12),
-        ('TOPPADDING',    (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
     story.append(hdr_table)
 
@@ -328,8 +326,8 @@ def exportar_pdf(request):
         ('LEFTPADDING',   (0, 0), (-1, -1), 4),
         ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
         ('VALIGN',        (0, 2), (-1, -1), 'MIDDLE'),
-        # Sub-header: fundo levemente mais claro
-        ('BACKGROUND',    (0, 1), (-1, 1), _C_GREEN),
+        # Sub-header: mesma cor da primeira linha
+        ('BACKGROUND',    (0, 1), (-1, 1), _C_NAVY),
     ]
 
     # Zebra sutil nas linhas de dados (sem cor por situação)
