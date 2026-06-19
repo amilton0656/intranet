@@ -36,11 +36,18 @@ DESTINO_PADRAO = r"G:\Meu Drive\_intranet\cota365\vendas.csv"
 BASE_URL        = 'https://cota.cvcrm.com.br'
 RELATORIO_URL   = f'{BASE_URL}/gestor/relatorios/reservas'
 
-# Colunas a marcar (X)
-COLUNAS_DESEJADAS = [
-    'Reserva', 'Situação', 'Unidade', 'M² da unidade',
-    'Cliente', 'Imobiliária', 'Valor do contrato',
-    'Espaços complementares', 'Data de Venda', 'Valor total',
+# IDs exatos dos checkboxes de colunas (descobertos via diagnóstico JS)
+COLUNAS_IDS = [
+    'idreserva',              # Reserva
+    'situacao',               # Situação
+    'unidade',                # Unidade
+    'unidade_area_privativa', # M² da unidade
+    'cliente',                # Cliente
+    'imobiliaria',            # Imobiliária (val=32, não responsavel_imobiliaria=31)
+    'valor_contrato',         # Valor do contrato
+    'espacos',                # Espaços complementares
+    'data_venda',             # Data de Venda
+    'valor_total',            # Valor total
 ]
 
 
@@ -114,42 +121,39 @@ class Command(BaseCommand):
             # ── Preenche o formulário ──────────────────────────────────────────
             self._preencher_formulario(page)
 
-            # ── Clica em "Receber por e-mail" e captura a nova aba ───────────
+            # ── Clica em "Receber por e-mail" (id=receber_email) ─────────────
             import re as _re
-            btn_pattern = _re.compile(r'receber por e.?mail', _re.IGNORECASE)
 
-            btn_enviar = None
-            for role in ('button', 'link'):
-                loc = page.get_by_role(role, name=btn_pattern)
-                if loc.count() > 0:
-                    btn_enviar = loc.first
-                    break
-            if btn_enviar is None:
-                btn_enviar = page.get_by_text(btn_pattern).first
-
-            btn_enviar.scroll_into_view_if_needed()
+            # Fecha notificações que possam sobrepor o botão
+            page.evaluate('''() => {
+                document.querySelectorAll(".alert .close, .alert [data-dismiss], .close")
+                    .forEach(b => b.click());
+            }''')
             page.wait_for_timeout(300)
+
             self.stdout.write('Clicando em "Receber por e-mail"...')
-
-            pages_antes = list(ctx.pages)
             url_antes = page.url
-            btn_enviar.click(timeout=10000)
-            page.wait_for_timeout(4000)
 
-            # Detecta se abriu nova aba ou navegou na mesma aba
-            novas_abas = [p for p in ctx.pages if p not in pages_antes]
-            if novas_abas:
-                nova_aba = novas_abas[0]
+            nova_aba = None
+            try:
+                # force=True ignora overlay; click() nativo cria evento isTrusted=true
+                # (necessário para window.open() funcionar)
+                with ctx.expect_page(timeout=12000) as nova_aba_info:
+                    page.locator('#receber_email').click(force=True, timeout=10000)
+                nova_aba = nova_aba_info.value
                 nova_aba.wait_for_load_state('load', timeout=30000)
-                self.stdout.write(f'Nova aba detectada: {nova_aba.url}')
-            elif page.url != url_antes:
-                nova_aba = page
-                self.stdout.write(f'Navegou na mesma aba: {nova_aba.url}')
-            else:
-                raise CommandError(
-                    'Nenhuma ação detectada após clicar em "Receber por e-mail". '
-                    'Verifique se o botão correto foi clicado.'
-                )
+                self.stdout.write(f'Nova aba: {nova_aba.url}')
+            except Exception:
+                # Verifica navegação na mesma aba
+                page.wait_for_timeout(4000)
+                if page.url != url_antes:
+                    nova_aba = page
+                    self.stdout.write(f'Navegou na mesma aba: {nova_aba.url}')
+                else:
+                    raise CommandError(
+                        'Botão "Receber por e-mail" clicado mas nenhuma navegação detectada. '
+                        'Verifique o formulário no Chrome.'
+                    )
 
             # ── Aguarda "CLIQUE AQUI PARA BAIXAR O ARQUIVO GERADO" ────────────
             self.stdout.write(f'Aguardando geração (até {options["timeout_geracao"]}s)...')
@@ -188,24 +192,32 @@ class Command(BaseCommand):
     def _preencher_formulario(self, page):
         import re as _re
 
+        # ── Selects de período ────────────────────────────────────────────────
+        self.stdout.write('Configurando selects de período...')
+        # "Data de cadastro" → "Período definido pelo usuário" (expõe form_de/form_ate)
+        self._selecionar_opcao_por_label(page, 'Data de cadastro', 'Período definido pelo usuário')
+        page.wait_for_timeout(600)
+
         # ── Datas ─────────────────────────────────────────────────────────────
         self.stdout.write('Preenchendo datas...')
-        # Tenta diferentes seletores para o campo "De"
-        for sel_de in ['[name*="data_ini"]', '[id*="data_ini"]', '[placeholder*="De"]',
-                       'input[name*="de"]', 'input[id*="de"]']:
-            if page.locator(sel_de).count() > 0:
-                page.locator(sel_de).first.fill('01/01/2000')
-                break
-        else:
-            self._preencher_data_por_label(page, 'De', '01/01/2000')
+        page.evaluate('''() => {
+            function set(id, val) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.value = val;
+                ["input","change","blur"].forEach(ev =>
+                    el.dispatchEvent(new Event(ev, {bubbles:true}))
+                );
+            }
+            set("form_de",  "01/01/2000");
+            set("form_ate", "01/01/3000");
+        }''')
+        self.stdout.write('  Datas preenchidas (form_de / form_ate)')
 
-        for sel_ate in ['[name*="data_fim"]', '[id*="data_fim"]', '[placeholder*="Até"]',
-                        'input[name*="ate"]', 'input[id*="ate"]']:
-            if page.locator(sel_ate).count() > 0:
-                page.locator(sel_ate).first.fill('01/01/3000')
-                break
-        else:
-            self._preencher_data_por_label(page, 'Até', '01/01/3000')
+        # "Data da carta proposta" → em branco
+        self._limpar_select_por_label(page, 'Data da carta proposta')
+        # Categoria do Corretor → em branco
+        self._limpar_select_por_label(page, 'Categoria do Corretor')
 
         # ── Empreendimento ────────────────────────────────────────────────────
         self.stdout.write('Selecionando empreendimento Cota 365...')
@@ -229,42 +241,31 @@ class Command(BaseCommand):
 
         # ── Colunas de exibição ───────────────────────────────────────────────
         self.stdout.write('Configurando colunas...')
-        # Descobre o name dos checkboxes de colunas e desmarca todos via JS
-        col_names = page.evaluate('''() => {
-            const names = new Set();
-            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                if (cb.name && cb.name !== 'situacao[]') names.add(cb.name);
-            });
-            return [...names];
-        }''')
-        self.stdout.write(f'  Checkbox names (não-situação): {col_names}')
-
-        # Tenta desmarcar via JS com os nomes descobertos
-        desmarcadas_col = page.evaluate('''(names) => {
+        # Desmarca todos os colunas_reserva[] via JS
+        desmarcadas_col = page.evaluate('''() => {
             let n = 0;
-            names.forEach(name => {
-                document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
-                    if (cb.checked) { cb.click(); n++; }
-                });
+            document.querySelectorAll('input[name="colunas_reserva[]"]').forEach(cb => {
+                if (cb.checked) { cb.click(); n++; }
             });
             return n;
-        }''', col_names)
+        }''')
         self.stdout.write(f'  {desmarcadas_col} colunas desmarcadas')
+        page.wait_for_timeout(300)
 
-        # Fallback: botão "Desmarcar todos" (último = seção de colunas)
-        if desmarcadas_col == 0:
-            btn_desmarcar_loc = page.get_by_text(_re.compile('desmarcar todos', _re.IGNORECASE))
-            if btn_desmarcar_loc.count() > 0:
-                btn_desmarcar_loc.last.click()
-                page.wait_for_timeout(800)
-                self.stdout.write('  "Desmarcar todos" clicado via botão')
-
-        page.wait_for_timeout(500)
-        # Marca as colunas desejadas
-        for col in COLUNAS_DESEJADAS:
-            self._set_checkbox_por_label(page, col, True)
-
-        page.wait_for_timeout(500)
+        # Marca as colunas desejadas diretamente por ID
+        marcadas = page.evaluate('''(ids) => {
+            const marcadas = [];
+            ids.forEach(id => {
+                const cb = document.getElementById(id);
+                if (cb && !cb.checked) {
+                    cb.click();
+                    marcadas.push(id);
+                }
+            });
+            return marcadas;
+        }''', list(COLUNAS_IDS))
+        self.stdout.write(f'  Colunas marcadas: {marcadas}')
+        page.wait_for_timeout(300)
 
     def _preencher_data_por_label(self, page, label_txt, valor):
         """Encontra input pelo texto do label adjacente."""
@@ -324,8 +325,62 @@ class Command(BaseCommand):
         ))
         input(f'  Selecione "{nome}" manualmente e pressione ENTER... ')
 
-    def _set_checkbox_por_label(self, page, label_txt, checked: bool):
-        """Marca/desmarca checkbox pelo texto do label."""
+    def _selecionar_opcao_por_label(self, page, label_txt, opcao_txt):
+        """Seleciona uma opção em TODOS os selects encontrados pelo label.
+        Usa JS com busca parcial como fallback para evitar problemas de acentuação."""
+        # Palavras-chave para busca parcial (ignora acentuação de "Período/Periodo")
+        parcial = ' '.join(opcao_txt.split()[-3:]).lower()  # últimas 3 palavras
+
+        encontrados = page.evaluate('''([labelBusca, opcaoExata, parcial]) => {
+            const labels = Array.from(document.querySelectorAll('label'));
+            let n = 0;
+            labels.forEach(lbl => {
+                if (!new RegExp(labelBusca, 'i').test(lbl.textContent)) return;
+                const sel = document.getElementById(lbl.htmlFor);
+                if (!sel || sel.tagName !== 'SELECT') return;
+                // tenta exato primeiro, depois parcial
+                let opt = Array.from(sel.options).find(o => o.text === opcaoExata);
+                if (!opt) opt = Array.from(sel.options).find(o =>
+                    o.text.toLowerCase().includes(parcial)
+                );
+                if (!opt) return;
+                sel.value = opt.value;
+                sel.dispatchEvent(new Event('change', {bubbles: true}));
+                n++;
+            });
+            return n;
+        }''', [label_txt, opcao_txt, parcial])
+
+        if encontrados:
+            self.stdout.write(f'  "{label_txt}" ({encontrados}x) → "{opcao_txt}"')
+        else:
+            self.stdout.write(self.style.WARNING(f'  Select "{label_txt}" não encontrado'))
+
+    def _limpar_select_por_label(self, page, label_txt):
+        """Reseta um select para a primeira opção (vazio/em branco) pelo texto do label."""
+        import re as _re
+        for lbl in page.locator('label').all():
+            try:
+                txt = lbl.inner_text(timeout=500).strip()
+            except Exception:
+                continue
+            if _re.search(_re.escape(label_txt), txt, _re.IGNORECASE):
+                for_id = lbl.get_attribute('for')
+                if for_id:
+                    sel = page.locator(f'#{for_id}')
+                    if sel.count() > 0 and sel.first.evaluate('el => el.tagName') == 'SELECT':
+                        try:
+                            sel.first.select_option(index=0)
+                            self.stdout.write(f'  "{label_txt}" → opção 0 (branco)')
+                        except Exception as e:
+                            self.stdout.write(self.style.WARNING(f'  "{label_txt}" não resetado: {e}'))
+                        return
+        self.stdout.write(self.style.WARNING(f'  Select "{label_txt}" não encontrado (ignorado)'))
+
+    def _set_checkbox_por_label(self, page, label_txt, checked: bool, nth: int = 0):
+        """Marca/desmarca checkbox pelo texto do label.
+        nth: índice da ocorrência (0 = primeira, 1 = segunda, etc.)
+        """
 
         def _apply(cb):
             if checked and not cb.is_checked():
@@ -335,8 +390,8 @@ class Command(BaseCommand):
 
         # Estratégia 1: aria role + accessible name — funciona com IDs duplicados
         cb = page.get_by_role('checkbox', name=label_txt, exact=True)
-        if cb.count() > 0:
-            _apply(cb.first)
+        if cb.count() > nth:
+            _apply(cb.nth(nth))
             return
 
         # Estratégia 2: label com texto exato → checkbox dentro ou via for
