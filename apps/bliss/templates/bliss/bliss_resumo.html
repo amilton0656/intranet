@@ -1,7 +1,7 @@
 ﻿{% extends 'intranet/intranet_base.html' %}
 {% load humanize %}
 {% load custom_filters %}
-{% block title %}Resumo de Situações{% endblock %}
+{% block title %}Bliss Living - Resumo{% endblock %}
 
 {% block content %}
 <style>
@@ -20,7 +20,7 @@
 <div class="d-none d-md-block mx-3 mt-3">
   {# ====== DESKTOP/TABLET: Tabela ====== #}
   <div>
-    <h3 class="mb-2">Resumo por Situação</h3>
+    <h3 class="mb-2">Bliss Living - Resumo</h3>
     <div class="d-flex gap-2 mb-3">
       <a href="{% url 'bliss_resumo_pdf' %}" class="btn btn-sm btn-danger" target="_blank" rel="noopener">Exportar PDF</a>
       <form method="post" action="{% url 'bliss_resumo_send_email' %}" class="d-inline">
@@ -186,7 +186,7 @@
 
 {# ====== CELULAR: Header título + PDF ====== #}
 <div class="bliss-page-header d-md-none">
-  <h1>Resumo de Situações</h1>
+  <h1>Bliss Living - Resumo</h1>
   <div class="pt-1">
     <a href="{% url 'bliss_resumo_pdf' %}" class="btn btn-outline-danger btn-sm" target="_blank" rel="noopener">
       <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
