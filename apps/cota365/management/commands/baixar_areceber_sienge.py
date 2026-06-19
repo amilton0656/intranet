@@ -83,30 +83,55 @@ class Command(BaseCommand):
             except Exception:
                 pass
 
-            # Garante login
-            if 'login' in page.url.lower() or page.locator('input[type="password"]').count() > 0:
-                self.stdout.write(self.style.WARNING(
-                    'Faça login manualmente na janela do Chrome.'
-                ))
-                input('Pressione ENTER após estar logado... ')
-                page.wait_for_timeout(2000)
-
             # Navega para o relatório
             self.stdout.write(f'Navegando para {RELATORIO_URL}...')
-            page.goto(RELATORIO_URL, wait_until='load', timeout=30000)
-            page.wait_for_timeout(3000)
+            page.goto(RELATORIO_URL, wait_until='networkidle', timeout=60000)
+            page.wait_for_timeout(2000)
 
-            # Verifica login novamente
-            if 'login' in page.url.lower() or page.locator('input[type="password"]').count() > 0:
+            # Detecta login e re-navega até o formulário aparecer
+            while self._precisa_login(page):
                 self.stdout.write(self.style.WARNING(
-                    'Sessão expirada. Faça login manualmente.'
+                    'Login necessário. Faça login no Sienge (clique em "ENTRAR COM SIENGE ID").'
                 ))
-                input('Pressione ENTER após estar logado... ')
-                page.goto(RELATORIO_URL, wait_until='load', timeout=30000)
-                page.wait_for_timeout(3000)
+                input('  Pressione ENTER após estar logado no Sienge... ')
+                page.wait_for_timeout(2000)
+                page.goto(RELATORIO_URL, wait_until='networkidle', timeout=60000)
+                page.wait_for_timeout(2000)
+
+            # Aguarda formulário aparecer (espera label ou input visível)
+            self.stdout.write('Aguardando formulário carregar...')
+            try:
+                page.wait_for_selector('label, select, input[type="text"]',
+                                       state='visible', timeout=15000)
+            except Exception:
+                pass
+            page.wait_for_timeout(2000)
+
+            # Diagnóstico completo da página
+            frames_info = page.evaluate('''() => ({
+                url: location.href,
+                title: document.title,
+                iframes: Array.from(document.querySelectorAll("iframe")).map(f => ({
+                    src: f.src, id: f.id, name: f.name
+                })),
+                inputs_count: document.querySelectorAll("input").length,
+                labels: Array.from(document.querySelectorAll("label"))
+                    .map(l => l.innerText.trim()).filter(t => t).slice(0, 20),
+                selects: Array.from(document.querySelectorAll("select"))
+                    .map(s => ({id: s.id, name: s.name, opts: s.options.length})).slice(0, 10),
+                body_snippet: document.body.innerText.slice(0, 500),
+            })''')
+            self.stdout.write(f'  Labels: {frames_info["labels"]}')
+            self.stdout.write(f'  Selects: {frames_info["selects"]}')
+            self.stdout.write(f'  Inputs: {frames_info["inputs_count"]}')
+            self.stdout.write(f'  Body: {frames_info["body_snippet"][:300]}')
+
+            # Detecta se o conteúdo está em um iframe
+            frame = self._get_frame(page)
+            self.stdout.write(f'  Frame usado: {frame.url}')
 
             # ── Preenche o formulário ──────────────────────────────────────────
-            self._preencher_formulario(page, hoje)
+            self._preencher_formulario(frame, hoje)
 
             # Fecha alertas/overlays
             page.evaluate('''() => {
@@ -155,45 +180,120 @@ class Command(BaseCommand):
                 f'✓ areceber.csv salvo em: {output_path}  ({output_path.stat().st_size:,} bytes)'
             ))
 
+    # ── Detecção de login ─────────────────────────────────────────────────────
+
+    def _precisa_login(self, page):
+        """Retorna True se a página exibir a tela de login do Sienge."""
+        try:
+            texto = page.evaluate('() => document.body.innerText')
+            return any(ind in texto.lower() for ind in [
+                'entrar com sienge id', 'bem-vindo!\ncota', 'sienge id'
+            ])
+        except Exception:
+            return False
+
+    # ── Detecção de frame ─────────────────────────────────────────────────────
+
+    def _get_frame(self, page):
+        """Retorna o frame correto — page direta ou o iframe com inputs."""
+        # Se a própria página tem inputs, usa ela
+        if page.locator('input').count() > 0:
+            return page
+        # Procura iframe com inputs
+        for frame in page.frames:
+            if frame == page.main_frame:
+                continue
+            try:
+                if frame.locator('input').count() > 0:
+                    return frame
+            except Exception:
+                pass
+        # Fallback: tenta o primeiro iframe encontrado
+        iframes = page.locator('iframe')
+        if iframes.count() > 0:
+            frame = page.frame(url=iframes.first.get_attribute('src') or '')
+            if frame:
+                return frame
+        return page
+
     # ── Preenchimento do formulário ───────────────────────────────────────────
 
     def _preencher_formulario(self, page, hoje):
-        import re as _re
-
         self.stdout.write('Preenchendo formulário...')
 
-        # Diagnóstico: mostra os inputs disponíveis
-        inputs_info = page.evaluate('''() =>
-            Array.from(document.querySelectorAll("input, select"))
-            .filter(i => i.offsetParent !== null)
-            .map(i => ({tag: i.tagName, name: i.name, id: i.id,
-                        type: i.type, placeholder: i.placeholder,
-                        label: (document.querySelector(`label[for="${i.id}"]`) || {}).innerText}))
-            .slice(0, 20)
-        ''')
-        self.stdout.write(f'  Inputs: {inputs_info}')
+        # Diagnóstico: estrutura real da página logada
+        diag = page.evaluate('''() => ({
+            inputs: Array.from(document.querySelectorAll("input"))
+                .filter(i => i.offsetParent !== null)
+                .map(i => ({id: i.id, name: i.name, type: i.type, val: i.value,
+                            placeholder: i.placeholder})).slice(0, 25),
+            tds: Array.from(document.querySelectorAll("td"))
+                .filter(td => td.offsetParent !== null && td.innerText.trim())
+                .map(td => td.innerText.trim()).slice(0, 30),
+        })''')
+        self.stdout.write(f'  Inputs visíveis: {diag["inputs"]}')
+        self.stdout.write(f'  TDs visíveis: {diag["tds"]}')
 
-        # ── Modelo: Padrão ────────────────────────────────────────────────────
+        # ── Modelo: "Padrão" (campo de texto com busca) ───────────────────────
         self.stdout.write('  Modelo → Padrão')
-        self._selecionar_opcao_por_label(page, 'Modelo', 'Padrão')
+        self._preencher_sienge(page, 'Modelo', 'Padrão', tab=True)
 
-        # ── Empresas: 1 + Tab ─────────────────────────────────────────────────
-        self.stdout.write('  Empresas → 1 + Tab')
-        self._preencher_campo_por_label(page, 'Empresas', '1', pressionar_tab=True)
+        # ── Empresa: 1 + Tab ──────────────────────────────────────────────────
+        self.stdout.write('  Empresa → 1 + Tab')
+        self._preencher_sienge(page, 'Empresa', '1', tab=True)
+        page.wait_for_timeout(800)
 
-        # ── Período de vencimento: datas ──────────────────────────────────────
+        # ── Período de vencimento: limpa e preenche as datas ──────────────────
         self.stdout.write('  Período de vencimento → 01/01/2000 e 31/12/3000')
         self._preencher_datas_periodo(page, 'vencimento', '01/01/2000', '31/12/3000')
 
         # ── Centro de custo: 100 + Tab ────────────────────────────────────────
         self.stdout.write('  Centro de custo → 100 + Tab')
-        self._preencher_campo_por_label(page, 'Centro de custo', '100', pressionar_tab=True)
-        page.wait_for_timeout(500)
+        self._preencher_sienge(page, 'Centro de custo', '100', tab=True)
+        page.wait_for_timeout(800)
 
         # ── Correção até: hoje ────────────────────────────────────────────────
         self.stdout.write(f'  Correção até → {hoje}')
-        self._preencher_campo_por_label(page, 'Correção até', hoje)
+        self._preencher_sienge(page, 'Correção até', hoje, tab=False)
         page.wait_for_timeout(300)
+
+    def _preencher_sienge(self, page, label_txt, valor, tab=False):
+        """Preenche campo do Sienge buscando pelo texto da célula <td> adjacente."""
+        import re as _re
+        resultado = page.evaluate('''([lbl, val, pressTab]) => {
+            // Sienge usa <td> como label e o input fica no <td> seguinte
+            const tds = Array.from(document.querySelectorAll("td, th, label, span"))
+                .filter(el => el.offsetParent !== null);
+            for (const td of tds) {
+                if (!new RegExp(lbl.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&"), "i")
+                    .test(td.innerText)) continue;
+                // Próximo <td> ou elemento irmão com input
+                const next = td.nextElementSibling || td.parentElement?.nextElementSibling;
+                if (!next) continue;
+                const inp = next.querySelector("input") ||
+                            next.querySelector("select");
+                if (!inp) continue;
+                inp.focus();
+                inp.value = val;
+                ["input","change"].forEach(ev =>
+                    inp.dispatchEvent(new Event(ev, {bubbles:true}))
+                );
+                if (pressTab) {
+                    inp.dispatchEvent(new KeyboardEvent("keydown",
+                        {key:"Tab", keyCode:9, bubbles:true}));
+                }
+                return {ok: true, id: inp.id, name: inp.name};
+            }
+            return {ok: false};
+        }''', [label_txt, valor, tab])
+        if resultado.get('ok'):
+            self.stdout.write(f'    OK → {resultado}')
+            if tab:
+                page.wait_for_timeout(800)
+        else:
+            self.stdout.write(self.style.WARNING(f'    "{label_txt}" não encontrado'))
+            # Fallback: Playwright press Tab nativo
+            self._preencher_campo_por_label(page, label_txt, valor, pressionar_tab=tab)
 
     def _selecionar_opcao_por_label(self, page, label_txt, opcao_txt):
         parcial = ' '.join(opcao_txt.split()[-2:]).lower()
