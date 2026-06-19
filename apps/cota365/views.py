@@ -696,6 +696,24 @@ def _col(*names):
     return getter
 
 
+def _validar_colunas(fieldnames, grupos_obrigatorios, tipo_arquivo):
+    """Verifica se todas as colunas obrigatórias estão presentes no CSV.
+
+    grupos_obrigatorios: lista de tuplas de aliases — basta um alias por grupo estar presente.
+    Lança ValueError listando as colunas ausentes.
+    """
+    presentes = {f.strip().lower() for f in (fieldnames or [])}
+    faltando = []
+    for aliases in grupos_obrigatorios:
+        if not any(a.lower() in presentes for a in aliases):
+            faltando.append(aliases[0])
+    if faltando:
+        raise ValueError(
+            f'Arquivo "{tipo_arquivo}" com colunas obrigatórias ausentes: '
+            + ', '.join(f'"{c}"' for c in faltando)
+        )
+
+
 def _grupo_tip(tipologia):
     tl = tipologia.lower()
     if 'studio' in tl: return 'Studio'
@@ -784,6 +802,14 @@ def _import_tabela(file_obj, nome, sha256='', competencia=None):
     if competencia is None:
         raise ValueError('Selecione o mês/ano da competência antes de importar a tabela de preços.')
     f = _open_csv(file_obj)
+    _validar_colunas(csv.DictReader(f, delimiter=';').fieldnames, [
+        ('UNIDADE',),
+        ('TIPOLOGIA',),
+        ('SITUAÇÃO', 'SITUACAO', 'Situação', 'Situacao'),
+        ('ÁREA PRIVATIVA', 'AREA PRIVATIVA', 'Área Privativa', 'Area Privativa'),
+        ('VALOR TOTAL', 'Valor Total'),
+    ], nome)
+    f.seek(0)
     objs = []
     erros = []
     get_unidade  = _col('UNIDADE')
@@ -854,6 +880,18 @@ def _import_vinculos(file_obj, nome, sha256=''):
 @transaction.atomic
 def _import_vendas(file_obj, nome, sha256=''):
     f = _open_csv(file_obj)
+    _validar_colunas(csv.DictReader(f, delimiter=';').fieldnames, [
+        ('Reserva',),
+        ('Situação', 'Situacao', 'SITUAÇÃO'),
+        ('Unidade',),
+        ('M² da unidade', 'M2 da unidade', 'M da unidade'),
+        ('Cliente',),
+        ('Imobiliária', 'Imobiliaria', 'IMOBILIÁRIA'),
+        ('Espaços complementares', 'Espacos complementares'),
+        ('Valor do contrato', 'Valor Contrato', 'VALOR DO CONTRATO'),
+        ('Data de Venda', 'Data Venda', 'DATA DE VENDA', 'DATA VENDA'),
+    ], nome)
+    f.seek(0)
     objs = []
     get_sit     = _col('Situação', 'Situacao', 'SITUAÇÃO')
     get_m2      = _col('M² da unidade', 'M2 da unidade', 'M da unidade')
@@ -903,6 +941,16 @@ def _import_vendas(file_obj, nome, sha256=''):
 @transaction.atomic
 def _import_fluxo(file_obj, nome, sha256=''):
     f = _open_csv(file_obj)
+    _validar_colunas(csv.DictReader(f, delimiter=';').fieldnames, [
+        ('Id.',),
+        ('Cliente',),
+        ('Unidade',),
+        ('Empreendimento', 'EMPREENDIMENTO'),
+        ('VGV',),
+        ('Primeira parcela',),
+        ('Última parcela', 'Ultima parcela', 'ÚLTIMA PARCELA'),
+    ], nome)
+    f.seek(0)
     get_empr  = _col('Empreendimento', 'EMPREENDIMENTO')
     get_imob  = _col('Imobiliária', 'Imobiliaria', 'Imob. Coordenação', 'IMOBILIÁRIA')
     get_corr  = _col('Corretor', 'CORRETOR')
@@ -950,6 +998,13 @@ def _import_fluxo(file_obj, nome, sha256=''):
 @transaction.atomic
 def _import_unidades(file_obj, nome, sha256=''):
     f = _open_csv(file_obj)
+    _validar_colunas(csv.DictReader(f, delimiter=';').fieldnames, [
+        ('Unidade',),
+        ('Tipo',),
+        ('Área Privativa', 'Area Privativa', 'ÁREA PRIVATIVA', 'AREA PRIVATIVA'),
+        ('Fração Ideal', 'Fracao Ideal', 'FRAÇÃO IDEAL'),
+    ], nome)
+    f.seek(0)
     get_ap  = _col('Area Privativa', 'Área Privativa', 'ÁREA PRIVATIVA', 'AREA PRIVATIVA')
     get_apa = _col('Area Priv. Acessoria', 'Área Priv. Acessoria', 'Area Priv Acessoria')
     get_ac  = _col('Area Comum', 'Área Comum', 'ÁREA COMUM')
@@ -1004,6 +1059,20 @@ def _import_comissoes(f, nome, sha256=''):
             f.seek(0)
 
     reader = csv.DictReader(raw.splitlines(), delimiter=';')
+    _validar_colunas(reader.fieldnames, [
+        ('Número', 'NÃºmero', 'Numero'),
+        ('Beneficiário', 'BeneficiÃ¡rio'),
+        ('Tipo da comissão', 'Tipo da comissÃ£o'),
+        ('Reserva',),
+        ('Corretor',),
+        ('Imobiliária', 'ImobiliÃ¡ria'),
+        ('Unidade',),
+        ('Cliente',),
+        ('Valor do contrato',),
+        ('Valor Comissão a pagar', 'Valor ComissÃ£o a pagar'),
+        ('Valor da Comissão do Beneficiário', 'Valor da ComissÃ£o do BeneficiÃ¡rio'),
+        ('Porcentagem da Comissão do Beneficiário', 'Porcentagem da ComissÃ£o do BeneficiÃ¡rio'),
+    ], nome)
 
     # --- Fase 1: parse sem tocar no banco ---
     erros = []
@@ -1173,6 +1242,14 @@ def _reconcile_parcelas():
 @transaction.atomic
 def _import_a_receber(file_obj, nome, sha256=''):
     reader = csv.DictReader(io.StringIO(_read_csv_text(file_obj)), delimiter=';')
+    _validar_colunas(reader.fieldnames, [
+        ('nuTitulo',),
+        ('dtVencto',),
+        ('vlTotal',),
+        ('nuParcelaApresentacao',),
+        ('cdTipoCondicao',),
+        ('nmCliente',),
+    ], nome)
     objs = []
     erros = []
     for linha, row in enumerate(reader, start=2):
@@ -1205,6 +1282,15 @@ def _import_a_receber(file_obj, nome, sha256=''):
 @transaction.atomic
 def _import_recebidas(file_obj, nome, sha256=''):
     reader = csv.DictReader(io.StringIO(_read_csv_text(file_obj)), delimiter=';')
+    _validar_colunas(reader.fieldnames, [
+        ('NumeroDoTitulo',),
+        ('DataDeVencimento',),
+        ('DataDaBaixa',),
+        ('NumeroDaParcela',),
+        ('CodigoDoTipoDeCondicao',),
+        ('ValorLiquido',),
+        ('NomeDoCliente',),
+    ], nome)
     objs = []
     erros = []
     for linha, row in enumerate(reader, start=2):
