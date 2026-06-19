@@ -4,14 +4,15 @@ Baixa o relatório de vendas (vendas.csv) do CV CRM.
 Fluxo:
   1. Abre Chrome real via CDP (evita Cloudflare Turnstile)
   2. Navega para /gestor/relatorios/reservas
-  3. Preenche o formulário:
-       - Período: 01/01/2000 → 31/12/3000
+  3. Limpa todos os campos do formulário
+  4. Preenche o formulário:
+       - Período: 01/01/2000 → 01/01/3000
        - Empreendimento: Cota 365
-       - Situação da unidade: apenas Vendida
+       - Situação da reserva: apenas Vendida
        - Colunas: desmarca todas, marca apenas as necessárias
-  4. Clica em "Receber por e-mail" (dispara geração assíncrona)
-  5. Aguarda o botão mudar para "Baixar arquivo CSV" (até 10 min)
-  6. Clica e salva o arquivo
+  5. Clica em "Receber por e-mail" (dispara geração assíncrona)
+  6. Na próxima tela aguarda e clica em "CLIQUE AQUI PARA BAIXAR O ARQUIVO GERADO"
+  7. Salva o arquivo
 
 Uso:
     python manage.py baixar_vendas_cvcrm
@@ -41,10 +42,6 @@ COLUNAS_DESEJADAS = [
     'Cliente', 'Imobiliária', 'Valor do contrato',
     'Espaços complementares', 'Data de Venda', 'Valor total',
 ]
-
-# Situações da unidade a marcar
-SITUACAO_UNIDADE_MARCAR   = ['Vendida']
-SITUACAO_UNIDADE_DESMARCAR = ['Disponível', 'Reservada', 'Bloqueada', 'Em processo']
 
 
 def find_chrome():
@@ -100,31 +97,86 @@ class Command(BaseCommand):
                 input('Pressione ENTER após estar logado... ')
                 page.wait_for_timeout(2000)
 
-            # Navega para o relatório
-            if 'relatorios/reservas' not in page.url:
-                self.stdout.write(f'Navegando para {RELATORIO_URL}...')
+            # Sempre navega para o relatório (garante formulário limpo)
+            self.stdout.write(f'Navegando para {RELATORIO_URL}...')
+            page.goto(RELATORIO_URL, wait_until='load', timeout=30000)
+            page.wait_for_timeout(2000)
+
+            # Verifica login novamente (a navegação pode ter redirecionado)
+            while page.locator('input[type="password"]').count() > 0:
+                self.stdout.write(self.style.WARNING(
+                    'Sessão expirada. Faça login manualmente na janela do Chrome.'
+                ))
+                input('Pressione ENTER após estar logado... ')
                 page.goto(RELATORIO_URL, wait_until='load', timeout=30000)
                 page.wait_for_timeout(2000)
 
             # ── Preenche o formulário ──────────────────────────────────────────
             self._preencher_formulario(page)
 
-            # ── Clica em "Receber por e-mail" ─────────────────────────────────
-            self.stdout.write('Clicando em "Receber por e-mail"...')
+            # ── Clica em "Receber por e-mail" e captura a nova aba ───────────
             import re as _re
-            btn_enviar = page.get_by_text(_re.compile('receber por e.?mail', _re.IGNORECASE)).first
-            btn_enviar.click(timeout=10000)
-            self.stdout.write(f'Aguardando geração (até {options["timeout_geracao"]}s)...')
+            btn_pattern = _re.compile(r'receber por e.?mail', _re.IGNORECASE)
 
-            # ── Aguarda o botão mudar para "Baixar arquivo CSV" ───────────────
-            btn_download = page.get_by_text(
-                _re.compile('baixar arquivo csv', _re.IGNORECASE)
-            ).first
-            btn_download.wait_for(state='visible', timeout=timeout_ms)
-            self.stdout.write('Botão "Baixar arquivo CSV" apareceu!')
+            btn_enviar = None
+            for role in ('button', 'link'):
+                loc = page.get_by_role(role, name=btn_pattern)
+                if loc.count() > 0:
+                    btn_enviar = loc.first
+                    break
+            if btn_enviar is None:
+                btn_enviar = page.get_by_text(btn_pattern).first
+
+            btn_enviar.scroll_into_view_if_needed()
+            page.wait_for_timeout(300)
+            self.stdout.write('Clicando em "Receber por e-mail"...')
+
+            pages_antes = list(ctx.pages)
+            url_antes = page.url
+            btn_enviar.click(timeout=10000)
+            page.wait_for_timeout(4000)
+
+            # Detecta se abriu nova aba ou navegou na mesma aba
+            novas_abas = [p for p in ctx.pages if p not in pages_antes]
+            if novas_abas:
+                nova_aba = novas_abas[0]
+                nova_aba.wait_for_load_state('load', timeout=30000)
+                self.stdout.write(f'Nova aba detectada: {nova_aba.url}')
+            elif page.url != url_antes:
+                nova_aba = page
+                self.stdout.write(f'Navegou na mesma aba: {nova_aba.url}')
+            else:
+                raise CommandError(
+                    'Nenhuma ação detectada após clicar em "Receber por e-mail". '
+                    'Verifique se o botão correto foi clicado.'
+                )
+
+            # ── Aguarda "CLIQUE AQUI PARA BAIXAR O ARQUIVO GERADO" ────────────
+            self.stdout.write(f'Aguardando geração (até {options["timeout_geracao"]}s)...')
+            dl_pattern = _re.compile(r'clique aqui para baixar|baixar arquivo csv', _re.IGNORECASE)
+            deadline = time.time() + options['timeout_geracao']
+            btn_download = None
+
+            while time.time() < deadline:
+                try:
+                    loc = nova_aba.get_by_text(dl_pattern).first
+                    if loc.count() > 0 and loc.is_visible(timeout=1000):
+                        btn_download = loc
+                        break
+                except Exception:
+                    pass
+                self.stdout.write(f'  aguardando... ({int(deadline - time.time())}s restantes)')
+                nova_aba.wait_for_timeout(5000)
+
+            if not btn_download:
+                raise CommandError(
+                    f'Botão de download não apareceu em {options["timeout_geracao"]}s.'
+                )
+
+            self.stdout.write('Relatório pronto! Baixando...')
 
             # ── Baixa o arquivo ───────────────────────────────────────────────
-            with page.expect_download(timeout=60000) as dl_info:
+            with nova_aba.expect_download(timeout=60000) as dl_info:
                 btn_download.click(timeout=10000)
 
             download = dl_info.value
@@ -150,29 +202,64 @@ class Command(BaseCommand):
         for sel_ate in ['[name*="data_fim"]', '[id*="data_fim"]', '[placeholder*="Até"]',
                         'input[name*="ate"]', 'input[id*="ate"]']:
             if page.locator(sel_ate).count() > 0:
-                page.locator(sel_ate).first.fill('31/12/3000')
+                page.locator(sel_ate).first.fill('01/01/3000')
                 break
         else:
-            self._preencher_data_por_label(page, 'Até', '31/12/3000')
+            self._preencher_data_por_label(page, 'Até', '01/01/3000')
 
         # ── Empreendimento ────────────────────────────────────────────────────
         self.stdout.write('Selecionando empreendimento Cota 365...')
         self._selecionar_empreendimento(page, 'Cota 365')
 
-        # ── Situação da unidade ───────────────────────────────────────────────
-        self.stdout.write('Configurando situação da unidade...')
-        for label_txt in SITUACAO_UNIDADE_DESMARCAR:
-            self._set_checkbox_por_label(page, label_txt, False)
-        for label_txt in SITUACAO_UNIDADE_MARCAR:
-            self._set_checkbox_por_label(page, label_txt, True)
+        # ── Situação da reserva ───────────────────────────────────────────────
+        self.stdout.write('Configurando situação da reserva...')
+        # Desmarca TODAS via JS (o form tem ~18 situações; enumerar seria frágil)
+        desmarcadas_sit = page.evaluate('''() => {
+            let n = 0;
+            document.querySelectorAll('input[name="situacao[]"]').forEach(cb => {
+                if (cb.checked) { cb.click(); n++; }
+            });
+            return n;
+        }''')
+        self.stdout.write(f'  {desmarcadas_sit} situações desmarcadas')
+        page.wait_for_timeout(300)
+        # Marca apenas "Vendida"
+        self._set_checkbox_por_label(page, 'Vendida', True)
+        page.wait_for_timeout(300)
 
         # ── Colunas de exibição ───────────────────────────────────────────────
         self.stdout.write('Configurando colunas...')
-        # Desmarca todas via botão "Desmarcar todos"
-        btn_desmarcar = page.get_by_text(_re.compile('desmarcar todos', _re.IGNORECASE)).first
-        if btn_desmarcar.count() > 0:
-            btn_desmarcar.click()
-            page.wait_for_timeout(500)
+        # Descobre o name dos checkboxes de colunas e desmarca todos via JS
+        col_names = page.evaluate('''() => {
+            const names = new Set();
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                if (cb.name && cb.name !== 'situacao[]') names.add(cb.name);
+            });
+            return [...names];
+        }''')
+        self.stdout.write(f'  Checkbox names (não-situação): {col_names}')
+
+        # Tenta desmarcar via JS com os nomes descobertos
+        desmarcadas_col = page.evaluate('''(names) => {
+            let n = 0;
+            names.forEach(name => {
+                document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
+                    if (cb.checked) { cb.click(); n++; }
+                });
+            });
+            return n;
+        }''', col_names)
+        self.stdout.write(f'  {desmarcadas_col} colunas desmarcadas')
+
+        # Fallback: botão "Desmarcar todos" (último = seção de colunas)
+        if desmarcadas_col == 0:
+            btn_desmarcar_loc = page.get_by_text(_re.compile('desmarcar todos', _re.IGNORECASE))
+            if btn_desmarcar_loc.count() > 0:
+                btn_desmarcar_loc.last.click()
+                page.wait_for_timeout(800)
+                self.stdout.write('  "Desmarcar todos" clicado via botão')
+
+        page.wait_for_timeout(500)
         # Marca as colunas desejadas
         for col in COLUNAS_DESEJADAS:
             self._set_checkbox_por_label(page, col, True)
@@ -188,46 +275,88 @@ class Command(BaseCommand):
                 page.locator(f'#{for_id}').fill(valor)
 
     def _selecionar_empreendimento(self, page, nome):
-        """Seleciona empreendimento pelo name do campo (q[1|e.idempreendimento]) e valor 3."""
-        # Nome do campo vem da URL do relatório: q[1|e.idempreendimento]=3
-        sel = page.locator('select[name="q[1|e.idempreendimento]"]')
-        if sel.count() > 0:
-            sel.select_option(value='3')
-            return
+        """Seleciona empreendimento pelo name do campo."""
+        import re as _re
 
-        # Fallback: procura por option com o nome do empreendimento em qualquer select
-        sel2 = page.locator('select').filter(
-            has=page.locator(f'option:has-text("{nome}")')
-        ).first
-        if sel2.count() > 0:
-            sel2.select_option(label=nome)
-            return
+        # 1) Seletores CSS diretos pelo name/id
+        for css in [
+            'select[name="q[1|e.idempreendimento]"]',
+            'select[name*="idempreendimento"]',
+            'select[id*="empreendimento"]',
+            'select[name*="empreendimento"]',
+        ]:
+            sel = page.locator(css)
+            if sel.count() > 0:
+                self.stdout.write(f'  Empreendimento via {css}')
+                try:
+                    sel.first.select_option(label=nome)
+                except Exception:
+                    sel.first.select_option(value='3')
+                return
 
+        # 2) Busca via label "Empreendimento"
+        for lbl in page.locator('label').all():
+            try:
+                txt = lbl.inner_text(timeout=500).strip()
+            except Exception:
+                continue
+            if _re.search(r'empreendimento', txt, _re.IGNORECASE):
+                for_id = lbl.get_attribute('for')
+                if for_id:
+                    sel = page.locator(f'#{for_id}')
+                    if sel.count() > 0:
+                        self.stdout.write(f'  Empreendimento via label (for=#{for_id})')
+                        try:
+                            sel.first.select_option(label=nome)
+                        except Exception:
+                            sel.first.select_option(value='3')
+                        return
+
+        # 3) Diagnóstico: mostra todos os selects para depuração
+        selects_info = page.evaluate('''() =>
+            Array.from(document.querySelectorAll("select")).map(s => ({
+                name: s.name, id: s.id,
+                opts: Array.from(s.options).slice(0, 4).map(o => o.text.trim())
+            }))
+        ''')
         self.stdout.write(self.style.WARNING(
-            f'  Não encontrou o select de empreendimento. Selecione "{nome}" manualmente.'
+            f'  Select de empreendimento não encontrado.\n  Selects disponíveis: {selects_info}'
         ))
-        input('  Pressione ENTER após selecionar... ')
+        input(f'  Selecione "{nome}" manualmente e pressione ENTER... ')
 
     def _set_checkbox_por_label(self, page, label_txt, checked: bool):
         """Marca/desmarca checkbox pelo texto do label."""
-        # Tenta label que contém exatamente o texto
+
+        def _apply(cb):
+            if checked and not cb.is_checked():
+                cb.check()
+            elif not checked and cb.is_checked():
+                cb.uncheck()
+
+        # Estratégia 1: aria role + accessible name — funciona com IDs duplicados
+        cb = page.get_by_role('checkbox', name=label_txt, exact=True)
+        if cb.count() > 0:
+            _apply(cb.first)
+            return
+
+        # Estratégia 2: label com texto exato → checkbox dentro ou via for
         for loc in [
-            page.locator(f'label', has_text=label_txt),
+            page.locator('label', has_text=label_txt),
             page.locator(f'label:has-text("{label_txt}")'),
         ]:
             if loc.count() > 0:
-                cb = loc.first.locator('input[type="checkbox"]')
-                if cb.count() == 0:
-                    # label externo — busca pelo for
-                    for_id = loc.first.get_attribute('for')
-                    if for_id:
-                        cb = page.locator(f'#{for_id}')
+                lbl = loc.first
+                cb = lbl.locator('input[type="checkbox"]')
                 if cb.count() > 0:
-                    if checked and not cb.is_checked():
-                        cb.check()
-                    elif not checked and cb.is_checked():
-                        cb.uncheck()
+                    _apply(cb.first)
                     return
+                # label externo — usa .first para evitar strict mode em IDs duplicados
+                for_id = lbl.get_attribute('for')
+                if for_id:
+                    cb = page.locator(f'#{for_id}').first
+                    if cb.count() > 0:
+                        _apply(cb)
+                        return
 
     # ── Infra Chrome CDP ──────────────────────────────────────────────────────
 

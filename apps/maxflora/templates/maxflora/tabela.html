@@ -288,6 +288,16 @@
       {% empty %}
       <tr><td colspan="12" class="mf-empty">Nenhuma unidade encontrada.</td></tr>
       {% endfor %}
+      {% if unidades %}
+      <tr style="background:#e8e8e8;font-weight:700;border-top:2px solid var(--mf-green);">
+        <td colspan="2" style="padding:.55rem .85rem;color:#333;letter-spacing:.04em;font-size:.8rem">TOTAL</td>
+        <td class="td-num" style="color:#333">{{ stats.area_terreo_total }}</td>
+        <td class="td-num" style="color:#333">{{ stats.area_mez_total }}</td>
+        <td class="td-num" style="color:#333">{{ stats.area_total }}</td>
+        <td class="td-venda" style="color:var(--mf-green)">{{ stats.valor_total }}</td>
+        <td colspan="6"></td>
+      </tr>
+      {% endif %}
     </tbody>
   </table>
 </div>

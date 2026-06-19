@@ -39,15 +39,19 @@ def _build_stats(importacao):
     total = qs.count()
     locadas = qs.filter(situacao='LOCADO').count()
     disponiveis = total - locadas
-    area = qs.aggregate(s=Sum('area_total'))['s'] or 0
-    val = qs.exclude(loja='Estac.').aggregate(s=Sum('valor_vendas'))['s'] or 0
+    area_terreo = qs.aggregate(s=Sum('area_terreo'))['s'] or 0
+    area_mez    = qs.aggregate(s=Sum('area_mezanino'))['s'] or 0
+    area        = qs.aggregate(s=Sum('area_total'))['s'] or 0
+    val         = qs.exclude(loja='Estac.').aggregate(s=Sum('valor_vendas'))['s'] or 0
     return {
         'total': total,
         'locadas': locadas,
         'disponiveis': disponiveis,
         'pct_locado': round(locadas / total * 100) if total else 0,
-        'area_total': _fmt_m2(area),
-        'valor_total': _fmt_brl(val),
+        'area_terreo_total': _fmt_m2(area_terreo),
+        'area_mez_total':    _fmt_m2(area_mez),
+        'area_total':        _fmt_m2(area),
+        'valor_total':       _fmt_brl(val),
         'importado_em': importacao.importado_em,
         'arquivo': importacao.arquivo,
     }
@@ -298,7 +302,32 @@ def exportar_pdf(request):
             Paragraph(_fmt_brl(u.tcrs),          cell_r),
         ]
 
-    table_data = HEADERS + [make_row(u) for u in unidades]
+    _TOT_TXT = colors.HexColor('#333333')
+    tot_s   = ps('mftot',   fontSize=7, leading=9, alignment=2, fontName='Helvetica-Bold',
+                 textColor=_TOT_TXT)
+    tot_vl  = ps('mftotvl', fontSize=7, leading=9, alignment=2, fontName='Helvetica-Bold',
+                 textColor=colors.HexColor('#1a7a4a'))
+    tot_lbl = ps('mftotlbl', fontSize=7, leading=9, fontName='Helvetica-Bold',
+                 textColor=_TOT_TXT)
+
+    qs_tot = UnidadeMaxFlora.objects.filter(importacao=importacao)
+    from django.db.models import Sum as _Sum
+    _at  = qs_tot.aggregate(s=_Sum('area_terreo'))['s'] or 0
+    _am  = qs_tot.aggregate(s=_Sum('area_mezanino'))['s'] or 0
+    _aa  = qs_tot.aggregate(s=_Sum('area_total'))['s'] or 0
+    _vv  = qs_tot.exclude(loja='Estac.').aggregate(s=_Sum('valor_vendas'))['s'] or 0
+
+    tot_row = [
+        Paragraph('TOTAL', tot_lbl), Paragraph('', tot_lbl),
+        Paragraph(_fmt_m2(_at),  tot_s),
+        Paragraph(_fmt_m2(_am),  tot_s),
+        Paragraph(_fmt_m2(_aa),  tot_s),
+        Paragraph(_fmt_brl(_vv), tot_vl),
+        Paragraph('', tot_lbl), Paragraph('', tot_lbl), Paragraph('', tot_lbl),
+        Paragraph('', tot_lbl), Paragraph('', tot_lbl), Paragraph('', tot_lbl),
+    ]
+
+    table_data = HEADERS + [make_row(u) for u in unidades] + [tot_row]
     tbl = Table(table_data, colWidths=COL_W, repeatRows=2)
 
     # Estilos base
@@ -335,6 +364,14 @@ def exportar_pdf(request):
     for i in range(len(unidades)):
         if i % 2 == 1:
             tbl_cmds.append(('BACKGROUND', (0, i + 2), (-1, i + 2), colors.HexColor('#f8f9fa')))
+
+    # Linha de total — mesma cor do header (#e8e8e8), borda verde no topo
+    tot_row_idx = len(unidades) + 2
+    tbl_cmds += [
+        ('BACKGROUND',  (0, tot_row_idx), (-1, tot_row_idx), colors.HexColor('#e8e8e8')),
+        ('LINEABOVE',   (0, tot_row_idx), (-1, tot_row_idx), 1.5, colors.HexColor('#1a7a4a')),
+        ('FONTNAME',    (0, tot_row_idx), (-1, tot_row_idx), 'Helvetica-Bold'),
+    ]
 
     tbl.setStyle(TableStyle(tbl_cmds))
     story.append(tbl)
