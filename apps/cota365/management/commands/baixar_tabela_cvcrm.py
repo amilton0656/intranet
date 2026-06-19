@@ -24,7 +24,7 @@ CHROME_CANDIDATES = [
     r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
 ]
 
-DESTINO_PADRAO = r"G:\Meu Drive\_intranet\cota365\tabela.csv"
+DESTINO_PADRAO = r"G:\Meu Drive\_intranet\cota365\arquivos_csv\tabela.csv"
 
 BASE_URL  = 'https://cota.cvcrm.com.br'
 EMP_ID    = 3

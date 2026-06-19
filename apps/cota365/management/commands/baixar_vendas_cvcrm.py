@@ -32,7 +32,7 @@ CHROME_CANDIDATES = [
     r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
 ]
 
-DESTINO_PADRAO = r"G:\Meu Drive\_intranet\cota365\vendas.csv"
+DESTINO_PADRAO = r"G:\Meu Drive\_intranet\cota365\arquivos_csv\vendas.csv"
 BASE_URL        = 'https://cota.cvcrm.com.br'
 RELATORIO_URL   = f'{BASE_URL}/gestor/relatorios/reservas'
 
