@@ -4,6 +4,18 @@
 {% block title %}Resumo de Situações{% endblock %}
 
 {% block content %}
+<style>
+  .bliss-page-header {
+    background: #fff;
+    border-bottom: 1px solid #e2e6ea;
+    padding: 1rem 1.5rem 0.75rem;
+  }
+  .bliss-page-header h1 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 0.1rem;
+  }
+</style>
 <div class="d-none d-md-block">{% include 'bliss/bliss_navbar.html' %}</div>
 <div class="mx-3 mt-3">
   {# ====== DESKTOP/TABLET: Tabela ====== #}
@@ -173,11 +185,13 @@
 </div>
 
 {# ====== CELULAR: Header título + PDF ====== #}
-<div class="d-block d-md-none px-3 pt-3 pb-1">
-  <h1 class="mb-2" style="font-size:1.4rem">Resumo de Situações</h1>
-  <a href="{% url 'bliss_resumo_pdf' %}" class="btn btn-outline-danger btn-sm" target="_blank" rel="noopener">
-    <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
-  </a>
+<div class="bliss-page-header d-md-none">
+  <h1>Resumo de Situações</h1>
+  <div class="pt-1">
+    <a href="{% url 'bliss_resumo_pdf' %}" class="btn btn-outline-danger btn-sm" target="_blank" rel="noopener">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+    </a>
+  </div>
 </div>
 
 {# ====== CELULAR: Cartoes/Lista ====== #}
