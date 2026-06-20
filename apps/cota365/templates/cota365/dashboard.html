@@ -137,38 +137,41 @@
 
 <div class="main-content">
 
-  <!-- ── Empreendimento + Cards de Área (desktop) ────────────────────────── -->
-  <div class="d-none d-md-flex flex-wrap gap-3 mb-3">
-    <div class="summary-card" style="border-left:3px solid var(--navy);">
-      <div class="label" style="color:var(--muted);">Empreendimento</div>
-      <div class="value" style="font-size:1rem; color:var(--navy);">Cota 365</div>
-    </div>
-    <div class="summary-card" style="border-left:3px solid var(--purple);">
-      <div class="label" style="color:var(--purple);">Área Privativa</div>
-      <div class="value" style="font-size:1rem; color:var(--purple);">{{ area_priv }}</div>
-    </div>
-    <div class="summary-card" style="border-left:3px solid var(--purple);">
-      <div class="label" style="color:var(--purple);">Área Priv. Acessória</div>
-      <div class="value" style="font-size:1rem; color:var(--purple);">{{ area_priv_acess }}</div>
-    </div>
-    <div class="summary-card" style="border-left:3px solid var(--purple);">
-      <div class="label" style="color:var(--purple);">Total Área Privativa</div>
-      <div class="value" style="font-size:1rem; color:var(--purple);">{{ total_priv }}</div>
-    </div>
-    <div class="summary-card" style="border-left:3px solid var(--teal);">
-      <div class="label" style="color:var(--teal-dark);">Área Comum</div>
-      <div class="value" style="font-size:1rem; color:var(--teal-dark);">{{ area_comum }}</div>
-    </div>
-    <div class="summary-card">
-      <div class="label">Área Total</div>
-      <div class="value" style="font-size:1rem;">{{ area_total }}</div>
+  <!-- ── Empreendimento + Áreas (desktop) ─────────────────────────────────── -->
+  <div class="d-none d-md-block mb-3">
+    <div class="chart-card">
+      <div class="chart-title"><i class="bi bi-building me-1"></i>Áreas do Empreendimento</div>
+      <div style="overflow-x:auto;">
+        <table class="table top-table mb-0">
+          <thead>
+            <tr>
+              <th>Empreendimento</th>
+              <th class="text-end">Área Privativa</th>
+              <th class="text-end">Área Priv. Acessória</th>
+              <th class="text-end">Total Área Privativa</th>
+              <th class="text-end">Área Comum</th>
+              <th class="text-end">Área Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="font-weight:700;">
+              <td>Cota 365</td>
+              <td class="text-end" style="color:var(--purple)">{{ area_priv }}</td>
+              <td class="text-end" style="color:var(--purple)">{{ area_priv_acess }}</td>
+              <td class="text-end" style="color:var(--purple)">{{ total_priv }}</td>
+              <td class="text-end" style="color:var(--teal-dark)">{{ area_comum }}</td>
+              <td class="text-end">{{ area_total }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
   <!-- ── Tabelas mobile: Áreas + KPIs ─────────────────────────────────────── -->
   <div class="d-md-none mb-3">
     <div class="chart-card mb-2">
-      <div class="chart-title"><i class="bi bi-building me-1"></i>Empreendimento &amp; Áreas</div>
+      <div class="chart-title"><i class="bi bi-building me-1"></i>Áreas do Empreendimento</div>
       <table class="table top-table mb-0">
         <tbody>
           <tr><td class="text-muted" style="width:55%">Empreendimento</td><td class="fw-bold">Cota 365</td></tr>
@@ -254,33 +257,45 @@
   </div>
 
   <!-- ── Descontos ──────────────────────────────────────────────────────────── -->
-  <div class="row g-3 mb-3">
-    <div class="col-12">
-      <div class="chart-card">
-        <div class="chart-title"><i class="bi bi-scissors me-1"></i>Descontos</div>
-        <div style="overflow-x:auto;">
-          <table class="table top-table mb-0">
-            <thead>
-              <tr>
-                <th class="text-end">Valor Tabela</th>
-                <th class="text-end">Valor Contrato</th>
-                <th class="text-end">Desconto Corrigido pelo CUB</th>
-                <th class="text-end">% Desconto Médio</th>
-                <th class="text-end">Descontos em CUBs</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style="font-weight:700;">
-                <td class="text-end">{{ vgv_vendida_fmt }}</td>
-                <td class="text-end">{{ total_fluxo_fmt }}</td>
-                <td class="text-end">{{ desconto_val }}</td>
-                <td class="text-end">{{ desconto_pct }}</td>
-                <td class="text-end">{{ desconto_cubs }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+  <div class="d-none d-md-block mb-3">
+    <div class="chart-card">
+      <div class="chart-title"><i class="bi bi-scissors me-1"></i>Descontos</div>
+      <div style="overflow-x:auto;">
+        <table class="table top-table mb-0">
+          <thead>
+            <tr>
+              <th class="text-end">Valor Tabela</th>
+              <th class="text-end">Valor Contrato</th>
+              <th class="text-end">Desconto Corrigido pelo CUB</th>
+              <th class="text-end">% Desconto Médio</th>
+              <th class="text-end">Descontos em CUBs</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="font-weight:700;">
+              <td class="text-end">{{ vgv_vendida_fmt }}</td>
+              <td class="text-end">{{ total_fluxo_fmt }}</td>
+              <td class="text-end">{{ desconto_val }}</td>
+              <td class="text-end">{{ desconto_pct }}</td>
+              <td class="text-end">{{ desconto_cubs }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+    </div>
+  </div>
+  <div class="d-md-none mb-3">
+    <div class="chart-card">
+      <div class="chart-title"><i class="bi bi-scissors me-1"></i>Descontos</div>
+      <table class="table top-table mb-0">
+        <tbody>
+          <tr><td class="text-muted" style="width:55%">Valor Tabela</td><td class="fw-bold text-end">{{ vgv_vendida_fmt }}</td></tr>
+          <tr><td class="text-muted">Valor Contrato</td><td class="fw-bold text-end">{{ total_fluxo_fmt }}</td></tr>
+          <tr><td class="text-muted">Desc. Corrigido pelo CUB</td><td class="fw-bold text-end">{{ desconto_val }}</td></tr>
+          <tr><td class="text-muted">% Desconto Médio</td><td class="fw-bold text-end">{{ desconto_pct }}</td></tr>
+          <tr><td class="text-muted">Descontos em CUBs</td><td class="fw-bold text-end">{{ desconto_cubs }}</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 

@@ -17,6 +17,7 @@ Duas barras de menu empilhadas, sem espaço entre elas:
    - Fonte: `#282828`
    - Hover/active: `background: rgba(0,0,0,.1)`, cor `#282828`
    - Usar um ID único (ex: `id="cota365-navbar"`) para escopar o CSS e não interferir na navbar principal
+   - **Não usar `margin-top` negativo** — as duas navbars se encostam naturalmente quando o template inclui `intranet_navbar.html` diretamente. O `margin-top: -24px` do Bliss é uma exceção porque ele estende `intranet_base.html`, que adiciona espaço extra.
 
 ### CSS base da navbar secundária
 ```css

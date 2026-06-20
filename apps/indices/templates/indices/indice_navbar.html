@@ -1,32 +1,65 @@
 {% with current=request.resolver_match.url_name %}
-<div class="indice-menu d-flex flex-wrap gap-3 py-1 ps-3">
-    <a class="indice-menu__item{% if current == 'indice_list' or current == 'indice_update' or current == 'indice_delete' %} is-active{% endif %}" href="{% url 'indices:indice_list' %}">Indices</a>
-    <a class="indice-menu__item{% if current == 'indice_create' %} is-active{% endif %}" href="{% url 'indices:indice_create' %}">Novo Indice</a>
-    <a class="indice-menu__item{% if current == 'indicedata_list' or current == 'indicedata_update' or current == 'indicedata_delete' %} is-active{% endif %}" href="{% url 'indices:indicedata_list' %}">Valores</a>
-    <a class="indice-menu__item{% if current == 'indicedata_create' %} is-active{% endif %}" href="{% url 'indices:indicedata_create' %}">Novo Valor</a>
-</div>
+<nav id="indices-navbar" class="navbar navbar-expand-lg">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{% url 'indices:indice_list' %}">
+      <i class="bi bi-bar-chart-line me-2"></i>Índices
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#indices-nav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="indices-nav">
+      <ul class="navbar-nav ms-3 gap-1">
+        <li class="nav-item">
+          <a class="nav-link {% if current == 'indice_list' or current == 'indice_update' or current == 'indice_delete' %}active{% endif %}"
+             href="{% url 'indices:indice_list' %}">
+            <i class="bi bi-list-ul me-1"></i>Índices
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current == 'indice_create' %}active{% endif %}"
+             href="{% url 'indices:indice_create' %}">
+            <i class="bi bi-plus-circle me-1"></i>Novo Índice
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current == 'indicedata_list' or current == 'indicedata_update' or current == 'indicedata_delete' %}active{% endif %}"
+             href="{% url 'indices:indicedata_list' %}">
+            <i class="bi bi-table me-1"></i>Valores
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current == 'indicedata_create' %}active{% endif %}"
+             href="{% url 'indices:indicedata_create' %}">
+            <i class="bi bi-plus-circle me-1"></i>Novo Valor
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
 {% endwith %}
 
 <style>
-.indice-menu {
-    margin-top: -0.25rem;
-}
-
-.indice-menu__item {
-    color: #404040;
-    text-decoration: none;
-    border-bottom: 5px solid transparent;
-    padding-bottom: 2px;
-    transition: border-color .2s ease, color .2s ease;
-}
-
-.indice-menu__item.is-active {
-    color: #000000;
-}
-
-.indice-menu__item:hover,
-.indice-menu__item:focus {
-    color: #404040;
-    border-bottom-color: orange;
-}
+  #indices-navbar {
+    background: #A7A3AB !important;
+    padding: 0.6rem 1.5rem;
+  }
+  #indices-navbar .navbar-brand {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #282828 !important;
+    letter-spacing: 0.03em;
+  }
+  #indices-navbar .nav-link {
+    color: rgba(40,40,40,.85) !important;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.9rem !important;
+    border-radius: 6px;
+    transition: background .2s;
+  }
+  #indices-navbar .nav-link:hover,
+  #indices-navbar .nav-link.active {
+    background: rgba(0,0,0,.1);
+    color: #282828 !important;
+  }
 </style>

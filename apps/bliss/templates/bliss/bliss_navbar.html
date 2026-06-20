@@ -1,60 +1,97 @@
-﻿{% load custom_filters %}
+{% load custom_filters %}
 {% with current=request.resolver_match.url_name %}
-<div class="bliss-menu d-flex flex-wrap gap-3 py-1 ps-3">
-    {% if request.user|has_group:'admin' %}
-    <a class="bliss-menu__item{% if current == 'bliss_unidades' or current == 'bliss_update' or current == 'bliss_delete' %} is-active{% endif %}"
-        href="{% url 'bliss_unidades' %}"><i class="bi bi-house me-1"></i>Bliss</a>
-    <a class="bliss-menu__item{% if current == 'bliss_create' %} is-active{% endif %}"
-        href="{% url 'bliss_create' %}"><i class="bi bi-plus-circle me-1"></i>Novo Registro</a>
-    <a class="bliss-menu__item{% if current == 'bliss_import' %} is-active{% endif %}"
-        href="{% url 'bliss_import' %}"><i class="bi bi-file-earmark-excel me-1"></i>Importar Excel</a>
-    <a class="bliss-menu__item{% if current == 'bliss_unidades_full' or current == 'bliss_unidades_full' %} is-active{% endif %}"
-        href="{% url 'bliss_unidades_full' %}"><i class="bi bi-building me-1"></i>Unidades</a>
-    <a class="bliss-menu__item{% if current == 'bliss_resumo' %} is-active{% endif %}"
-        href="{% url 'bliss_resumo' %}"><i class="bi bi-speedometer2 me-1"></i>Resumo</a>
-    <form method="post" action="{% url 'atualizar_situacoes' %}" class="d-inline"
-          onsubmit="return confirm('Aplicar atualizações de situação hardcodadas?')">
-      {% csrf_token %}
-      <button type="submit" class="bliss-menu__item border-0 bg-transparent p-0 cursor-pointer">
-        <i class="bi bi-arrow-repeat me-1"></i>Atualizar Situações
-      </button>
-    </form>
-    <a class="bliss-menu__item{% if current == 'atualizacao_mensal' %} is-active{% endif %}"
-        href="{% url 'atualizacao_mensal' %}"><i class="bi bi-calendar-month me-1"></i>Atualização Mensal</a>
-    <a class="bliss-menu__item{% if current == 'bliss_import_clientes' %} is-active{% endif %}"
-        href="{% url 'bliss_import_clientes' %}"><i class="bi bi-people me-1"></i>Importar Clientes</a>
-    {% else %}
-    <a class="bliss-menu__item{% if current == 'bliss_unidades_full' or current == 'bliss_unidades_full' %} is-active{% endif %}"
-        href="{% url 'bliss_unidades_full' %}"><i class="bi bi-building me-1"></i>Unidades</a>
-    <a class="bliss-menu__item{% if current == 'bliss_resumo' %} is-active{% endif %}"
-        href="{% url 'bliss_summary' %}"><i class="bi bi-speedometer2 me-1"></i>Resumo</a>
-    {% endif %}
-</div>
+<nav id="bliss-navbar" class="navbar navbar-expand-lg">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{% url 'bliss_unidades' %}">
+      <i class="bi bi-building me-2"></i>Bliss Living
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#bliss-nav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="bliss-nav">
+      <ul class="navbar-nav ms-3 gap-1">
+        {% if request.user|has_group:'admin' %}
+        <li class="nav-item">
+          <a class="nav-link {% if current == 'bliss_create' %}active{% endif %}" href="{% url 'bliss_create' %}">
+            <i class="bi bi-plus-circle me-1"></i>Novo Registro
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current == 'bliss_import' %}active{% endif %}" href="{% url 'bliss_import' %}">
+            <i class="bi bi-file-earmark-excel me-1"></i>Importar Excel
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current == 'bliss_unidades_full' %}active{% endif %}" href="{% url 'bliss_unidades_full' %}">
+            <i class="bi bi-building me-1"></i>Unidades
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current == 'bliss_resumo' %}active{% endif %}" href="{% url 'bliss_resumo' %}">
+            <i class="bi bi-speedometer2 me-1"></i>Resumo
+          </a>
+        </li>
+        <li class="nav-item">
+          <form method="post" action="{% url 'atualizar_situacoes' %}" class="d-inline"
+                onsubmit="return confirm('Aplicar atualizações de situação hardcodadas?')">
+            {% csrf_token %}
+            <button type="submit" class="nav-link border-0 bg-transparent">
+              <i class="bi bi-arrow-repeat me-1"></i>Atualizar Situações
+            </button>
+          </form>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current == 'atualizacao_mensal' %}active{% endif %}" href="{% url 'atualizacao_mensal' %}">
+            <i class="bi bi-calendar-month me-1"></i>Atualização Mensal
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current == 'bliss_import_clientes' %}active{% endif %}" href="{% url 'bliss_import_clientes' %}">
+            <i class="bi bi-people me-1"></i>Importar Clientes
+          </a>
+        </li>
+        {% else %}
+        <li class="nav-item">
+          <a class="nav-link {% if current == 'bliss_unidades_full' %}active{% endif %}" href="{% url 'bliss_unidades_full' %}">
+            <i class="bi bi-building me-1"></i>Unidades
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current == 'bliss_resumo' %}active{% endif %}" href="{% url 'bliss_summary' %}">
+            <i class="bi bi-speedometer2 me-1"></i>Resumo
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
 {% endwith %}
 
 <style>
-    .bliss-menu {
-        background: #A7A3AB;
-        padding: 0.6rem 1.5rem;
-        gap: 0.25rem;
-        margin-top: -24px !important;
-        position: relative;
-        z-index: 100;
-    }
-
-    .bliss-menu__item {
-        color: rgba(40,40,40,.85);
-        text-decoration: none;
-        font-size: 0.85rem;
-        padding: 0.4rem 0.9rem;
-        border-radius: 6px;
-        transition: background .2s, color .2s;
-    }
-
-    .bliss-menu__item.is-active,
-    .bliss-menu__item:hover,
-    .bliss-menu__item:focus {
-        background: rgba(0,0,0,.1);
-        color: #282828;
-    }
+  @media (max-width: 767.98px) {
+    #bliss-navbar { display: none !important; }
+  }
+  #bliss-navbar {
+    background: #A7A3AB !important;
+    padding: 0.6rem 1.5rem;
+  }
+  #bliss-navbar .navbar-brand {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #282828 !important;
+    letter-spacing: 0.03em;
+  }
+  #bliss-navbar .nav-link {
+    color: rgba(40,40,40,.85) !important;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.9rem !important;
+    border-radius: 6px;
+    transition: background .2s;
+  }
+  #bliss-navbar .nav-link:hover,
+  #bliss-navbar .nav-link.active {
+    background: rgba(0,0,0,.1);
+    color: #282828 !important;
+  }
 </style>
