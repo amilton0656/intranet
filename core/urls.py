@@ -28,5 +28,6 @@ urlpatterns = [
     path('contratos/', include('apps.contratos.urls', namespace='contratos')),
     path('img2word/', include('apps.img2word.urls', namespace='img2word')),
     path('maxflora/', include('apps.maxflora.urls', namespace='maxflora')),
+    path('ajr-padrao/', include('apps.ajr_padrao.urls', namespace='ajr_padrao')),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
