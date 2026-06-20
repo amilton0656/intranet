@@ -30,10 +30,15 @@
       font-size: 0.9rem;
     }
 
-    /* Navbar Cota 365 */
+    /* Mobile global */
     @media (max-width: 767.98px) {
       #cota365-navbar { display: none !important; }
+      .main-content .row { margin-left: 0 !important; margin-right: 0 !important; }
+      .main-content [class*="col-"] { padding-left: 0 !important; padding-right: 0 !important; }
+      .main-content .chart-card,
+      .main-content .data-table { border-radius: 0; border-left: none; border-right: none; }
     }
+    /* Navbar Cota 365 */
     #cota365-navbar {
       background: #A7A3AB !important;
       padding: 0.6rem 1.5rem;
