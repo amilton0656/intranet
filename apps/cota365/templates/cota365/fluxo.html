@@ -39,6 +39,14 @@
       </ol>
     </nav>
   </div>
+  <div class="pt-1 d-flex gap-2">
+    <a href="{% url 'cota365:export_fluxo' %}?format=xlsx" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-file-earmark-excel me-1"></i>Excel
+    </a>
+    <a href="{% url 'cota365:export_fluxo' %}?format=pdf" class="btn btn-outline-danger btn-sm">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
+  </div>
 </div>
 
 <div class="main-content">
@@ -55,17 +63,7 @@
   <div class="row g-3 mb-3">
     <div class="col-12">
       <div class="chart-card">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div class="chart-title mb-0"><i class="bi bi-bar-chart-line me-1"></i>Fluxo Mensal de Receitas</div>
-          <div class="d-flex gap-2">
-            <a href="{% url 'cota365:export_fluxo' %}?format=xlsx" class="btn btn-outline-success btn-sm">
-              <i class="bi bi-file-earmark-excel me-1"></i>Excel
-            </a>
-            <a href="{% url 'cota365:export_fluxo' %}?format=pdf" class="btn btn-outline-danger btn-sm">
-              <i class="bi bi-file-earmark-pdf me-1"></i>PDF
-            </a>
-          </div>
-        </div>
+        <div class="chart-title"><i class="bi bi-bar-chart-line me-1"></i>Fluxo Mensal de Receitas</div>
         <div style="overflow-x:auto;">
           <table class="table top-table fluxo-table mb-0">
             <thead>
