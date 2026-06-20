@@ -24,9 +24,10 @@
       </ol>
     </nav>
   </div>
-  <div class="text-muted" style="font-size:0.8rem;">
-    <i class="bi bi-table me-1"></i>Tabela vigente: <strong>{{ latest_comp }}</strong>
-    &nbsp;|&nbsp; {{ n }} unidades
+  <div class="pt-1 d-flex gap-2">
+    <a href="{% url 'cota365:export_descontos' %}" class="btn btn-outline-danger btn-sm">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
   </div>
 </div>
 
@@ -79,13 +80,6 @@
 
   <!-- Tabela -->
   <div class="data-table">
-    <div class="d-flex justify-content-end align-items-center p-3 border-bottom">
-      <div class="export-btn-group d-flex gap-2">
-        <a href="{% url 'cota365:export_descontos' %}" class="btn btn-outline-danger btn-sm">
-          <i class="bi bi-file-earmark-pdf me-1"></i>PDF
-        </a>
-      </div>
-    </div>
     <div class="table-responsive">
       <table class="table table-hover mb-0" style="font-size:0.83rem;">
         <thead>
