@@ -23,8 +23,13 @@
     .page-header .pt-1 { flex-wrap: wrap; padding-top: 0 !important; }
     .page-header h1 { font-size: 1.4rem; }
     .main-content { padding: 1rem 0; }
-    .chart-card { padding: 0.9rem 1rem; }
+    /* card largura total no mobile */
+    .main-content .row { --bs-gutter-x: 0; }
+    .main-content .chart-card { border-radius: 0; border-left: none; border-right: none; padding: 0.9rem 1rem; }
     .chart-title { font-size: 0.76rem; margin-bottom: 0.75rem; }
+    .top-table td, .top-table th { padding: 0.4rem 0.55rem; font-size: 0.76rem; }
+    .fluxo-table { font-size: 0.72rem; }
+    .fluxo-table th, .fluxo-table td { padding: 0.35rem 0.5rem; }
   }
 </style>
 
