@@ -134,13 +134,16 @@
                         Financeiro
                     </a>
                     <ul class="dropdown-menu">
-                        {% for item in menu_principal.financeiro %}
+                        {% for subgrupo, itens in menu_principal.financeiro.items %}
+                        {% if not forloop.first %}<li><hr class="dropdown-divider"></li>{% endif %}
+                        {% for item in itens %}
                         <li>
                             <a class="dropdown-item" href="{{ item.url }}">
                                 {% if item.icon %}<i class="bi {{ item.icon }} me-2"></i>{% endif %}
                                 {{ item.label }}
                             </a>
                         </li>
+                        {% endfor %}
                         {% endfor %}
                     </ul>
                 </li>
