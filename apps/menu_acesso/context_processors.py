@@ -47,10 +47,7 @@ def menu_acesso(request):
 
         if item.app == 'intranet' and item.navbar == 'principal':
             if item.grupo == 'admin':
-                # Admin: agrupado por subgrupo para exibir seções no dropdown
-                menu_principal.setdefault('admin', {}) \
-                              .setdefault(item.subgrupo or 'outros', []) \
-                              .append(entry)
+                menu_principal.setdefault('admin', []).append(entry)
             elif item.grupo:
                 menu_principal.setdefault(item.grupo, []).append(entry)
         else:
