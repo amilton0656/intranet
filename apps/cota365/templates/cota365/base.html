@@ -30,20 +30,6 @@
       font-size: 0.9rem;
     }
 
-    /* Mobile global */
-    @media (max-width: 767.98px) {
-      #cota365-navbar { display: none !important; }
-      /* page-header: título e botões em linhas separadas */
-      .page-header { flex-direction: column !important; gap: 0.6rem; }
-      .page-header .pt-1 { flex-wrap: wrap; padding-top: 0 !important; }
-      .page-header h1 { font-size: 1.4rem; }
-      /* cards largura total */
-      .main-content { padding: 1rem 0; }
-      .main-content .row { margin-left: 0 !important; margin-right: 0 !important; }
-      .main-content [class*="col-"] { padding-left: 0 !important; padding-right: 0 !important; }
-      .main-content .chart-card,
-      .main-content .data-table { border-radius: 0; border-left: none; border-right: none; padding-left: 0 !important; padding-right: 0 !important; }
-    }
     /* Navbar Cota 365 */
     #cota365-navbar {
       background: #A7A3AB !important;
@@ -184,6 +170,21 @@
     /* Main content */
     .main-content {
       padding: 1.5rem;
+    }
+
+    /* Mobile global — deve ficar após todas as regras para sobrescrever */
+    @media (max-width: 767.98px) {
+      #cota365-navbar { display: none !important; }
+      /* page-header: título e botões em linhas separadas */
+      .page-header { flex-direction: column !important; gap: 0.6rem; }
+      .page-header .pt-1 { flex-wrap: wrap; padding-top: 0 !important; }
+      .page-header h1 { font-size: 1.4rem; }
+      /* cards largura total */
+      .main-content { padding: 1rem 0; }
+      .main-content .row { margin-left: 0 !important; margin-right: 0 !important; }
+      .main-content [class*="col-"] { padding-left: 0 !important; padding-right: 0 !important; }
+      .main-content .chart-card,
+      .main-content .data-table { border-radius: 0; border-left: none; border-right: none; padding-left: 0 !important; padding-right: 0 !important; }
     }
   </style>
 </head>
