@@ -4,27 +4,42 @@
 {% block nav_fluxo %}active{% endblock %}
 
 {% block content %}
+<style>
+  .fluxo-table { font-size: 0.82rem; }
+  .fluxo-table th, .fluxo-table td { padding: 0.45rem 0.7rem; white-space: nowrap; }
+  .col-mes      { min-width: 70px; }
+  .col-poupanca { background: #fffde7; }
+  .col-fi       { background: #fff3e0; }
+  .col-total    { background: #f8f9fa; border-left: 2px solid #dee2e6; }
+  .col-recebido { background: #f0fff4; }
+  .col-areceber { background: #fff5f5; }
+  .row-pct td      { font-size: 0.78rem; padding-top: 0.2rem; padding-bottom: 0.2rem; border-top: none; }
+  .row-poupanca td { background: #fffde7; }
+  .row-fi td       { background: #fff3e0; }
+  .row-total td    { background: #f0f2f5; border-top: 2px solid #dee2e6; }
 
+  @media (max-width: 768px) {
+    .page-header { flex-direction: column !important; gap: 0.6rem; }
+    .page-header .pt-1 { flex-wrap: wrap; padding-top: 0 !important; }
+    .page-header h1 { font-size: 1.4rem; }
+    .main-content { padding: 1rem 0; }
+    .chart-card { padding: 0.9rem 1rem; }
+    .chart-title { font-size: 0.76rem; margin-bottom: 0.75rem; }
+  }
+</style>
+
+<!-- Page header -->
 <div class="page-header d-flex justify-content-between align-items-start">
   <div>
     <h1>Fluxo Mensal</h1>
-    <nav aria-label="breadcrumb">
+    <nav aria-label="breadcrumb" class="d-none d-md-block">
       <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{% url 'cota365:index' %}" class="text-decoration-none">Início</a></li>
         <li class="breadcrumb-item active">Fluxo Mensal de Receitas</li>
       </ol>
     </nav>
   </div>
-  <div class="page-header-right">
-    <div>Total Geral:</div>
-    <div class="big-number">{{ total_geral }}</div>
-  </div>
-</div>
-
-<div class="main-content">
-
-  <!-- Botões de exportação -->
-  <div class="d-flex justify-content-end mb-3 gap-2">
+  <div class="pt-1 d-flex gap-2">
     <a href="{% url 'cota365:export_fluxo' %}?format=xlsx" class="btn btn-outline-success btn-sm">
       <i class="bi bi-file-earmark-excel me-1"></i>Excel
     </a>
@@ -32,93 +47,110 @@
       <i class="bi bi-file-earmark-pdf me-1"></i>PDF
     </a>
   </div>
+</div>
 
-  <!-- Tabela principal -->
-  <div class="data-table mb-4">
-    <div class="table-responsive">
-      <table class="table table-hover mb-0 fluxo-table">
-        <thead>
-          <tr>
-            <th class="col-mes">Mês</th>
-            <th class="text-end">Ato</th>
-            <th class="text-end">Mensais</th>
-            <th class="text-end">Ref. Anuais</th>
-            <th class="text-end">Permuta</th>
-            <th class="text-end">Chaves</th>
-            <th class="text-end col-poupanca">Poupança</th>
-            <th class="text-end col-fi">Financiamento</th>
-            <th class="text-end col-total">Total</th>
-            <th class="text-end col-recebido">Recebido</th>
-            <th class="text-end col-areceber">A receber</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in rows %}
-          <tr>
-            <td class="fw-bold">{{ r.mes }}</td>
-            <td class="amount">{{ r.at }}</td>
-            <td class="amount">{{ r.pm }}</td>
-            <td class="amount">{{ r.ra }}</td>
-            <td class="amount">{{ r.pe }}</td>
-            <td class="amount">{{ r.ch }}</td>
-            <td class="amount col-poupanca">{{ r.poupanca }}</td>
-            <td class="amount col-fi">{{ r.fi }}</td>
-            <td class="amount col-total fw-bold">{{ r.total }}</td>
-            <td class="amount col-recebido">{{ r.recebido }}</td>
-            <td class="amount col-areceber">{{ r.a_receber }}</td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="11" class="text-center text-muted py-4">
-              <i class="bi bi-inbox me-2"></i>Nenhum dado importado ainda.
-              <a href="{% url 'cota365:importar' %}" class="ms-2">Importar arquivos</a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-        {% if rows %}
-        <tfoot>
-          <tr>
-            <td class="fw-bold">Total</td>
-            {% for s in summary %}
-              {% if s.tipo == 'Ato' %}<td class="text-end fw-bold">{{ s.total }}</td>{% endif %}
-              {% if s.tipo == 'Mensais' %}<td class="text-end fw-bold">{{ s.total }}</td>{% endif %}
-              {% if s.tipo == 'Ref. Anuais' %}<td class="text-end fw-bold">{{ s.total }}</td>{% endif %}
-              {% if s.tipo == 'Permuta' %}<td class="text-end fw-bold">{{ s.total }}</td>{% endif %}
-              {% if s.tipo == 'Chaves' %}<td class="text-end fw-bold">{{ s.total }}</td>{% endif %}
-              {% if s.tipo == 'Poupança' %}<td class="text-end fw-bold col-poupanca">{{ s.total }}</td>{% endif %}
-              {% if s.tipo == 'Financiamento' %}<td class="text-end fw-bold col-fi">{{ s.total }}</td>{% endif %}
-              {% if s.tipo == 'Total' %}<td class="text-end fw-bold col-total">{{ s.total }}</td>{% endif %}
-              {% if s.tipo == 'Recebido' %}<td class="text-end fw-bold col-recebido">{{ s.total }}</td>{% endif %}
-              {% if s.tipo == 'A receber' %}<td class="text-end fw-bold col-areceber">{{ s.total }}</td>{% endif %}
-            {% endfor %}
-          </tr>
-          <tr class="row-pct">
-            <td class="text-muted">%</td>
-            {% for s in summary %}
-              {% if s.tipo == 'Ato' %}<td class="text-end text-muted fst-italic">{{ s.pct }}</td>{% endif %}
-              {% if s.tipo == 'Mensais' %}<td class="text-end text-muted fst-italic">{{ s.pct }}</td>{% endif %}
-              {% if s.tipo == 'Ref. Anuais' %}<td class="text-end text-muted fst-italic">{{ s.pct }}</td>{% endif %}
-              {% if s.tipo == 'Permuta' %}<td class="text-end text-muted fst-italic">{{ s.pct }}</td>{% endif %}
-              {% if s.tipo == 'Chaves' %}<td class="text-end text-muted fst-italic">{{ s.pct }}</td>{% endif %}
-              {% if s.tipo == 'Poupança' %}<td class="text-end text-muted fst-italic col-poupanca">{{ s.pct }}</td>{% endif %}
-              {% if s.tipo == 'Financiamento' %}<td class="text-end text-muted fst-italic col-fi">{{ s.pct }}</td>{% endif %}
-              {% if s.tipo == 'Total' %}<td class="text-end text-muted fst-italic col-total">{{ s.pct }}</td>{% endif %}
-              {% if s.tipo == 'Recebido' %}<td class="text-end text-muted fst-italic col-recebido">{{ s.pct }}</td>{% endif %}
-              {% if s.tipo == 'A receber' %}<td class="text-end text-muted fst-italic col-areceber">{{ s.pct }}</td>{% endif %}
-            {% endfor %}
-          </tr>
-        </tfoot>
-        {% endif %}
-      </table>
+<div class="main-content">
+
+  <!-- Total Geral -->
+  <div class="d-none d-md-flex flex-wrap gap-3 mb-3">
+    <div class="summary-card">
+      <div class="label">Total Geral</div>
+      <div class="value" style="font-size:1rem;">{{ total_geral }}</div>
     </div>
   </div>
 
-  <!-- Tabela resumo por tipo -->
-  <div class="row">
+  <!-- Tabela principal -->
+  <div class="row g-3 mb-3">
+    <div class="col-12">
+      <div class="chart-card">
+        <div class="chart-title"><i class="bi bi-bar-chart-line me-1"></i>Fluxo Mensal de Receitas</div>
+        <div style="overflow-x:auto;">
+          <table class="table top-table fluxo-table mb-0">
+            <thead>
+              <tr>
+                <th class="col-mes">Mês</th>
+                <th class="text-end">Ato</th>
+                <th class="text-end">Mensais</th>
+                <th class="text-end">Ref. Anuais</th>
+                <th class="text-end">Permuta</th>
+                <th class="text-end">Chaves</th>
+                <th class="text-end col-poupanca">Poupança</th>
+                <th class="text-end col-fi">Financiamento</th>
+                <th class="text-end col-total">Total</th>
+                <th class="text-end col-recebido">Recebido</th>
+                <th class="text-end col-areceber">A receber</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in rows %}
+              <tr>
+                <td class="fw-bold">{{ r.mes }}</td>
+                <td class="amount">{{ r.at }}</td>
+                <td class="amount">{{ r.pm }}</td>
+                <td class="amount">{{ r.ra }}</td>
+                <td class="amount">{{ r.pe }}</td>
+                <td class="amount">{{ r.ch }}</td>
+                <td class="amount col-poupanca">{{ r.poupanca }}</td>
+                <td class="amount col-fi">{{ r.fi }}</td>
+                <td class="amount col-total fw-bold">{{ r.total }}</td>
+                <td class="amount col-recebido">{{ r.recebido }}</td>
+                <td class="amount col-areceber">{{ r.a_receber }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="11" class="text-center text-muted py-4">
+                  <i class="bi bi-inbox me-2"></i>Nenhum dado importado ainda.
+                  <a href="{% url 'cota365:importar' %}" class="ms-2">Importar arquivos</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            {% if rows %}
+            <tfoot>
+              <tr>
+                <td class="fw-bold">Total</td>
+                {% for s in summary %}
+                  {% if s.tipo == 'Ato' %}<td class="text-end fw-bold">{{ s.total }}</td>{% endif %}
+                  {% if s.tipo == 'Mensais' %}<td class="text-end fw-bold">{{ s.total }}</td>{% endif %}
+                  {% if s.tipo == 'Ref. Anuais' %}<td class="text-end fw-bold">{{ s.total }}</td>{% endif %}
+                  {% if s.tipo == 'Permuta' %}<td class="text-end fw-bold">{{ s.total }}</td>{% endif %}
+                  {% if s.tipo == 'Chaves' %}<td class="text-end fw-bold">{{ s.total }}</td>{% endif %}
+                  {% if s.tipo == 'Poupança' %}<td class="text-end fw-bold col-poupanca">{{ s.total }}</td>{% endif %}
+                  {% if s.tipo == 'Financiamento' %}<td class="text-end fw-bold col-fi">{{ s.total }}</td>{% endif %}
+                  {% if s.tipo == 'Total' %}<td class="text-end fw-bold col-total">{{ s.total }}</td>{% endif %}
+                  {% if s.tipo == 'Recebido' %}<td class="text-end fw-bold col-recebido">{{ s.total }}</td>{% endif %}
+                  {% if s.tipo == 'A receber' %}<td class="text-end fw-bold col-areceber">{{ s.total }}</td>{% endif %}
+                {% endfor %}
+              </tr>
+              <tr class="row-pct">
+                <td class="text-muted">%</td>
+                {% for s in summary %}
+                  {% if s.tipo == 'Ato' %}<td class="text-end text-muted fst-italic">{{ s.pct }}</td>{% endif %}
+                  {% if s.tipo == 'Mensais' %}<td class="text-end text-muted fst-italic">{{ s.pct }}</td>{% endif %}
+                  {% if s.tipo == 'Ref. Anuais' %}<td class="text-end text-muted fst-italic">{{ s.pct }}</td>{% endif %}
+                  {% if s.tipo == 'Permuta' %}<td class="text-end text-muted fst-italic">{{ s.pct }}</td>{% endif %}
+                  {% if s.tipo == 'Chaves' %}<td class="text-end text-muted fst-italic">{{ s.pct }}</td>{% endif %}
+                  {% if s.tipo == 'Poupança' %}<td class="text-end text-muted fst-italic col-poupanca">{{ s.pct }}</td>{% endif %}
+                  {% if s.tipo == 'Financiamento' %}<td class="text-end text-muted fst-italic col-fi">{{ s.pct }}</td>{% endif %}
+                  {% if s.tipo == 'Total' %}<td class="text-end text-muted fst-italic col-total">{{ s.pct }}</td>{% endif %}
+                  {% if s.tipo == 'Recebido' %}<td class="text-end text-muted fst-italic col-recebido">{{ s.pct }}</td>{% endif %}
+                  {% if s.tipo == 'A receber' %}<td class="text-end text-muted fst-italic col-areceber">{{ s.pct }}</td>{% endif %}
+                {% endfor %}
+              </tr>
+            </tfoot>
+            {% endif %}
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumo por tipo -->
+  <div class="row g-3">
     <div class="col-md-4">
-      <div class="data-table">
-        <table class="table mb-0">
+      <div class="chart-card">
+        <div class="chart-title"><i class="bi bi-pie-chart me-1"></i>Resumo por Tipo</div>
+        <table class="table top-table mb-0">
           <thead>
             <tr>
               <th>Tipo</th>
@@ -145,20 +177,4 @@
   </div>
 
 </div>
-
-<style>
-  .fluxo-table { font-size: 0.82rem; }
-  .fluxo-table th, .fluxo-table td { padding: 0.45rem 0.7rem; white-space: nowrap; }
-  .col-mes { min-width: 70px; }
-  .col-poupanca { background: #fffde7; }
-  .col-fi       { background: #fff3e0; }
-  .col-total    { background: #f8f9fa; border-left: 2px solid #dee2e6; }
-  .col-recebido { background: #f0fff4; }
-  .col-areceber { background: #fff5f5; }
-  .row-pct td      { font-size: 0.78rem; padding-top: 0.2rem; padding-bottom: 0.2rem; border-top: none; }
-  .row-poupanca td { background: #fffde7; }
-  .row-fi td       { background: #fff3e0; }
-  .row-total td    { background: #f0f2f5; border-top: 2px solid #dee2e6; }
-</style>
-
 {% endblock %}
