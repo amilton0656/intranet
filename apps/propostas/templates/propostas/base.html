@@ -65,26 +65,17 @@
     </button>
     <div class="collapse navbar-collapse" id="prop-nav">
       <ul class="navbar-nav ms-3 gap-1">
+        {% with current=request.resolver_match.url_name %}
+        {% for item in menu_itens.propostas.secundaria %}
         <li class="nav-item">
-          <a class="nav-link {% block nav_propostas %}{% endblock %}" href="{% url 'propostas:proposta_list' %}">
-            <i class="bi bi-list-ul me-1"></i>Propostas
+          <a class="nav-link {% if current == item.url_name_base %}active{% endif %}"
+             href="{{ item.url }}">
+            {% if item.icon %}<i class="bi {{ item.icon }} me-1"></i>{% endif %}
+            {{ item.label }}
           </a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link {% block nav_kanban %}{% endblock %}" href="{% url 'propostas:proposta_kanban' %}">
-            <i class="bi bi-kanban me-1"></i>Kanban
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link {% block nav_workflow %}{% endblock %}" href="{% url 'propostas:proposta_workflow' %}">
-            <i class="bi bi-diagram-3 me-1"></i>Workflow
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{% url 'propostas:proposta_create' %}">
-            <i class="bi bi-plus-lg me-1"></i>Nova Proposta
-          </a>
-        </li>
+        {% endfor %}
+        {% endwith %}
       </ul>
     </div>
   </div>

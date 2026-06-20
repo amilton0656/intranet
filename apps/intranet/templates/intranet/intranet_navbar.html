@@ -23,166 +23,148 @@
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                
 
+                {% if 'grupo_ajr_padrao' in menu_permitido %}
+                <li class="nav-item">
+                    <a class="nav-link me-4" href="{% url 'ajr_padrao:dashboard' %}">
+                        <i class="bi bi-grid-1x2-fill me-1"></i>AJR Padrão
+                    </a>
+                </li>
+                {% endif %}
 
-
+                {% if 'grupo_noticias' in menu_permitido %}
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
+                    <a class="nav-link dropdown-toggle me-4" href="#" role="button"
                         data-bs-toggle="dropdown" aria-expanded="false">
                         Notícias
                     </a>
-                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                    <ul class="dropdown-menu">
                         {% for link in news_links %}
-                        <li>
-                            <a class="dropdown-item" href="{{ link.url }}" target="_blank"
-                                rel="noopener noreferrer">{{link.name }}</a>
-                        </li>
+                        <li><a class="dropdown-item" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.name }}</a></li>
                         {% endfor %}
                     </ul>
                 </li>
+                {% endif %}
 
-
+                {% if 'grupo_bancos' in menu_permitido %}
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
+                    <a class="nav-link dropdown-toggle me-4" href="#" role="button"
                         data-bs-toggle="dropdown" aria-expanded="false">
                         Bancos
                     </a>
-                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                    <ul class="dropdown-menu">
                         {% for link in bank_links %}
-                        <li>
-                            <a class="dropdown-item" href="{{ link.url }}" target="_blank"
-                                rel="noopener noreferrer">{{link.name }}</a>
-                        </li>
+                        <li><a class="dropdown-item" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.name }}</a></li>
                         {% endfor %}
                     </ul>
                 </li>
+                {% endif %}
 
-
+                {% if 'grupo_orgaos' in menu_permitido %}
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
+                    <a class="nav-link dropdown-toggle me-4" href="#" role="button"
                         data-bs-toggle="dropdown" aria-expanded="false">
                         Órgãos Públicos
                     </a>
-                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                    <ul class="dropdown-menu">
                         {% for link in public_agency_links %}
-                        <li>
-                            <a class="dropdown-item" href="{{ link.url }}" target="_blank"
-                                rel="noopener noreferrer">{{link.name }}</a>
-                        </li>
+                        <li><a class="dropdown-item" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.name }}</a></li>
                         {% endfor %}
                     </ul>
                 </li>
+                {% endif %}
 
-
+                {% if 'grupo_sites_uteis' in menu_permitido %}
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
+                    <a class="nav-link dropdown-toggle me-4" href="#" role="button"
                         data-bs-toggle="dropdown" aria-expanded="false">
                         Sites Úteis
                     </a>
-                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                    <ul class="dropdown-menu">
                         {% for link in useful_links %}
-                        <li>
-                            <a class="dropdown-item" href="{{ link.url }}" target="_blank"
-                                rel="noopener noreferrer">{{link.name }}</a>
-                        </li>
+                        <li><a class="dropdown-item" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.name }}</a></li>
                         {% endfor %}
                     </ul>
                 </li>
+                {% endif %}
 
                 
 
 
                 {% if show_gerencial_menu %}
-
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle me-4 me-4" href="#" id="navbarDropdown" role="button"
+                    <a class="nav-link dropdown-toggle me-4" href="#" role="button"
                         data-bs-toggle="dropdown" aria-expanded="false">
                         Tabelas de Vendas
                     </a>
-                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                    <ul class="dropdown-menu">
                         {% for link in empreendimento_links %}
-                        <li>
-                            <a class="dropdown-item" href="{{ link.url }}" target="_blank"
-                                rel="noopener noreferrer">{{link.name }}</a>
-                        </li>
+                        <li><a class="dropdown-item" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.name }}</a></li>
                         {% endfor %}
-                    </ul>
-                </li>
-
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                        Gerencial
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        {% for link in gerencial_links %}
-                        <li>
-                            {% if link.copy_text %}
-                            <a class="dropdown-item copy-text-link" href="{{ link.url }}">{{link.name }}</a>
-                            {% else %}
-                            <a class="dropdown-item" href="{{ link.url }}">{{link.name }}</a>
-                            {% endif %}
-                        </li>
-                        {% endfor %}
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                          <a class="dropdown-item" href="{% url 'maxflora:pdf' %}" target="_blank">
-                            <i class="bi bi-file-earmark-pdf me-2 text-danger"></i>Max &amp; Flora — Tabela de Vendas
-                          </a>
-                        </li>
                     </ul>
                 </li>
                 {% endif %}
 
-                {% if show_financeiro_menu %}
+                {% if menu_principal.gerencial %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle me-4" href="#" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        Gerencial
+                    </a>
+                    <ul class="dropdown-menu">
+                        {% for item in menu_principal.gerencial %}
+                        <li>
+                            <a class="dropdown-item" href="{{ item.url }}">
+                                {% if item.icon %}<i class="bi {{ item.icon }} me-2"></i>{% endif %}
+                                {{ item.label }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                {% endif %}
+
+                {% if menu_principal.financeiro %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle me-4" href="#" role="button"
                         data-bs-toggle="dropdown" aria-expanded="false">
                         Financeiro
                     </a>
                     <ul class="dropdown-menu">
-                        <li><h6 class="dropdown-header">Bliss Living</h6></li>
-                        <li><a class="dropdown-item" href="{% url 'bliss_resumo' %}">Resumo</a></li>
-                        <li><a class="dropdown-item" href="{% url 'bliss_unidades_full' %}">Unidades</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><h6 class="dropdown-header">Cota 365</h6></li>
-                        <li><a class="dropdown-item" href="{% url 'cota365:dashboard' %}">Resumo</a></li>
-                        <li><a class="dropdown-item" href="{% url 'cota365:unidades' %}">Unidades</a></li>
-                        <li><a class="dropdown-item" href="{% url 'cota365:vendas' %}">Unidades Vendidas</a></li>
-                        <li><a class="dropdown-item" href="{% url 'cota365:fluxo' %}">Fluxo Mensal</a></li>
-                        <li><a class="dropdown-item" href="{% url 'cota365:parcelas' %}">Parcelas</a></li>
-                        <li><a class="dropdown-item" href="{% url 'cota365:comissoes_cadastro' %}">Comissões</a></li>
+                        {% for item in menu_principal.financeiro %}
+                        <li>
+                            <a class="dropdown-item" href="{{ item.url }}">
+                                {% if item.icon %}<i class="bi {{ item.icon }} me-2"></i>{% endif %}
+                                {{ item.label }}
+                            </a>
+                        </li>
+                        {% endfor %}
                     </ul>
                 </li>
                 {% endif %}
 
-                {% if show_incorporadora_menu or show_admin_menu %}
+                {% if menu_principal.admin %}
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle me-4" href="#" id="navbarDropdown" role="button"
+                    <a class="nav-link dropdown-toggle me-4" href="#" role="button"
                         data-bs-toggle="dropdown" aria-expanded="false">
                         Admin
                     </a>
-                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        {% if show_incorporadora_menu %}
-                        <li><a class="dropdown-item" href="{% url 'incorporadora:empresa_list' %}"><i class="bi bi-building me-2"></i>Empresas</a></li>
-                        <li><a class="dropdown-item" href="{% url 'incorporadora:empreendimento_list' %}"><i class="bi bi-buildings me-2"></i>Empreendimentos</a></li>
-                        <li><a class="dropdown-item" href="{% url 'pessoas:pessoa_list' %}"><i class="bi bi-people me-2"></i>Pessoas</a></li>
-                        <li><a class="dropdown-item" href="{% url 'propostas:proposta_list' %}"><i class="bi bi-file-earmark-text me-2"></i>Propostas</a></li>
-                        <li><a class="dropdown-item" href="{% url 'contratos:minuta_list' %}"><i class="bi bi-file-earmark-ruled me-2"></i>Contratos</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'incorporadora:importar_redirect' %}"><i class="bi bi-cloud-upload me-2"></i>Importar</a></li>
-                        <li><a class="dropdown-item" href="{% url 'cota365:cartorio' %}"><i class="bi bi-journal-bookmark me-2"></i>Cartório</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'maxflora:tabela' %}"><i class="bi bi-shop me-2"></i>Max &amp; Flora — Tabela de Vendas</a></li>
-                        {% endif %}
-                        {% if show_admin_menu %}
-                        {% if show_incorporadora_menu %}<li><hr class="dropdown-divider"></li>{% endif %}
-                        {% for link in admin_links %}
-                        <li><a class="dropdown-item" href="{{ link.url }}">{{ link.name }}</a></li>
+                    <ul class="dropdown-menu">
+                        {% for subgrupo, itens in menu_principal.admin.items %}
+                        {% if not forloop.first %}<li><hr class="dropdown-divider"></li>{% endif %}
+                        <li><h6 class="dropdown-header">{{ subgrupo|capfirst }}</h6></li>
+                        {% for item in itens %}
+                        <li>
+                            <a class="dropdown-item" href="{{ item.url }}">
+                                {% if item.icon %}<i class="bi {{ item.icon }} me-2"></i>{% endif %}
+                                {{ item.label }}
+                            </a>
+                        </li>
                         {% endfor %}
+                        {% endfor %}
+                        {% if user.is_staff or user.is_superuser %}
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'usuario_list' %}"><i class="bi bi-people me-2"></i>Usuários</a></li>
+                        <li><a class="dropdown-item" href="/admin/menu_acesso/"><i class="bi bi-shield-lock me-2"></i>Controle de Acesso</a></li>
                         {% endif %}
                     </ul>
                 </li>
