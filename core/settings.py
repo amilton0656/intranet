@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     'apps.contratos',
     'apps.img2word',
     'apps.maxflora',
+    'apps.ajr_padrao',
+    'apps.menu_acesso',
 ]
 
 MIDDLEWARE = [
@@ -75,6 +77,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'apps.intranet.context_processors.navbar_links',
+                'apps.menu_acesso.context_processors.menu_acesso',
             ],
         },
     },

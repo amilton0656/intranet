@@ -9,30 +9,47 @@
     </button>
     <div class="collapse navbar-collapse" id="indices-nav">
       <ul class="navbar-nav ms-3 gap-1">
-        <li class="nav-item">
-          <a class="nav-link {% if current == 'indice_list' or current == 'indice_update' or current == 'indice_delete' %}active{% endif %}"
-             href="{% url 'indices:indice_list' %}">
-            <i class="bi bi-list-ul me-1"></i>Índices
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link {% if current == 'indice_create' %}active{% endif %}"
-             href="{% url 'indices:indice_create' %}">
-            <i class="bi bi-plus-circle me-1"></i>Novo Índice
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link {% if current == 'indicedata_list' or current == 'indicedata_update' or current == 'indicedata_delete' %}active{% endif %}"
-             href="{% url 'indices:indicedata_list' %}">
-            <i class="bi bi-table me-1"></i>Valores
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link {% if current == 'indicedata_create' %}active{% endif %}"
-             href="{% url 'indices:indicedata_create' %}">
-            <i class="bi bi-plus-circle me-1"></i>Novo Valor
-          </a>
-        </li>
+
+        {% if menu_itens.indices.secundaria %}
+          {# ── Dinâmico: itens vêm do banco ── #}
+          {% for item in menu_itens.indices.secundaria %}
+          <li class="nav-item">
+            <a class="nav-link {% if current == item.url_name_base %}active{% endif %}"
+               href="{{ item.url }}">
+              {% if item.icon %}<i class="bi {{ item.icon }} me-1"></i>{% endif %}
+              {{ item.label }}
+            </a>
+          </li>
+          {% endfor %}
+
+        {% else %}
+          {# ── Fallback: hardcoded ── #}
+          <li class="nav-item">
+            <a class="nav-link {% if current == 'indice_list' or current == 'indice_update' or current == 'indice_delete' %}active{% endif %}"
+               href="{% url 'indices:indice_list' %}">
+              <i class="bi bi-list-ul me-1"></i>Índices
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if current == 'indice_create' %}active{% endif %}"
+               href="{% url 'indices:indice_create' %}">
+              <i class="bi bi-plus-circle me-1"></i>Novo Índice
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if current == 'indicedata_list' or current == 'indicedata_update' or current == 'indicedata_delete' %}active{% endif %}"
+               href="{% url 'indices:indicedata_list' %}">
+              <i class="bi bi-table me-1"></i>Valores
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if current == 'indicedata_create' %}active{% endif %}"
+               href="{% url 'indices:indicedata_create' %}">
+              <i class="bi bi-plus-circle me-1"></i>Novo Valor
+            </a>
+          </li>
+        {% endif %}
+
       </ul>
     </div>
   </div>
@@ -40,6 +57,9 @@
 {% endwith %}
 
 <style>
+  @media (max-width: 767.98px) {
+    #indices-navbar { display: none !important; }
+  }
   #indices-navbar {
     background: #A7A3AB !important;
     padding: 0.6rem 1.5rem;

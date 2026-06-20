@@ -1,0 +1,97 @@
+{% extends "admin/base_site.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<div style="display:flex; gap:2rem; align-items:flex-start; flex-wrap:wrap;">
+
+  {# ── Seletor de grupo ── #}
+  <div style="min-width:220px;">
+    <h2 style="font-size:1rem; margin-bottom:.5rem;">Selecione o Grupo</h2>
+    <ul style="list-style:none; padding:0; margin:0; border:1px solid #ddd; border-radius:4px; max-height:400px; overflow-y:auto;">
+      {% for g in grupos %}
+      <li>
+        <a href="{% url 'admin:menu_acesso_por_grupo_id' g.pk %}"
+           style="display:block; padding:.45rem .75rem; text-decoration:none;
+                  {% if grupo_sel.pk == g.pk %}background:#007bff; color:#fff;{% else %}color:#333;{% endif %}">
+          {{ g.name }}
+        </a>
+      </li>
+      {% empty %}
+      <li style="padding:.5rem .75rem; color:#888;">Nenhum grupo cadastrado.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  {# ── Árvore de itens ── #}
+  {% if grupo_sel %}
+  <div style="flex:1; min-width:300px;">
+    <h2 style="font-size:1rem; margin-bottom:.5rem;">
+      Itens acessíveis para: <strong>{{ grupo_sel.name }}</strong>
+    </h2>
+    <form method="post">
+      {% csrf_token %}
+      <div style="border:1px solid #ddd; border-radius:4px; padding:1rem; background:#fafafa;">
+
+        {% for app_label, navbars in arvore.items %}
+        <details open style="margin-bottom:.75rem;">
+          <summary style="font-weight:700; cursor:pointer; padding:.3rem 0;
+                          border-bottom:1px solid #eee; margin-bottom:.4rem;">
+            📦 {{ app_label }}
+          </summary>
+
+          {% for nav_label, itens in navbars.items %}
+          <details open style="margin-left:1.2rem; margin-bottom:.5rem;">
+            <summary style="font-weight:600; cursor:pointer; color:#555; padding:.2rem 0;">
+              🔗 {{ nav_label }}
+            </summary>
+
+            <ul style="list-style:none; padding:0; margin:.3rem 0 0 1.5rem;">
+              {% for entrada in itens %}
+              <li style="padding:.2rem 0;">
+                <label style="display:flex; align-items:center; gap:.5rem; cursor:pointer;">
+                  <input type="checkbox" name="itens" value="{{ entrada.item.pk }}"
+                         {% if entrada.marcado %}checked{% endif %}>
+                  {% if entrada.item.icon %}
+                  <i class="bi {{ entrada.item.icon }}"></i>
+                  {% endif %}
+                  {{ entrada.item.label }}
+                  {% if entrada.item.url_name %}
+                  <span style="font-size:.78rem; color:#888;">({{ entrada.item.url_name }})</span>
+                  {% endif %}
+                </label>
+              </li>
+              {% endfor %}
+            </ul>
+          </details>
+          {% endfor %}
+        </details>
+        {% empty %}
+        <p style="color:#888;">Nenhum item de menu cadastrado ainda.</p>
+        {% endfor %}
+
+      </div>
+
+      <div style="margin-top:1rem; display:flex; gap:.75rem; align-items:center;">
+        <input type="submit" value="Salvar Acessos" class="button default">
+        <a href="{% url 'admin:menu_acesso_por_grupo' %}" class="button">Cancelar</a>
+        <label style="margin-left:auto; font-size:.85rem; cursor:pointer;">
+          <input type="checkbox" id="marcar-todos"> Marcar / desmarcar todos
+        </label>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <p style="color:#888; margin-top:1rem;">← Selecione um grupo para gerenciar os acessos.</p>
+  {% endif %}
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<script>
+document.getElementById('marcar-todos')?.addEventListener('change', function () {
+  document.querySelectorAll('input[name="itens"]').forEach(cb => cb.checked = this.checked);
+});
+</script>
+{% endblock %}
