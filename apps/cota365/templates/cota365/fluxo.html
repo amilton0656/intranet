@@ -29,7 +29,7 @@
 </style>
 
 <!-- Page header -->
-<div class="page-header d-flex justify-content-between align-items-start">
+<div class="page-header d-flex justify-content-between align-items-center">
   <div>
     <h1>Fluxo Mensal</h1>
     <nav aria-label="breadcrumb" class="d-none d-md-block">
@@ -39,7 +39,11 @@
       </ol>
     </nav>
   </div>
-  <div class="pt-1 d-flex gap-2">
+  <div class="text-center d-none d-md-block">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#6c757d;">Total Geral</div>
+    <div style="font-size:1.15rem;font-weight:800;color:#1a1a2e;">{{ total_geral }}</div>
+  </div>
+  <div class="d-flex gap-2">
     <a href="{% url 'cota365:export_fluxo' %}?format=xlsx" class="btn btn-outline-success btn-sm">
       <i class="bi bi-file-earmark-excel me-1"></i>Excel
     </a>
@@ -50,14 +54,6 @@
 </div>
 
 <div class="main-content">
-
-  <!-- Total Geral -->
-  <div class="d-none d-md-flex flex-wrap gap-3 mb-3">
-    <div class="summary-card">
-      <div class="label">Total Geral</div>
-      <div class="value" style="font-size:1rem;">{{ total_geral }}</div>
-    </div>
-  </div>
 
   <!-- Tabela principal -->
   <div class="row g-3 mb-3">
