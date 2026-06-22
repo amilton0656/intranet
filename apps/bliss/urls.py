@@ -21,6 +21,8 @@ urlpatterns = [
     path('bliss_resumo/email/', views.bliss_resumo_email_webhook, name='bliss_resumo_email_webhook'),
     path('bliss_resumo/test-email/', views.bliss_resumo_test_email, name='bliss_resumo_test_email'),
     path('resumo2/', views.bliss_summary, name='bliss_summary'),
+    path('cartorio/', views.bliss_cartorio_view, name='bliss_cartorio'),
+    path('cartorio/pdf/', views.bliss_cartorio_pdf, name='bliss_cartorio_pdf'),
 ]
 
 
