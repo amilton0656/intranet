@@ -1058,9 +1058,14 @@ def bliss_cartorio_pdf(request):
     C_SEP       = colors.HexColor('#f8f9fa')
     NAVY        = colors.HexColor('#1a1a2e')
 
+    def _fmt_unidade(u):
+        """Remove sufixo após '-' (ex: 101-SUN → 101, G46 → G46)."""
+        nome = str(u['unidade'] or '')
+        return nome.split('-')[0] if '-' in nome else nome
+
     def make_row(u, principal=False):
         return [
-            Paragraph(str(u['unidade'] or ''), unit_p if principal else cell_s),
+            Paragraph(_fmt_unidade(u), unit_p if principal else cell_s),
             Paragraph(str(u['localizacao'] or ''), cell_s),
             Paragraph(str(u['tipologia'] or ''), cell_s),
             Paragraph(_bliss_fmt_area(u['ap']),  nr_s),
