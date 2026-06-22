@@ -1804,21 +1804,26 @@ def _calc_velocidade_vendas():
     total_unidades  = Unidade.objects.count()
     disponivel      = max(total_unidades - total_vendas, 0)
 
-    primeiro_mes = meses_list[0]['mes'].date()
+    primeiro_mes = meses_list[0]['mes']
+    if hasattr(primeiro_mes, 'date'):
+        primeiro_mes = primeiro_mes.date()
     n_meses = (hoje.year - primeiro_mes.year) * 12 + (hoje.month - primeiro_mes.month)
     n_meses = max(n_meses, 1)
     media_hist = total_vendas / n_meses
 
     # Exclui mês corrente (pode estar incompleto)
     mes_ini = hoje.replace(day=1)
-    completos = [m for m in meses_list if m['mes'].date() < mes_ini]
+    def _as_date(v):
+        return v.date() if hasattr(v, 'date') and callable(v.date) else v
+
+    completos = [m for m in meses_list if _as_date(m['mes']) < mes_ini]
 
     media_3m = sum(m['qtde'] for m in completos[-3:]) / 3 if completos else media_hist
     media_6m = sum(m['qtde'] for m in completos[-6:]) / 6 if completos else media_hist
 
     vendas_mes_atual = next(
         (m['qtde'] for m in meses_list
-         if m['mes'].year == hoje.year and m['mes'].month == hoje.month), 0)
+         if _as_date(m['mes']).year == hoje.year and _as_date(m['mes']).month == hoje.month), 0)
 
     melhor = max(meses_list, key=lambda m: m['qtde'])
 
