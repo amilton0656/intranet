@@ -1789,15 +1789,17 @@ def _calc_velocidade_vendas():
     from datetime import date as _date
     hoje = _date.today()
 
-    # Unidades principais: exclui garagens, hobby boxes e motos
+    # Unidades principais: exclui garagens, hobby boxes, motos e permutas
     _EXCLUIR = r'garagem|hobby.box|hobby box|moto'
+    permutas = set(Permuta.objects.values_list('unidade', flat=True))
+
     unidades_principais_qs = Unidade.objects.exclude(tipo__iregex=_EXCLUIR)
-    unidades_principais = set(unidades_principais_qs.values_list('unidade', flat=True))
+    unidades_principais = set(unidades_principais_qs.values_list('unidade', flat=True)) - permutas
 
-    # Total de unidades principais
-    total_unidades = unidades_principais_qs.count()
+    # Total de unidades principais (sem permutas)
+    total_unidades = len(unidades_principais)
 
-    # Vendas de unidades principais (cruza pelo campo unidade)
+    # Vendas de unidades principais, sem permutas
     vendas_qs = Venda.objects.filter(
         data_venda__isnull=False,
         unidade__in=unidades_principais,
