@@ -17,7 +17,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import F, Sum, Count, Q
-from django.db.models.functions import ExtractYear, ExtractMonth
+from django.db.models.functions import ExtractYear, ExtractMonth, TruncMonth
 from django.urls import reverse
 
 import openpyxl
@@ -1783,6 +1783,77 @@ def index(request):
     return render(request, 'cota365/index.html')
 
 
+def _calc_velocidade_vendas():
+    """Calcula métricas de velocidade de vendas com base nas datas de venda."""
+    from datetime import date as _date
+    hoje = _date.today()
+
+    meses_qs = (
+        Venda.objects
+        .filter(data_venda__isnull=False)
+        .annotate(mes=TruncMonth('data_venda'))
+        .values('mes')
+        .annotate(qtde=Count('id'))
+        .order_by('mes')
+    )
+    meses_list = list(meses_qs)
+    if not meses_list:
+        return None
+
+    total_vendas    = sum(m['qtde'] for m in meses_list)
+    total_unidades  = Unidade.objects.count()
+    disponivel      = max(total_unidades - total_vendas, 0)
+
+    primeiro_mes = meses_list[0]['mes'].date()
+    n_meses = (hoje.year - primeiro_mes.year) * 12 + (hoje.month - primeiro_mes.month)
+    n_meses = max(n_meses, 1)
+    media_hist = total_vendas / n_meses
+
+    # Exclui mês corrente (pode estar incompleto)
+    mes_ini = hoje.replace(day=1)
+    completos = [m for m in meses_list if m['mes'].date() < mes_ini]
+
+    media_3m = sum(m['qtde'] for m in completos[-3:]) / 3 if completos else media_hist
+    media_6m = sum(m['qtde'] for m in completos[-6:]) / 6 if completos else media_hist
+
+    vendas_mes_atual = next(
+        (m['qtde'] for m in meses_list
+         if m['mes'].year == hoje.year and m['mes'].month == hoje.month), 0)
+
+    melhor = max(meses_list, key=lambda m: m['qtde'])
+
+    projecao = round(disponivel / media_3m) if media_3m > 0 else None
+
+    vso_hist = media_hist / total_unidades * 100 if total_unidades else 0
+    vso_3m   = media_3m  / total_unidades * 100 if total_unidades else 0
+
+    historico = [
+        {'mes': m['mes'].strftime('%m/%Y'), 'qtde': m['qtde']}
+        for m in meses_list[-18:]
+    ]
+
+    def _f1(v): return f'{v:.1f}'.replace('.', ',')
+
+    return {
+        'media_historica':   _f1(media_hist),
+        'media_3m':          _f1(media_3m),
+        'media_6m':          _f1(media_6m),
+        'vendas_mes_atual':  vendas_mes_atual,
+        'total_vendas':      total_vendas,
+        'total_unidades':    total_unidades,
+        'disponivel':        disponivel,
+        'projecao_meses':    projecao,
+        'vso_hist':          _f1(vso_hist) + '%',
+        'vso_3m':            _f1(vso_3m)   + '%',
+        'vso_6m':            _f1(media_6m / total_unidades * 100 if total_unidades else 0) + '%',
+        'melhor_mes':        melhor['mes'].strftime('%m/%Y'),
+        'melhor_mes_qtde':   melhor['qtde'],
+        'primeiro_mes':      primeiro_mes.strftime('%m/%Y'),
+        'n_meses':           n_meses,
+        'historico':         historico,
+    }
+
+
 def dashboard(request):
     # ── Fluxo mensal via Parcela ──────────────────────────────────────────────
     monthly_rec  = {}
@@ -1975,6 +2046,7 @@ def dashboard(request):
         'clientes_pe':          clientes_pe,
         'ranking_imobiliaria':  ranking_imobiliaria,
         'ranking_total':        ranking_total,
+        'velocidade_vendas':    _calc_velocidade_vendas(),
     }
     return render(request, 'cota365/dashboard.html', context)
 
