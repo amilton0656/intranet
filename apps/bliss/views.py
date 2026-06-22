@@ -926,30 +926,40 @@ def _bliss_cartorio_load_grouped():
     wb = _openpyxl.load_workbook(_CARTORIO_BLISS_XLSX)
     ws = wb['cartorio']
     rows = list(ws.iter_rows(values_only=True))
-    header = rows[0]
+
+    # Normaliza header para lowercase para evitar problemas de case do xlsx
+    header = [str(h).strip().lower() if h is not None else None for h in rows[0]]
     data = [dict(zip(header, r)) for r in rows[1:] if r[0] is not None]
     data = [r for r in data if r.get('tipo')]
 
+    def _get(r, *keys):
+        """Busca coluna ignorando acentuação e case (já normalizados no header)."""
+        for k in keys:
+            v = r.get(k.lower())
+            if v is not None:
+                return v
+        return None
+
     def make_unit(r, stub=False):
         return {
-            'unidade':    r.get('unidade'),
-            'localizacao': r.get('localização'),
-            'tipologia':  r.get('tipologia'),
-            'ap':         r.get('área privativa'),
-            'apa':        r.get('área privativa acessória'),
-            'apt':        r.get('área privativa total'),
-            'ac':         r.get('área de uso comum'),
-            'art':        r.get('área real total'),
-            'fi':         r.get('fração ideal'),
-            'matricula':  r.get('matricula'),
-            'vinculo':    r.get('vinculo-matricula'),
+            'unidade':    _get(r, 'unidade'),
+            'localizacao': _get(r, 'localização', 'localizacao', 'localização'),
+            'tipologia':  _get(r, 'tipologia'),
+            'ap':         _get(r, 'área privativa', 'area privativa'),
+            'apa':        _get(r, 'área privativa acessória', 'area privativa acessoria'),
+            'apt':        _get(r, 'área privativa total', 'area privativa total'),
+            'ac':         _get(r, 'área de uso comum', 'area de uso comum'),
+            'art':        _get(r, 'área real total', 'area real total'),
+            'fi':         _get(r, 'fração ideal', 'fracao ideal'),
+            'matricula':  _get(r, 'matricula', 'matrícula'),
+            'vinculo':    _get(r, 'vinculo-matricula', 'vínculo-matricula'),
             'stub':       stub,
         }
 
     comp_dict = {}
     for r in data:
         if (r.get('tipo') or '').lower() in ('garagem', 'hobby box', 'moto'):
-            key = str(r.get('unidade') or '').strip().upper().replace(' ', '')
+            key = str(_get(r, 'unidade') or '').strip().upper().replace(' ', '')
             comp_dict[key] = make_unit(r)
 
     def resolve(key, garagens_do_grupo):
@@ -975,8 +985,8 @@ def _bliss_cartorio_load_grouped():
         tipo = (r.get('tipo') or '').lower()
         if tipo not in ('apartamento', 'loja'):
             continue
-        gar_keys = _bliss_cartorio_parse_keys(r.get('Garagens'), ('sem vaga',))
-        hb_keys  = _bliss_cartorio_parse_keys(r.get('HBs'),      ('sem hobby',))
+        gar_keys = _bliss_cartorio_parse_keys(_get(r, 'garagens'), ('sem vaga',))
+        hb_keys  = _bliss_cartorio_parse_keys(_get(r, 'hbs', 'hb'), ('sem hobby',))
         garagens = [comp_dict.get(k, {'unidade': k, 'stub': True, **{f: None for f in
                     ('localizacao','tipologia','ap','apa','apt','ac','art','fi','matricula','vinculo')}})
                     for k in gar_keys]
