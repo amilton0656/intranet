@@ -13,10 +13,27 @@ sudo chown -R www-data:www-data /var/www/intranet/media /var/www/intranet/logs
 
 
 
-tabela
-vendas
-fluxo
-comissoes
+tabela - ok
+vendas - ok
+fluxo - ok
+comissoes - ok
+
 
 areceber
 recebido
+
+python manage.py importar_cvcrm
+python manage.py verificar_cartorio
+
+python manage.py baixar_tabela_cvcrm
+python manage.py baixar_vendas_cvcrm
+python manage.py baixar_fluxo_cvcrm
+python manage.py baixar_comissoes_cvcrm
+python manage.py baixar_tudo_cvcrm
+
+
+
+
+
+
+scp "cartorio.xlsx" amilton@apicota.com.br:/var/www/intranet/
