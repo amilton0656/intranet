@@ -1784,13 +1784,27 @@ def index(request):
 
 
 def _calc_velocidade_vendas():
-    """Calcula métricas de velocidade de vendas com base nas datas de venda."""
+    """Calcula métricas de velocidade de vendas — apenas unidades principais
+    (apartamentos, salas, lojas); exclui garagens e hobby boxes."""
     from datetime import date as _date
     hoje = _date.today()
 
+    # Unidades principais: exclui garagens, hobby boxes e motos
+    _EXCLUIR = r'garagem|hobby.box|hobby box|moto'
+    unidades_principais_qs = Unidade.objects.exclude(tipo__iregex=_EXCLUIR)
+    unidades_principais = set(unidades_principais_qs.values_list('unidade', flat=True))
+
+    # Total de unidades principais
+    total_unidades = unidades_principais_qs.count()
+
+    # Vendas de unidades principais (cruza pelo campo unidade)
+    vendas_qs = Venda.objects.filter(
+        data_venda__isnull=False,
+        unidade__in=unidades_principais,
+    ) if unidades_principais else Venda.objects.filter(data_venda__isnull=False)
+
     meses_qs = (
-        Venda.objects
-        .filter(data_venda__isnull=False)
+        vendas_qs
         .annotate(mes=TruncMonth('data_venda'))
         .values('mes')
         .annotate(qtde=Count('id'))
@@ -1800,9 +1814,8 @@ def _calc_velocidade_vendas():
     if not meses_list:
         return None
 
-    total_vendas    = sum(m['qtde'] for m in meses_list)
-    total_unidades  = Unidade.objects.count()
-    disponivel      = max(total_unidades - total_vendas, 0)
+    total_vendas = sum(m['qtde'] for m in meses_list)
+    disponivel   = max(total_unidades - total_vendas, 0)
 
     primeiro_mes = meses_list[0]['mes']
     if hasattr(primeiro_mes, 'date'):
