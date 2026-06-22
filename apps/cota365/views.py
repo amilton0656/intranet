@@ -2702,6 +2702,53 @@ def _build_dashboard_pdf():
     _tot_vgv = sum(r['vgv'] for r in ranking_imob)
     _tot_com = sum(r['com'] for r in ranking_imob)
 
+    # ── Velocidade de Vendas ──────────────────────────────────────────────────
+    vel = _calc_velocidade_vendas()
+    if vel:
+        story.append(Paragraph('Velocidade de Vendas', sec_s))
+
+        # Tabela de médias + VSO
+        vel_header = [[th('Período'), th('Unid./mês'), th('VSO')]]
+        vel_rows = [
+            [td(f'Média histórica (desde {vel["primeiro_mes"]}, {vel["n_meses"]} meses)'),
+             tdrb(vel['media_historica']), tdr(vel['vso_hist'])],
+            [td('Últimos 6 meses'), tdrb(vel['media_6m']), tdr(vel['vso_6m'])],
+            [td('Últimos 3 meses'), tdrb(vel['media_3m']), tdr(vel['vso_3m'])],
+            [td('Mês atual'),       tdrb(str(vel['vendas_mes_atual'])), tdr('—')],
+        ]
+        story.append(tbl(vel_header + vel_rows,
+                         [9*cm, 3*cm, 3*cm]))
+
+        # Tabela de estoque e projeção
+        story.append(Spacer(1, 6))
+        est_rows = [
+            [td('Total de unidades'), tdrb(str(vel['total_unidades']))],
+            [td('Vendidas'),          tdrb(str(vel['total_vendas']))],
+            [td('Disponíveis'),       tdrb(str(vel['disponivel']))],
+            [td(f'Melhor mês'),       tdrb(f'{vel["melhor_mes"]} ({vel["melhor_mes_qtde"]} unid.)')],
+        ]
+        if vel['projecao_meses']:
+            est_rows.append([tdb('Projeção de estoque'),
+                             tdrb(f'~{vel["projecao_meses"]} meses (no ritmo atual)')])
+        story.append(tbl([[th('Estoque'), th('Qtde')]] + est_rows,
+                         [9*cm, 6*cm], total_last=bool(vel['projecao_meses'])))
+
+        # Histórico mensal
+        if vel['historico']:
+            story.append(Spacer(1, 6))
+            hist_header = [[th(m['mes']) for m in vel['historico']]]
+            hist_row    = [[tdr(str(m['qtde'])) for m in vel['historico']]]
+            col_w = [W / len(vel['historico'])] * len(vel['historico'])
+            t_hist = Table(hist_header + hist_row, colWidths=col_w)
+            t_hist.setStyle(TableStyle([
+                ('BACKGROUND',    (0, 0), (-1, 0), NAVY),
+                ('GRID',          (0, 0), (-1, -1), 0.3, BORDER),
+                ('TOPPADDING',    (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                ('ROWBACKGROUNDS',(0, 1), (-1, -1), [LIGHT]),
+            ]))
+            story.append(t_hist)
+
     if ranking_imob:
         story.append(PageBreak())
         story.append(Paragraph('Ranking de Vendas por Imobiliária', sec_s))
