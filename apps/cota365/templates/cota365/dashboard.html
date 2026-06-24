@@ -535,9 +535,9 @@
               {% endfor %}
               <tr style="font-weight:700; background:#f0f2f5;">
                 <td>Total</td>
-                <td class="text-end text-success">—</td>
-                <td class="text-end text-danger">—</td>
-                <td class="text-end text-warning">—</td>
+                <td class="text-end text-success">{{ total_recebido_fmt }}</td>
+                <td class="text-end text-danger">{{ total_a_receber_fmt }}</td>
+                <td class="text-end text-warning">{{ total_permutas_fmt }}</td>
                 <td class="text-end">{{ total_fluxo_fmt }}</td>
                 <td class="text-end"></td>
               </tr>

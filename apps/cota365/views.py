@@ -1894,8 +1894,11 @@ def dashboard(request):
         monthly_pend[key] = r['pend'] or 0.0
         monthly_perm[key] = r['perm'] or 0.0
 
-    all_keys    = sorted(set(monthly_rec) | set(monthly_pend) | set(monthly_perm))
-    total_fluxo = sum(monthly_rec.get(k, 0) + monthly_pend.get(k, 0) + monthly_perm.get(k, 0) for k in all_keys)
+    all_keys        = sorted(set(monthly_rec) | set(monthly_pend) | set(monthly_perm))
+    total_recebido  = sum(monthly_rec.get(k, 0)  for k in all_keys)
+    total_a_receber = sum(monthly_pend.get(k, 0) for k in all_keys)
+    total_permutas  = sum(monthly_perm.get(k, 0) for k in all_keys)
+    total_fluxo     = total_recebido + total_a_receber + total_permutas
 
     acumulado = 0.0
     fluxo_mensal_rows = []
@@ -2061,6 +2064,9 @@ def dashboard(request):
         'desconto_cubs':        f'{_tot_cubs:.2f}'.replace('.', ','),
         'receita_por_ano':      receita_por_ano,
         'total_fluxo_fmt':      _fmt_brl(total_fluxo),
+        'total_recebido_fmt':   _fmt_brl(total_recebido),
+        'total_a_receber_fmt':  _fmt_brl(total_a_receber),
+        'total_permutas_fmt':   _fmt_brl(total_permutas),
         'fluxo_mensal_rows':    fluxo_mensal_rows,
         'tipos_parcela_rows':   tipos_parcela_rows,
         'clientes_pe':          clientes_pe,
