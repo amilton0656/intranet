@@ -1,0 +1,29 @@
+<div id="agrup-section">
+<table class="grid-inline">
+  <thead>
+    <tr><th>Descrição</th><th class="text-end">Ordem</th><th style="width:70px"></th></tr>
+  </thead>
+  <tbody>
+    {% for a in agrupamentos %}
+    <tr>
+      <td>{{ a.descricao }}</td>
+      <td class="text-end">{{ a.ordem }}</td>
+      <td>
+        <button type="button" class="btn-acao btn-edit"
+          hx-get="{% url 'viabilidade:htmx_agrup_form_edit' estudo.pk a.pk %}"
+          hx-target="#htmxModalBody"
+          hx-trigger="click"
+          onclick="abrirModal('Editar Agrupamento')">Ed</button>
+        <button type="button" class="btn-acao btn-del"
+          hx-post="{% url 'viabilidade:htmx_agrup_delete' estudo.pk a.pk %}"
+          hx-target="#agrup-section"
+          hx-swap="outerHTML"
+          hx-confirm="Excluir?">X</button>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="3" style="text-align:center;color:#999;padding:6px">Nenhum agrupamento.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>

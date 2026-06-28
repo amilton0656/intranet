@@ -1,0 +1,120 @@
+{% extends "viabilidade/base.html" %}
+{% load viab_fmt %}
+{% block title %}Resultado - {{ estudo }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">Resultado: {{ estudo.planilha }}</h4>
+    <small class="text-muted">{{ estudo.empreendimento }} &bull; Base: {{ estudo.dt_base }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'viabilidade:estudo_fluxo' estudo.pk %}" class="btn btn-info btn-sm text-white"><i class="bi bi-bar-chart"></i> Fluxo Mensal</a>
+    <a href="{% url 'viabilidade:estudo_detail' estudo.pk %}" class="btn btn-outline-secondary btn-sm">Voltar</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Unidades -->
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header bg-white fw-semibold">Unidades</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><td>Total</td><td class="text-end num fw-bold">{{ resumo.und_total }}</td></tr>
+          <tr><td>À Venda</td><td class="text-end num text-success">{{ resumo.und_avenda }}</td></tr>
+          <tr><td>Permuta</td><td class="text-end num text-warning">{{ resumo.und_permu }}</td></tr>
+          <tr><td>Imobilizado</td><td class="text-end num text-muted">{{ resumo.und_imob }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Áreas -->
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header bg-white fw-semibold">Áreas</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><td>Real Total</td><td class="text-end num">{{ resumo.area_real_total|br2 }} m²</td></tr>
+          <tr><td>Privativa Total</td><td class="text-end num">{{ resumo.area_priv_total|br2 }} m²</td></tr>
+          <tr><td>Eficiência</td><td class="text-end num">{{ resumo.eficiencia|br2 }}%</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preços -->
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header bg-white fw-semibold">Preços</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><td>Preço Médio/m²</td><td class="text-end num">R$ {{ resumo.preco_medio_m2|br2 }}</td></tr>
+          <tr><td>Custo/m² Real</td><td class="text-end num">R$ {{ resumo.custo_m2_real|br2 }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Receitas e Custos -->
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header bg-white fw-semibold">Receitas</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><td>Receita Total</td><td class="text-end num">R$ {{ resumo.rec_total|br2 }}</td></tr>
+          <tr><td>(-) Permuta / Imob.</td><td class="text-end num text-danger">R$ {{ resumo.rec_permu|br2 }}</td></tr>
+          <tr class="table-active"><td class="fw-bold">Receita Líquida</td><td class="text-end num fw-bold">R$ {{ resumo.rec_liq|br2 }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header bg-white fw-semibold">Custos</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><td>Construção</td><td class="text-end num">R$ {{ resumo.custo_construcao|br2 }}</td></tr>
+          <tr><td>Total</td><td class="text-end num">R$ {{ resumo.custo_total|br2 }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resultado Final -->
+  <div class="col-12">
+    <div class="card border-0" style="background: #1e293b; color: #fff;">
+      <div class="card-body">
+        <div class="row text-center g-3">
+          <div class="col-md-3">
+            <div class="text-muted small">Resultado Bruto</div>
+            <div class="fs-4 fw-bold {% if resumo.resultado_bruto >= 0 %}text-success{% else %}text-danger{% endif %}">
+              R$ {{ resumo.resultado_bruto|br2 }}
+            </div>
+            <div class="text-muted small">Margem {{ resumo.margem_bruta|br2 }}%</div>
+          </div>
+          <div class="col-md-3">
+            <div class="text-muted small">Resultado Líquido</div>
+            <div class="fs-4 fw-bold {% if resumo.resultado_liq >= 0 %}text-success{% else %}text-danger{% endif %}">
+              R$ {{ resumo.resultado_liq|br2 }}
+            </div>
+            <div class="text-muted small">Margem {{ resumo.margem_liq|br2 }}%</div>
+          </div>
+          <div class="col-md-3">
+            <div class="text-muted small">VPL</div>
+            <div class="fs-4 fw-bold {% if resumo.vpl >= 0 %}text-success{% else %}text-danger{% endif %}">
+              R$ {{ resumo.vpl|br2 }}
+            </div>
+            <div class="text-muted small">Taxa VP: {{ estudo.tx_vp }}% a.a.</div>
+          </div>
+          <div class="col-md-3">
+            <div class="text-muted small">Receita Líquida</div>
+            <div class="fs-4 fw-bold text-white">R$ {{ resumo.rec_liq|br2 }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

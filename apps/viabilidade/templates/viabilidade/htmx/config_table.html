@@ -1,0 +1,45 @@
+{% load viab_fmt %}
+<div id="config-section">
+<table class="grid-inline">
+  <thead>
+    <tr>
+      <th>Agrupamento</th><th>Tipo</th>
+      <th class="text-end">Total</th><th class="text-end">Perm.</th><th class="text-end">Imob.</th>
+      <th class="text-end">Área Real</th><th class="text-end">Área Priv.</th><th class="text-end">Valor m²</th>
+      <th class="text-center">Fechado</th><th class="text-center">Gar</th>
+      <th style="width:70px"></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in configs %}
+    <tr>
+      <td>{{ c.agrupamento|default:"—" }}</td>
+      <td>{{ c.tipo|default:"—" }}</td>
+      <td class="text-end">{{ c.config_qtde_total }}</td>
+      <td class="text-end">{{ c.config_qtde_permu }}</td>
+      <td class="text-end">{{ c.config_qtde_imob }}</td>
+      <td class="text-end">{{ c.config_area_real|br2 }}</td>
+      <td class="text-end">{{ c.config_area_priv|br2 }}</td>
+      <td class="text-end">{{ c.config_valor_m2|br2 }}</td>
+      <td class="text-center">{% if c.config_fechado %}&#10003;{% endif %}</td>
+      <td class="text-center">{% if c.config_ge %}&#10003;{% endif %}</td>
+      <td>
+        <button type="button" class="btn-acao btn-edit"
+          hx-get="{% url 'viabilidade:htmx_config_form_edit' estudo.pk c.pk %}"
+          hx-target="#htmxModalBody"
+          hx-trigger="click"
+          onclick="abrirModal('Editar Configuração')">Ed</button>
+        <button type="button" class="btn-acao btn-del"
+          hx-post="{% url 'viabilidade:htmx_config_delete' estudo.pk c.pk %}"
+          hx-target="#config-section"
+          hx-swap="outerHTML"
+          hx-confirm="Excluir esta configuração?"
+          onclick="return true">X</button>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="11" style="text-align:center;color:#999;padding:6px">Nenhuma configuração. Clique em "Configuração" para adicionar.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>

@@ -1,0 +1,31 @@
+{% extends "viabilidade/base.html" %}
+{% block title %}Estudos{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Estudos de Viabilidade</h4>
+  <a href="{% url 'viabilidade:estudo_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Novo</a>
+</div>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Empreendimento</th><th>Planilha</th><th>Data Base</th><th></th></tr></thead>
+      <tbody>
+        {% for e in estudos %}
+        <tr>
+          <td>{{ e.empreendimento }}</td>
+          <td class="fw-semibold">{{ e.planilha }}</td>
+          <td>{{ e.dt_base }}</td>
+          <td>
+            <a href="{% url 'viabilidade:estudo_painel' e.pk %}" class="btn btn-sm btn-primary" title="Abrir Painel"><i class="bi bi-grid-3x3-gap"></i> Painel</a>
+            <a href="{% url 'viabilidade:estudo_resultado' e.pk %}" class="btn btn-sm btn-outline-success"><i class="bi bi-calculator"></i></a>
+            <a href="{% url 'viabilidade:estudo_delete' e.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="text-center text-muted py-4">Nenhum estudo cadastrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

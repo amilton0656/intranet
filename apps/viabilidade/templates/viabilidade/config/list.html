@@ -1,0 +1,40 @@
+{% extends "viabilidade/base.html" %}
+{% block title %}Configurações - {{ estudo }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">Configurações de Unidades</h4>
+    <small class="text-muted">{{ estudo }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'viabilidade:config_create' estudo.pk %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Nova</a>
+    <a href="{% url 'viabilidade:estudo_detail' estudo.pk %}" class="btn btn-outline-secondary btn-sm">Voltar</a>
+  </div>
+</div>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Tipo</th><th class="text-end">Total</th><th class="text-end">Permuta</th><th class="text-end">Imob.</th><th class="text-end">Área Real</th><th class="text-end">Área Priv.</th><th class="text-end">R$/m²</th><th></th></tr></thead>
+      <tbody>
+        {% for c in configs %}
+        <tr>
+          <td>{{ c.tipo }}</td>
+          <td class="text-end num">{{ c.config_qtde_total }}</td>
+          <td class="text-end num">{{ c.config_qtde_permu }}</td>
+          <td class="text-end num">{{ c.config_qtde_imob }}</td>
+          <td class="text-end num">{{ c.config_area_real }}</td>
+          <td class="text-end num">{{ c.config_area_priv }}</td>
+          <td class="text-end num">{{ c.config_valor_m2 }}</td>
+          <td>
+            <a href="{% url 'viabilidade:config_update' estudo.pk c.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+            <a href="{% url 'viabilidade:config_delete' estudo.pk c.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-4">Nenhuma configuração.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

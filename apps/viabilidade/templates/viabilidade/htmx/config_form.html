@@ -1,0 +1,61 @@
+<form hx-post="{% if obj %}{% url 'viabilidade:htmx_config_save_edit' estudo.pk obj.pk %}{% else %}{% url 'viabilidade:htmx_config_save_new' estudo.pk %}{% endif %}"
+      hx-target="#config-section"
+      hx-swap="outerHTML">
+  {% csrf_token %}
+  <div class="row g-2">
+    <div class="col-6">
+      <label class="form-label-sm">Tipo</label>
+      <select name="tipo" class="form-select form-select-sm">
+        <option value="">— Selecione —</option>
+        {% for t in tipos %}<option value="{{ t.pk }}" {% if obj and obj.tipo_id == t.pk %}selected{% endif %}>{{ t.descricao }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6">
+      <label class="form-label-sm">Agrupamento</label>
+      <select name="agrupamento" class="form-select form-select-sm">
+        <option value="">— Nenhum —</option>
+        {% for a in agrupamentos %}<option value="{{ a.pk }}" {% if obj and obj.agrupamento_id == a.pk %}selected{% endif %}>{{ a.descricao }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-4">
+      <label class="form-label-sm">Qtde Total</label>
+      <input type="number" name="config_qtde_total" value="{{ obj.config_qtde_total|default:0 }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-4">
+      <label class="form-label-sm">Qtde Permuta</label>
+      <input type="number" name="config_qtde_permu" value="{{ obj.config_qtde_permu|default:0 }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-4">
+      <label class="form-label-sm">Qtde Imobilizado</label>
+      <input type="number" name="config_qtde_imob" value="{{ obj.config_qtde_imob|default:0 }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-4">
+      <label class="form-label-sm">Área Real (m²)</label>
+      <input type="text" name="config_area_real" value="{{ obj.config_area_real|default:0 }}" class="form-control form-control-sm text-end">
+    </div>
+    <div class="col-4">
+      <label class="form-label-sm">Área Privativa (m²)</label>
+      <input type="text" name="config_area_priv" value="{{ obj.config_area_priv|default:0 }}" class="form-control form-control-sm text-end">
+    </div>
+    <div class="col-4">
+      <label class="form-label-sm">Valor R$/m²</label>
+      <input type="text" name="config_valor_m2" value="{{ obj.config_valor_m2|default:0 }}" class="form-control form-control-sm text-end">
+    </div>
+    <div class="col-6">
+      <div class="form-check">
+        <input type="checkbox" name="config_fechado" class="form-check-input" id="ck-fechado" {% if obj and obj.config_fechado %}checked{% endif %}>
+        <label class="form-check-label form-label-sm" for="ck-fechado">Preço Fechado por Unidade</label>
+      </div>
+    </div>
+    <div class="col-6">
+      <div class="form-check">
+        <input type="checkbox" name="config_ge" class="form-check-input" id="ck-ge" {% if obj and obj.config_ge %}checked{% endif %}>
+        <label class="form-check-label form-label-sm" for="ck-ge">É Garagem / Extra</label>
+      </div>
+    </div>
+  </div>
+  <div class="d-flex gap-2 mt-3">
+    <button type="submit" class="btn btn-sm btn-primary">Salvar</button>
+    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+  </div>
+</form>

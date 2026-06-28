@@ -1,0 +1,61 @@
+{% load viab_fmt %}
+<div id="curva-modal-content">
+
+  <div class="d-flex align-items-center gap-2 mb-2">
+    <button type="button" class="btn btn-sm btn-secondary"
+      hx-get="{% url 'viabilidade:htmx_curva_modal' %}"
+      hx-target="#curva-modal-content"
+      hx-swap="outerHTML">← Voltar</button>
+    <strong>{{ curva.descricao }}</strong>
+    <span style="margin-left:auto;font-size:11px;color:#666">
+      Total: <b id="curva-total-perc">{{ total_perc|br2 }}</b> %
+    </span>
+  </div>
+
+  <table class="grid-inline mb-3" style="width:100%">
+    <thead>
+      <tr>
+        <th class="text-end">Mês</th>
+        <th class="text-end">% Custo</th>
+        <th style="width:50px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in meses %}
+      <tr>
+        <td class="text-end">{{ m.curva_mes }}</td>
+        <td class="text-end">{{ m.curva_perc|br4 }}</td>
+        <td style="white-space:nowrap">
+          <button type="button" class="btn-acao btn-del"
+            hx-post="{% url 'viabilidade:htmx_curvames_delete' curva.pk m.pk %}"
+            hx-target="#curva-modal-content"
+            hx-swap="outerHTML"
+            hx-confirm="Excluir mês {{ m.curva_mes }}?">X</button>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" style="text-align:center;color:#999;padding:6px">Nenhum mês cadastrado.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <hr style="margin:8px 0">
+
+  <form hx-post="{% url 'viabilidade:htmx_curvames_save' curva.pk %}"
+        hx-target="#curva-modal-content"
+        hx-swap="outerHTML">
+    {% csrf_token %}
+    <div class="d-flex gap-2 align-items-end">
+      <div>
+        <label class="form-label-sm">Mês</label>
+        <input type="number" name="curva_mes" min="0" class="form-control form-control-sm" style="width:70px">
+      </div>
+      <div>
+        <label class="form-label-sm">% Custo</label>
+        <input type="text" name="curva_perc" class="form-control form-control-sm text-end" style="width:90px" placeholder="0,0000">
+      </div>
+      <button type="submit" class="btn btn-sm btn-primary">+ Adicionar</button>
+    </div>
+  </form>
+
+</div>

@@ -1,0 +1,13 @@
+{% load viab_fmt %}
+<div class="custo-linha">
+  <span style="color:#888;font-size:11px;flex-shrink:0">&#128196;</span>
+  {% if ck %}<input type="checkbox" name="{{ ck_name }}" {% if ck_val %}checked{% endif %} style="flex-shrink:0">
+  {% else %}<span style="width:13px;display:inline-block;flex-shrink:0"></span>{% endif %}
+  <span class="custo-desc {% if bold %}fw-bold{% endif %}">{{ label }}</span>
+  {% if valor_calc is not None and not campo %}
+    <span class="custo-valor fw-bold" style="font-family:monospace;font-size:12px">{{ valor_calc|br2 }}</span>
+  {% endif %}
+  {% if campo %}
+    <input type="text" name="{{ campo }}" value="{{ val|br2 }}" class="custo-valor num-input" style="width:110px">
+  {% endif %}
+</div>

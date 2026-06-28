@@ -1,0 +1,81 @@
+<div id="agrup-modal-content">
+
+  <!-- Lista de agrupamentos existentes -->
+  <table class="grid-inline mb-3" style="width:100%">
+    <thead>
+      <tr><th>Descrição</th><th class="text-end">Ordem</th><th style="width:80px"></th></tr>
+    </thead>
+    <tbody>
+      {% for a in agrupamentos %}
+      <tr>
+        <td>{{ a.descricao }}</td>
+        <td class="text-end">{{ a.ordem }}</td>
+        <td>
+          <button type="button" class="btn-acao btn-edit"
+            hx-get="{% url 'viabilidade:htmx_agrup_form_edit' estudo.pk a.pk %}"
+            hx-target="#agrup-modal-content"
+            hx-swap="outerHTML">Ed</button>
+          <button type="button" class="btn-acao btn-del"
+            hx-post="{% url 'viabilidade:htmx_agrup_delete' estudo.pk a.pk %}"
+            hx-target="#agrup-modal-content"
+            hx-swap="outerHTML"
+            hx-confirm="Excluir '{{ a.descricao }}'?">X</button>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" style="text-align:center;color:#999;padding:6px">Nenhum agrupamento.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <hr style="margin:8px 0">
+
+  {% if obj %}
+  <!-- Formulário de edição -->
+  <form hx-post="{% url 'viabilidade:htmx_agrup_save_edit' estudo.pk obj.pk %}"
+        hx-target="#agrup-modal-content"
+        hx-swap="outerHTML">
+    {% csrf_token %}
+    <div class="row g-2 align-items-end">
+      <div class="col-8">
+        <label class="form-label-sm">Descrição</label>
+        <input type="text" name="descricao" value="{{ obj.descricao }}" class="form-control form-control-sm">
+      </div>
+      <div class="col-2">
+        <label class="form-label-sm">Ordem</label>
+        <input type="number" name="ordem" value="{{ obj.ordem }}" class="form-control form-control-sm">
+      </div>
+      <div class="col-2 d-flex gap-1">
+        <button type="submit" class="btn btn-sm btn-warning w-100">Salvar</button>
+      </div>
+    </div>
+    <div class="mt-1">
+      <button type="button" class="btn btn-sm btn-secondary"
+        hx-get="{% url 'viabilidade:htmx_agrup_form_new' estudo.pk %}"
+        hx-target="#agrup-modal-content"
+        hx-swap="outerHTML">Cancelar</button>
+    </div>
+  </form>
+  {% else %}
+  <!-- Formulário para adicionar novo -->
+  <form hx-post="{% url 'viabilidade:htmx_agrup_save_new' estudo.pk %}"
+        hx-target="#agrup-modal-content"
+        hx-swap="outerHTML">
+    {% csrf_token %}
+    <div class="row g-2 align-items-end">
+      <div class="col-8">
+        <label class="form-label-sm">Descrição</label>
+        <input type="text" name="descricao" class="form-control form-control-sm" placeholder="Nome do agrupamento">
+      </div>
+      <div class="col-2">
+        <label class="form-label-sm">Ordem</label>
+        <input type="number" name="ordem" value="0" class="form-control form-control-sm">
+      </div>
+      <div class="col-2">
+        <button type="submit" class="btn btn-sm btn-primary w-100">+ Add</button>
+      </div>
+    </div>
+  </form>
+  {% endif %}
+
+</div>

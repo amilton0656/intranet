@@ -1,0 +1,18 @@
+{% load viab_fmt %}
+<tr style="border-bottom:1px solid #eee">
+  <td style="width:16px;color:#888;font-size:11px;padding:2px 2px 2px 0">&#128196;</td>
+  <td style="width:18px;padding:2px 2px">
+    {% if ck %}<input type="checkbox" name="{{ ck_name }}" {% if ck_val %}checked{% endif %}>
+    {% else %}<span style="display:inline-block;width:13px"></span>{% endif %}
+  </td>
+  <td style="font-size:11px;color:#334;padding:2px 4px 2px 2px">{{ label }}</td>
+  <td style="width:90px;text-align:right;font-family:monospace;font-size:11px;padding:2px 4px;white-space:nowrap">{{ cu|default:0|br2 }}</td>
+  <td style="width:70px;padding:2px 3px">
+    {% if campo %}
+      <input type="text" name="{{ campo }}" value="{{ val }}" class="custo-perc num-input" style="width:66px;text-align:right">
+    {% else %}
+      <span style="font-family:monospace;font-size:11px;color:#003;display:block;text-align:right">{{ val }}</span>
+    {% endif %}
+  </td>
+  <td style="font-size:10px;color:#668;white-space:nowrap;padding:2px 2px">{{ base }}</td>
+</tr>

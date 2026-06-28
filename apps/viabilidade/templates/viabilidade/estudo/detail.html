@@ -1,0 +1,148 @@
+{% extends "viabilidade/base.html" %}
+{% block title %}{{ estudo }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">{{ estudo.planilha }}</h4>
+    <small class="text-muted">{{ estudo.empreendimento }} &bull; Base: {{ estudo.dt_base }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'viabilidade:estudo_resultado' estudo.pk %}" class="btn btn-success btn-sm"><i class="bi bi-calculator"></i> Resultado</a>
+    <a href="{% url 'viabilidade:estudo_fluxo' estudo.pk %}" class="btn btn-info btn-sm text-white"><i class="bi bi-bar-chart"></i> Fluxo</a>
+    <a href="{% url 'viabilidade:estudo_update' estudo.pk %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i> Editar</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Configurações -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Configuração de Unidades</span>
+        <a href="{% url 'viabilidade:config_create' estudo.pk %}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i></a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Tipo</th><th class="text-end">Total</th><th class="text-end">Permu</th><th class="text-end">Imob.</th><th class="text-end">Área Real</th><th class="text-end">Área Priv.</th><th class="text-end">R$/m²</th><th class="text-center">Fechado</th><th class="text-center">GE</th><th></th></tr></thead>
+          <tbody>
+            {% for c in configs %}
+            <tr>
+              <td>{{ c.tipo }}</td>
+              <td class="text-end num">{{ c.config_qtde_total }}</td>
+              <td class="text-end num">{{ c.config_qtde_permu }}</td>
+              <td class="text-end num">{{ c.config_qtde_imob }}</td>
+              <td class="text-end num">{{ c.config_area_real }}</td>
+              <td class="text-end num">{{ c.config_area_priv }}</td>
+              <td class="text-end num">{{ c.config_valor_m2 }}</td>
+              <td class="text-center">{% if c.config_fechado %}<i class="bi bi-check-circle text-success"></i>{% endif %}</td>
+              <td class="text-center">{% if c.config_ge %}<i class="bi bi-car-front text-primary"></i>{% endif %}</td>
+              <td>
+                <a href="{% url 'viabilidade:config_update' estudo.pk c.pk %}" class="btn btn-xs btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'viabilidade:config_delete' estudo.pk c.pk %}" class="btn btn-xs btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="10" class="text-muted text-center py-3">Nenhuma configuração.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Velocidade -->
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Velocidade de Vendas</span>
+        <a href="{% url 'viabilidade:velocidade_create' estudo.pk %}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i></a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead><tr><th class="text-end">%</th><th class="text-end">Qtde</th><th class="text-end">Início</th><th></th></tr></thead>
+          <tbody>
+            {% for v in velocidades %}
+            <tr>
+              <td class="text-end num">{{ v.veloc_perc }}%</td>
+              <td class="text-end num">{{ v.veloc_qtde }} meses</td>
+              <td class="text-end num">Mês {{ v.veloc_inicio }}</td>
+              <td>
+                <a href="{% url 'viabilidade:velocidade_update' estudo.pk v.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'viabilidade:velocidade_delete' estudo.pk v.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-muted text-center py-3">Nenhuma velocidade.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Construção -->
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Etapas de Construção</span>
+        <a href="{% url 'viabilidade:construcao_create' estudo.pk %}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i></a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Descrição</th><th class="text-end">%</th><th class="text-end">Início</th><th>Curva</th><th></th></tr></thead>
+          <tbody>
+            {% for c in construcoes %}
+            <tr>
+              <td>{{ c.descricao }}</td>
+              <td class="text-end num">{{ c.constru_perc }}%</td>
+              <td class="text-end num">Mês {{ c.constru_inicio }}</td>
+              <td>{{ c.curva|default:"-" }}</td>
+              <td>
+                <a href="{% url 'viabilidade:construcao_update' estudo.pk c.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'viabilidade:construcao_delete' estudo.pk c.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-muted text-center py-3">Nenhuma etapa.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Parâmetros de Venda -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Parâmetros de Venda</span>
+        <a href="{% url 'viabilidade:paramvendas_create' estudo.pk %}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i></a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Descrição</th><th class="text-end">Ato</th><th class="text-end">Parcelas</th><th class="text-end">Reforços</th><th class="text-end">Chaves</th><th class="text-end">Fin.1</th><th class="text-end">Fin.2</th><th></th></tr></thead>
+          <tbody>
+            {% for p in params_vendas %}
+            <tr>
+              <td>{{ p.descricao }}</td>
+              <td class="text-end num">{{ p.ato_perc }}%</td>
+              <td class="text-end num">{{ p.parc_perc }}%</td>
+              <td class="text-end num">{{ p.ref_perc }}%</td>
+              <td class="text-end num">{{ p.cha_perc }}%</td>
+              <td class="text-end num">{{ p.fin_parc_perc }}%</td>
+              <td class="text-end num">{{ p.fin_ref_perc }}%</td>
+              <td>
+                <a href="{% url 'viabilidade:paramvendas_update' estudo.pk p.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'viabilidade:paramvendas_delete' estudo.pk p.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="text-muted text-center py-3">Nenhum parâmetro.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

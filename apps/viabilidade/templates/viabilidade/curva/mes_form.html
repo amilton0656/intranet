@@ -1,0 +1,17 @@
+{% extends "viabilidade/base.html" %}
+{% block title %}Mês da Curva{% endblock %}
+{% block content %}
+<div class="card mx-auto" style="max-width:400px">
+  <div class="card-header bg-white fw-semibold">Mês da Curva: {{ curva.descricao }}</div>
+  <div class="card-body">
+    <form method="post">{% csrf_token %}
+      <div class="mb-3"><label class="form-label">Mês (número)</label>{{ form.curva_mes }}</div>
+      <div class="mb-3"><label class="form-label">% do Custo</label>{{ form.curva_perc }}</div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{% url 'viabilidade:curvames_list' curva.pk %}" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

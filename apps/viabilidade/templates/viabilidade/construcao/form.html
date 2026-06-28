@@ -1,0 +1,22 @@
+{% extends "viabilidade/base.html" %}
+{% block title %}Construção{% endblock %}
+{% block content %}
+<div class="card mx-auto" style="max-width:600px">
+  <div class="card-header bg-white fw-semibold">Etapa de Construção &mdash; {{ estudo }}</div>
+  <div class="card-body">
+    <form method="post">{% csrf_token %}
+      <div class="row g-3">
+        <div class="col-12"><label class="form-label">Descrição</label>{{ form.descricao }}</div>
+        <div class="col-md-4"><label class="form-label">% do Custo</label>{{ form.constru_perc }}</div>
+        <div class="col-md-4"><label class="form-label">Mês de Início</label>{{ form.constru_inicio }}</div>
+        <div class="col-md-4"><label class="form-label">Custo/m²</label>{{ form.custo_m2 }}</div>
+        <div class="col-12"><label class="form-label">Curva de Construção</label>{{ form.curva }}</div>
+      </div>
+      <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{% url 'viabilidade:construcao_list' estudo.pk %}" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

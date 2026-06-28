@@ -1,0 +1,105 @@
+<form hx-post="{% if obj %}{% url 'viabilidade:htmx_param_save_edit' estudo.pk obj.pk %}{% else %}{% url 'viabilidade:htmx_param_save_new' estudo.pk %}{% endif %}"
+      hx-target="#param-section" hx-swap="outerHTML">
+  {% csrf_token %}
+  <div class="row g-2">
+
+    <div class="col-4">
+      <label class="form-label-sm">Referência</label>
+      <input type="text" name="referencia" value="{{ obj.referencia|default:'' }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-8">
+      <label class="form-label-sm">Descrição</label>
+      <input type="text" name="descricao" value="{{ obj.descricao|default:'' }}" class="form-control form-control-sm">
+    </div>
+
+    <div class="col-12"><hr class="my-1"><strong style="font-size:11px">Ato</strong></div>
+    <div class="col-3"><label class="form-label-sm">Percentual</label><input type="text" name="ato_perc" value="{{ obj.ato_perc|default:0 }}" class="form-control form-control-sm text-end pf-num" oninput="calcPercs()"></div>
+    <div class="col-3"><label class="form-label-sm">Quantidade de Parcelas</label><input type="number" name="ato_qtde" value="{{ obj.ato_qtde|default:1 }}" class="form-control form-control-sm"></div>
+
+    <div class="col-12"><strong style="font-size:11px">Parcelas</strong></div>
+    <div class="col-3"><label class="form-label-sm">Percentual</label><input type="text" name="parc_perc" value="{{ obj.parc_perc|default:0 }}" class="form-control form-control-sm text-end pf-num" oninput="calcPercs()"></div>
+    <div class="col-3"><label class="form-label-sm">Quantidade de Parcelas</label><input type="number" name="parc_qtde" value="{{ obj.parc_qtde|default:0 }}" class="form-control form-control-sm"></div>
+    <div class="col-3"><label class="form-label-sm">Meses após Ato</label><input type="number" name="parc_apos" value="{{ obj.parc_apos|default:0 }}" class="form-control form-control-sm"></div>
+
+    <div class="col-12"><strong style="font-size:11px">Reforços</strong></div>
+    <div class="col-3"><label class="form-label-sm">Percentual</label><input type="text" name="ref_perc" value="{{ obj.ref_perc|default:0 }}" class="form-control form-control-sm text-end pf-num" oninput="calcPercs()"></div>
+    <div class="col-3"><label class="form-label-sm">Quantidade de Parcelas</label><input type="number" name="ref_qtde" value="{{ obj.ref_qtde|default:0 }}" class="form-control form-control-sm"></div>
+    <div class="col-3"><label class="form-label-sm">Periodicidade em meses</label><input type="number" name="ref_interv" value="{{ obj.ref_interv|default:0 }}" class="form-control form-control-sm"></div>
+
+    <div class="col-12"><strong style="font-size:11px">Chaves</strong></div>
+    <div class="col-3"><label class="form-label-sm">Percentual</label><input type="text" name="cha_perc" value="{{ obj.cha_perc|default:0 }}" class="form-control form-control-sm text-end pf-num" oninput="calcPercs()"></div>
+
+    <div class="col-12"><strong style="font-size:11px">Financiamento (Parcelas)</strong></div>
+    <div class="col-3"><label class="form-label-sm">Percentual</label><input type="text" name="fin_parc_perc" value="{{ obj.fin_parc_perc|default:0 }}" class="form-control form-control-sm text-end pf-fin" oninput="calcPercs()"></div>
+    <div class="col-3"><label class="form-label-sm">Quantidade de Parcelas</label><input type="number" name="fin_parc_qtde" value="{{ obj.fin_parc_qtde|default:0 }}" class="form-control form-control-sm"></div>
+    <div class="col-3"><label class="form-label-sm">Meses após Chaves</label><input type="number" name="fin_parc_apos" value="{{ obj.fin_parc_apos|default:0 }}" class="form-control form-control-sm"></div>
+
+    <div class="col-12"><strong style="font-size:11px">Financiamento (Reforços)</strong></div>
+    <div class="col-3"><label class="form-label-sm">Percentual</label><input type="text" name="fin_ref_perc" value="{{ obj.fin_ref_perc|default:0 }}" class="form-control form-control-sm text-end pf-fin" oninput="calcPercs()"></div>
+    <div class="col-3"><label class="form-label-sm">Quantidade de Parcelas</label><input type="number" name="fin_ref_qtde" value="{{ obj.fin_ref_qtde|default:0 }}" class="form-control form-control-sm"></div>
+    <div class="col-3"><label class="form-label-sm">Periodicidade</label><input type="number" name="fin_ref_interv" value="{{ obj.fin_ref_interv|default:0 }}" class="form-control form-control-sm"></div>
+
+    <!-- Percentuais (calculados) -->
+    <div class="col-12">
+      <hr class="my-1">
+      <div class="d-flex gap-4 align-items-center" style="background:#f0f0f0;border:1px solid #ccc;border-radius:3px;padding:6px 10px;font-size:12px">
+        <span>Poupança :</span>
+        <b id="pf-poupanca" style="color:#00008b;min-width:60px;text-align:right">0,00</b>
+        <span>Financiamento :</span>
+        <b id="pf-financ" style="color:#00008b;min-width:60px;text-align:right">0,00</b>
+        <span>Total :</span>
+        <b id="pf-total" style="color:#c00;min-width:60px;text-align:right">0,00</b>
+      </div>
+    </div>
+
+    <!-- Tipo de Financiamento + Preço de Venda -->
+    <div class="col-12">
+      <div class="d-flex gap-4 align-items-center flex-wrap" style="font-size:12px">
+        <div>
+          <strong>Tipo de Financiamento :</strong>
+          <label class="ms-2"><input type="radio" name="tipo_financiamento" value="1" {% if not obj or obj.tipo_financiamento == 1 %}checked{% endif %}> Bancário</label>
+          <label class="ms-2"><input type="radio" name="tipo_financiamento" value="2" {% if obj and obj.tipo_financiamento == 2 %}checked{% endif %}> Direto</label>
+          <label class="ms-2"><input type="radio" name="tipo_financiamento" value="3" {% if obj and obj.tipo_financiamento == 3 %}checked{% endif %}> Curta</label>
+        </div>
+        <div class="ms-4">
+          <strong>Preço de Venda :</strong>
+          <label class="ms-2"><input type="radio" name="preco_venda_ref" value="1" {% if not obj or obj.preco_venda_ref == 1 %}checked{% endif %}> (1)</label>
+          <label class="ms-2"><input type="radio" name="preco_venda_ref" value="2" {% if obj and obj.preco_venda_ref == 2 %}checked{% endif %}> (2)</label>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="d-flex gap-2 mt-3">
+    <button type="submit" class="btn btn-sm btn-primary">Salvar</button>
+    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+  </div>
+</form>
+
+<script>
+function calcPercs() {
+  const v = s => {
+    const el = document.querySelector('.' + s);
+    return el ? (parseFloat(el.closest('form').querySelectorAll('.' + s + ' ~ .' + s)[0]?.value || el.value) || 0) : 0;
+  };
+  const nums = [...document.querySelectorAll('.pf-num')].map(el => {
+    const raw = el.value.replace(/\./g,'').replace(',','.');
+    return parseFloat(raw) || 0;
+  });
+  const fins = [...document.querySelectorAll('.pf-fin')].map(el => {
+    const raw = el.value.replace(/\./g,'').replace(',','.');
+    return parseFloat(raw) || 0;
+  });
+  const poup = nums.reduce((a,b) => a+b, 0);
+  const financ = fins.reduce((a,b) => a+b, 0);
+  const total = poup + financ;
+  const fmt = n => n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('pf-poupanca').textContent = fmt(poup);
+  document.getElementById('pf-financ').textContent   = fmt(financ);
+  document.getElementById('pf-total').textContent    = fmt(total);
+}
+document.addEventListener('DOMContentLoaded', calcPercs);
+// Também roda quando o formulário é carregado via HTMX
+setTimeout(calcPercs, 100);
+</script>

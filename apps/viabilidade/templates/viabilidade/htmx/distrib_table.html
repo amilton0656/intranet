@@ -1,0 +1,35 @@
+<div id="distrib-section">
+<table class="grid-inline">
+  <thead>
+    <tr>
+      <th>Custo</th><th class="text-end">Percentual</th>
+      <th class="text-end">Qtde de Meses</th><th class="text-end">Mês de Início</th>
+      <th style="width:70px"></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in distribuicoes %}
+    <tr>
+      <td>{{ d.custo }}</td>
+      <td class="text-end">{{ d.custo_perc }}</td>
+      <td class="text-end">{{ d.custo_qtde }}</td>
+      <td class="text-end">{{ d.custo_inicio }}</td>
+      <td>
+        <button type="button" class="btn-acao btn-edit"
+          hx-get="{% url 'viabilidade:htmx_distrib_form_edit' estudo.pk d.pk %}"
+          hx-target="#htmxModalBody"
+          hx-trigger="click"
+          onclick="abrirModal('Editar Distribuição')">Ed</button>
+        <button type="button" class="btn-acao btn-del"
+          hx-post="{% url 'viabilidade:htmx_distrib_delete' estudo.pk d.pk %}"
+          hx-target="#distrib-section"
+          hx-swap="outerHTML"
+          hx-confirm="Excluir?">X</button>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5" style="text-align:center;color:#999;padding:6px">Nenhuma distribuição cadastrada.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>

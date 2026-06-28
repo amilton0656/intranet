@@ -1,0 +1,35 @@
+<div id="constru-section">
+<table class="grid-inline" style="width:100%">
+  <thead>
+    <tr>
+      <th class="text-end">Percentual</th>
+      <th class="text-end">Mês de Início</th>
+      <th>Curva</th>
+      <th style="width:70px"></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in construcoes %}
+    <tr>
+      <td class="text-end">{{ c.constru_perc }}</td>
+      <td class="text-end">{{ c.constru_inicio }}</td>
+      <td>{{ c.curva.descricao|default:"—" }}</td>
+      <td style="white-space:nowrap">
+        <button type="button" class="btn-acao btn-edit"
+          hx-get="{% url 'viabilidade:htmx_constru_form_edit' estudo.pk c.pk %}"
+          hx-target="#htmxModalBody"
+          hx-trigger="click"
+          onclick="abrirModal('Editar Construção')">Ed</button>
+        <button type="button" class="btn-acao btn-del"
+          hx-post="{% url 'viabilidade:htmx_constru_delete' estudo.pk c.pk %}"
+          hx-target="#constru-section"
+          hx-swap="outerHTML"
+          hx-confirm="Excluir?">X</button>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4" style="text-align:center;color:#999;padding:6px">Nenhuma etapa. Clique em "Construção".</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>

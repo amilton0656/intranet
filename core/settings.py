@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'apps.maxflora',
     'apps.ajr_padrao',
     'apps.menu_acesso',
+    'apps.viabilidade',
 ]
 
 MIDDLEWARE = [

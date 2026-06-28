@@ -1,0 +1,20 @@
+{% load viab_fmt %}
+<div class="res-box" style="{% if style %}{{ style }}{% endif %}">
+  <div class="res-box-titulo">Resultados a VP</div>
+  <div class="res-item">
+    <span class="res-label">&#128196; RECEITA LÍQUIDA :</span>
+    <span class="res-valor">{{ resumo.rec_liq|default:0|br2 }}</span>
+  </div>
+  <div class="res-item">
+    <span class="res-label">&#128196; CUSTO TOTAL :</span>
+    <span class="res-valor">{{ resumo.custo_total|default:0|br2 }}</span>
+  </div>
+  <div class="res-item">
+    <span class="res-label">&#128196; LUCRO LÍQUIDO :</span>
+    <span class="res-valor">{{ resumo.resultado_liq|default:0|br2 }}</span>
+  </div>
+  <div class="res-rodape">
+    <span>m² total : {{ resumo.area_real_total|default:0|br2 }}</span>
+    <span class="res-margem">{{ resumo.margem_liq|default:0|br2 }} %</span>
+  </div>
+</div>

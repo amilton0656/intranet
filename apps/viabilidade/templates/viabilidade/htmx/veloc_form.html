@@ -1,0 +1,36 @@
+<form hx-post="{% if obj %}{% url 'viabilidade:htmx_veloc_save_edit' estudo.pk obj.pk %}{% else %}{% url 'viabilidade:htmx_veloc_save_new' estudo.pk %}{% endif %}"
+      hx-target="#veloc-section" hx-swap="outerHTML">
+  {% csrf_token %}
+  <div class="row g-2">
+    <div class="col-6">
+      <label class="form-label-sm">Agrupamento</label>
+      <select name="agrupamento" class="form-select form-select-sm">
+        <option value="">— Nenhum —</option>
+        {% for a in agrupamentos %}<option value="{{ a.pk }}" {% if obj and obj.agrupamento_id == a.pk %}selected{% endif %}>{{ a.descricao }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6">
+      <label class="form-label-sm">Parâmetro de Venda</label>
+      <select name="param_vendas" class="form-select form-select-sm">
+        <option value="">— Nenhum —</option>
+        {% for p in params_vendas %}<option value="{{ p.pk }}" {% if obj and obj.param_vendas_id == p.pk %}selected{% endif %}>{{ p.descricao|default:p.pk }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-4">
+      <label class="form-label-sm">% do Total</label>
+      <input type="text" name="veloc_perc" value="{{ obj.veloc_perc|default:0 }}" class="form-control form-control-sm text-end">
+    </div>
+    <div class="col-4">
+      <label class="form-label-sm">Qtde (meses)</label>
+      <input type="number" name="veloc_qtde" value="{{ obj.veloc_qtde|default:0 }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-4">
+      <label class="form-label-sm">Mês de Início</label>
+      <input type="number" name="veloc_inicio" value="{{ obj.veloc_inicio|default:0 }}" class="form-control form-control-sm">
+    </div>
+  </div>
+  <div class="d-flex gap-2 mt-3">
+    <button type="submit" class="btn btn-sm btn-primary">Salvar</button>
+    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+  </div>
+</form>

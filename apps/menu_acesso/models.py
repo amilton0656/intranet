@@ -14,6 +14,7 @@ class MenuItem(models.Model):
         ('incorporadora', 'Incorporadora'),
         ('maxflora',      'Max & Flora'),
         ('chat',          'Chat'),
+        ('viabilidade',   'Viabilidade'),
     ]
     NAVBAR_CHOICES = [
         ('principal',  'Navbar Principal'),

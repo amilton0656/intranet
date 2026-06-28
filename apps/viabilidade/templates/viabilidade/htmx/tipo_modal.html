@@ -1,0 +1,34 @@
+<div id="tipo-modal-content">
+  <table class="grid-inline mb-2" style="width:100%">
+    <thead>
+      <tr>
+        <th>Descrição</th>
+        <th style="width:60px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in tipos %}
+      <tr>
+        <td>{{ t.descricao }}</td>
+        <td>
+          <button type="button" class="btn-acao btn-edit"
+            hx-get="{% url 'viabilidade:htmx_tipo_form_edit' t.pk %}"
+            hx-target="#tipo-form-area"
+            hx-swap="innerHTML">Ed</button>
+          <button type="button" class="btn-acao btn-del"
+            hx-post="{% url 'viabilidade:htmx_tipo_delete' t.pk %}"
+            hx-target="#tipo-modal-content"
+            hx-swap="outerHTML"
+            hx-confirm="Excluir '{{ t.descricao }}'?">X</button>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="2" style="text-align:center;color:#999;padding:6px">Nenhum tipo cadastrado.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div id="tipo-form-area">
+    {% include "viabilidade/htmx/tipo_form.html" with obj=None %}
+  </div>
+</div>

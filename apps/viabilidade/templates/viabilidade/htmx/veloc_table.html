@@ -1,0 +1,39 @@
+<div id="veloc-section">
+<table class="grid-inline" style="width:100%">
+  <thead>
+    <tr>
+      <th>Agrupamento</th>
+      <th class="text-end">Percentual</th>
+      <th class="text-end">Qtde de Meses</th>
+      <th class="text-end">Mês de Início</th>
+      <th>Tabela</th>
+      <th style="width:70px"></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for v in velocidades %}
+    <tr>
+      <td>{{ v.agrupamento|default:"—" }}</td>
+      <td class="text-end">{{ v.veloc_perc }}</td>
+      <td class="text-end">{{ v.veloc_qtde }}</td>
+      <td class="text-end">{{ v.veloc_inicio }}</td>
+      <td>{{ v.param_vendas.descricao|default:v.param_vendas_id|default:"—" }}</td>
+      <td style="white-space:nowrap">
+        <button type="button" class="btn-acao btn-edit"
+          hx-get="{% url 'viabilidade:htmx_veloc_form_edit' estudo.pk v.pk %}"
+          hx-target="#htmxModalBody"
+          hx-trigger="click"
+          onclick="abrirModal('Editar Velocidade')">Ed</button>
+        <button type="button" class="btn-acao btn-del"
+          hx-post="{% url 'viabilidade:htmx_veloc_delete' estudo.pk v.pk %}"
+          hx-target="#veloc-section"
+          hx-swap="outerHTML"
+          hx-confirm="Excluir?">X</button>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" style="text-align:center;color:#999;padding:6px">Nenhuma velocidade. Clique em "Velocidade".</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>

@@ -1,0 +1,22 @@
+{% extends "viabilidade/base.html" %}
+{% block title %}Velocidade de Vendas{% endblock %}
+{% block content %}
+<div class="card mx-auto" style="max-width:600px">
+  <div class="card-header bg-white fw-semibold">Velocidade de Vendas &mdash; {{ estudo }}</div>
+  <div class="card-body">
+    <form method="post">{% csrf_token %}
+      <div class="row g-3">
+        <div class="col-md-6"><label class="form-label">Agrupamento</label>{{ form.agrupamento }}</div>
+        <div class="col-md-6"><label class="form-label">Parâmetro de Venda</label>{{ form.param_vendas }}</div>
+        <div class="col-md-4"><label class="form-label">% do Total</label>{{ form.veloc_perc }}{{ form.veloc_perc.errors }}</div>
+        <div class="col-md-4"><label class="form-label">Qtde (meses)</label>{{ form.veloc_qtde }}</div>
+        <div class="col-md-4"><label class="form-label">Mês de Início</label>{{ form.veloc_inicio }}</div>
+      </div>
+      <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{% url 'viabilidade:velocidade_list' estudo.pk %}" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "viabilidade/base.html" %}
+{% block title %}Configuração - {{ estudo }}{% endblock %}
+{% block content %}
+<div class="card mx-auto" style="max-width:700px">
+  <div class="card-header bg-white fw-semibold">{{ titulo|default:"Editar Configuração" }} &mdash; {{ estudo }}</div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="row g-3">
+        <div class="col-md-6"><label class="form-label">Tipo</label>{{ form.tipo }}{{ form.tipo.errors }}</div>
+        <div class="col-md-6"><label class="form-label">Agrupamento</label>{{ form.agrupamento }}</div>
+        <div class="col-md-4"><label class="form-label">Qtde Total</label>{{ form.config_qtde_total }}</div>
+        <div class="col-md-4"><label class="form-label">Qtde Permuta</label>{{ form.config_qtde_permu }}</div>
+        <div class="col-md-4"><label class="form-label">Qtde Imobilizado</label>{{ form.config_qtde_imob }}</div>
+        <div class="col-md-4"><label class="form-label">Área Real (m²)</label>{{ form.config_area_real }}</div>
+        <div class="col-md-4"><label class="form-label">Área Privativa (m²)</label>{{ form.config_area_priv }}</div>
+        <div class="col-md-4"><label class="form-label">Valor R$/m²</label>{{ form.config_valor_m2 }}</div>
+        <div class="col-md-6 d-flex align-items-center gap-2">
+          {{ form.config_fechado }}<label class="form-label mb-0">Preço Fechado por Unidade</label>
+        </div>
+        <div class="col-md-6 d-flex align-items-center gap-2">
+          {{ form.config_ge }}<label class="form-label mb-0">É Garagem</label>
+        </div>
+      </div>
+      {% if form.non_field_errors %}<div class="alert alert-danger mt-3">{{ form.non_field_errors }}</div>{% endif %}
+      <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{% url 'viabilidade:config_list' estudo.pk %}" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

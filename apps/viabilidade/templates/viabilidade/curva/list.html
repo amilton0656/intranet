@@ -1,0 +1,29 @@
+{% extends "viabilidade/base.html" %}
+{% block title %}Curvas de Construção{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Curvas de Construção</h4>
+  <a href="{% url 'viabilidade:curva_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Nova</a>
+</div>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Descrição</th><th class="text-center">Meses</th><th></th></tr></thead>
+      <tbody>
+        {% for c in curvas %}
+        <tr>
+          <td class="fw-semibold">{{ c.descricao }}</td>
+          <td class="text-center">{{ c.num_meses }}</td>
+          <td>
+            <a href="{% url 'viabilidade:curvames_list' c.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar3"></i> Meses</a>
+            <a href="{% url 'viabilidade:curva_update' c.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+            <a href="{% url 'viabilidade:curva_delete' c.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+          </td>
+        </tr>
+        {% empty %}<tr><td colspan="3" class="text-center text-muted py-4">Nenhuma curva.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,908 @@
+{% extends "viabilidade/base_painel.html" %}
+{% load viab_fmt %}
+{% block title %}Viabilidade - {{ estudo.planilha }}{% endblock %}
+
+{% block body %}
+<body class="d-flex flex-column"
+      style="height:100vh"
+      data-estudo-pk="{{ estudo.pk }}"
+      data-aba-ativa="{{ aba_ativa|default:'receita' }}">
+
+<form method="post" id="form-estudo" autocomplete="off">
+{% csrf_token %}
+<input type="hidden" name="aba_ativa" id="aba-ativa-input" value="{{ aba_ativa|default:'receita' }}">
+
+<!-- ══════════════ TOPO ══════════════ -->
+<div class="painel-topo">
+  <a href="{% url 'viabilidade:estudo_list' %}" style="color:#aad;font-size:18px;text-decoration:none">&#8249;</a>
+  <label>Empreendimento:</label>
+  <select name="empreendimento" style="min-width:180px">
+    {% for emp in empreendimentos %}
+    <option value="{{ emp.pk }}" {% if emp.pk == estudo.empreendimento_id %}selected{% endif %}>{{ emp.nome }}</option>
+    {% endfor %}
+  </select>
+  <label>Estudo #{{ estudo.pk }}</label>
+  <label>Descrição:</label>
+  <input type="text" name="planilha" value="{{ estudo.planilha }}" style="min-width:200px">
+  <label>Base:</label>
+  <input type="text" id="topo-dt-base" value="{{ estudo.dt_base }}" style="width:70px;background:#dde;cursor:default" placeholder="MMAAAA" readonly tabindex="-1">
+  <div style="flex:1"></div>
+  <button type="submit" class="btn-nav" style="background:#2a6;padding:3px 12px;font-weight:700">
+    &#10003; Salvar
+  </button>
+  <a href="{% url 'viabilidade:estudo_resultado' estudo.pk %}" class="btn-nav" style="background:#448;padding:3px 10px">
+    Resultado
+  </a>
+  <a href="{% url 'viabilidade:estudo_fluxo' estudo.pk %}" class="btn-nav" style="padding:3px 10px">
+    Fluxo
+  </a>
+</div>
+
+<!-- ══════════════ TABS ══════════════ -->
+<div class="painel-tabs">
+  <ul class="nav nav-tabs" id="painelTabs">
+    <li class="nav-item">
+      <a class="nav-link active" id="tab-receita-link" data-bs-toggle="tab" href="#tab-receita" data-aba="receita">Receita Líquida</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="tab-vendas-link" data-bs-toggle="tab" href="#tab-vendas" data-aba="vendas">Vendas</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="tab-construcao-link" data-bs-toggle="tab" href="#tab-construcao" data-aba="construcao">Construção</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="tab-custos-link" data-bs-toggle="tab" href="#tab-custos" data-aba="custos">Outros Custos</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="tab-financeiro-link" data-bs-toggle="tab" href="#tab-financeiro" data-aba="financeiro">Financeiro</a>
+    </li>
+  </ul>
+</div>
+
+<!-- ══════════════ CORPO PRINCIPAL ══════════════ -->
+<div class="painel-body" style="flex:1;min-height:0">
+
+  <!-- Conteúdo das abas -->
+  <div class="painel-conteudo">
+    <div class="tab-content">
+
+      <!-- ─────── ABA 1: RECEITA LÍQUIDA ─────── -->
+      <div class="tab-pane fade show active" id="tab-receita">
+
+        <!-- ═══ LINHA 1: Cards 1-4 ═══ -->
+        <div class="d-flex gap-1 mb-1" style="align-items:stretch">
+
+          <!-- Card 1: Descrição do Empreendimento -->
+          <fieldset class="grupo mb-0" style="flex:2;min-width:160px">
+            <legend>Descrição do Empreendimento</legend>
+            <textarea readonly class="form-control-sm"
+                      style="width:100%;height:68px;resize:none;font-size:11px;background:#f0f0f0;cursor:default"
+                      >{{ estudo.empreendimento.descricao }}</textarea>
+          </fieldset>
+
+          <!-- Card 2: Tipo do Preço de Venda -->
+          <fieldset class="grupo mb-0" style="min-width:140px">
+            <legend>Tipo do Preço de Venda</legend>
+            <label class="ck-label mb-2">
+              <input type="radio" name="tipo_preco_venda" value="1"
+                     {% if estudo.tipo_preco_venda == 1 %}checked{% endif %}> Área Real
+            </label>
+            <label class="ck-label">
+              <input type="radio" name="tipo_preco_venda" value="2"
+                     {% if estudo.tipo_preco_venda == 2 %}checked{% endif %}> Área Privativa
+            </label>
+          </fieldset>
+
+          <!-- Card 3: Áreas Alternativas -->
+          <fieldset class="grupo mb-0" style="min-width:160px">
+            <legend>Áreas  Alternativas</legend>
+            <div class="d-flex align-items-center gap-1 mb-2">
+              <label class="form-label-sm mb-0" style="width:90px">Real Total :</label>
+              <input type="text" name="area_real_total" value="{{ estudo.area_real_total }}"
+                     class="form-control-sm num-input" style="width:80px">
+            </div>
+            <div class="d-flex align-items-center gap-1">
+              <label class="form-label-sm mb-0" style="width:90px">Privativa Total :</label>
+              <input type="text" name="area_priv_total" value="{{ estudo.area_priv_total }}"
+                     class="form-control-sm num-input" style="width:80px">
+            </div>
+          </fieldset>
+
+          <!-- Card 4: Vagas + Área do Terreno -->
+          <div class="grupo mb-0" style="min-width:200px">
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+              <label class="form-label-sm mb-0" style="white-space:nowrap">Total de Vagas de Garagem :</label>
+              <input type="text" value="{{ resumo.gar_total|default:0|br0 }}"
+                     class="form-control-sm num-input" readonly
+                     style="width:50px;background:#f0f0f0;text-align:right">
+            </div>
+            <div class="d-flex justify-content-between align-items-center gap-2">
+              <label class="form-label-sm mb-0" style="white-space:nowrap">Área do Terreno :</label>
+              <input type="text" name="terreno_area" value="{{ estudo.terreno_area }}"
+                     class="form-control-sm num-input" style="width:80px;text-align:right">
+            </div>
+          </div>
+
+        </div><!-- /linha 1 -->
+
+        <!-- ═══ LINHA 2: Card 5 (grid) + Cards 6 e 7 (direita) ═══ -->
+        <div class="d-flex gap-1" style="align-items:stretch">
+
+          <!-- Card 5: Configuração do Empreendimento -->
+          <fieldset class="grupo mb-0" style="flex:1;min-width:0;display:flex;flex-direction:column">
+            <legend>Configuração do Empreendimento</legend>
+
+            <!-- Grid inline -->
+            <div id="config-section" class="overflow-auto-x" style="flex:1">
+              {% include "viabilidade/htmx/config_table.html" %}
+            </div>
+
+            <!-- Botões abaixo do grid (como no original) -->
+            <div class="d-flex gap-2 mt-2 pt-1" style="border-top:1px solid #ccc">
+              <button type="button" class="btn-add"
+                hx-get="{% url 'viabilidade:htmx_config_form_new' estudo.pk %}"
+                hx-target="#htmxModalBody"
+                hx-trigger="click"
+                onclick="abrirModal('Nova Configuração')">
+                Configuração
+              </button>
+              <div style="flex:1"></div>
+              <button type="button" class="btn-add" style="background:#d0e8ff"
+                hx-get="{% url 'viabilidade:htmx_agrup_form_new' estudo.pk %}"
+                hx-target="#htmxModalBody"
+                hx-trigger="click"
+                onclick="abrirModal('Novo Agrupamento')">
+                Agrupamentos
+              </button>
+              <button type="button" class="btn-add" style="background:#d0f0d0"
+                hx-get="{% url 'viabilidade:htmx_tipo_modal' %}"
+                hx-target="#htmxModalBody"
+                hx-trigger="click"
+                onclick="abrirModal('Tipos de Unidade')">
+                Tipos
+              </button>
+            </div>
+          </fieldset>
+
+          <!-- Coluna direita: Cards 6 e 7 empilhados -->
+          <div style="width:160px;flex-shrink:0;display:flex;flex-direction:column;gap:4px">
+
+            <!-- Card 6: Valor Final do m² -->
+            <fieldset class="grupo mb-0" style="flex:1">
+              <legend>Valor Final do m2</legend>
+              {% for i,nome,val in precos_sim %}
+              <div class="d-flex align-items-center gap-1 mb-1">
+                <span class="form-label-sm" style="width:16px">{{ i }}.</span>
+                <input type="text" name="{{ nome }}" value="{{ val }}"
+                       class="form-control-sm num-input" style="width:110px">
+              </div>
+              {% endfor %}
+            </fieldset>
+
+            <!-- Card 7: Tipo da Receita -->
+            <fieldset class="grupo mb-0">
+              <legend>Tipo da Receita</legend>
+              <label class="ck-label mb-1">
+                <input type="radio" name="receita_final" value="0"
+                       {% if not estudo.receita_final %}checked{% endif %}> Inicial
+              </label>
+              <label class="ck-label">
+                <input type="radio" name="receita_final" value="1"
+                       {% if estudo.receita_final %}checked{% endif %}> Final
+              </label>
+            </fieldset>
+
+          </div><!-- /col direita -->
+
+        </div><!-- /linha 2 -->
+
+        <!-- ═══ LINHA 3: (3 + 1|2) à esq  +  (5 + 6) à dir ═══ -->
+        <div class="d-flex gap-1 mt-1" style="align-items:stretch">
+
+          <!-- COLUNA ESQUERDA: quadro 3 (topo) + quadros 1|2 (baixo) -->
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+
+            <!-- Quadro 3: Tabela de totais -->
+            <div class="barra-totais" style="border-radius:3px">
+              <table style="width:100%;border-collapse:collapse">
+                <thead>
+                  <tr>
+                    <td></td>
+                    <td class="col-header text-end">Quantidade</td>
+                    <td class="col-header text-end">Unds.</td>
+                    <td class="col-header text-end" style="padding-right:10px">Gar. Extras</td>
+                    <td class="col-header text-end" style="border-left:2px solid #6677aa">Área Real Total</td>
+                    <td class="col-header text-end" style="padding-right:10px">Área Priv. Total</td>
+                    <td class="col-header text-end" style="border-left:2px solid #6677aa">Receita (sem juros)</td>
+                    <td class="col-header text-end">R$</td>
+                    <td class="col-header text-end">%</td>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="label">Total :</td>
+                    <td class="val" id="und-total">{{ resumo.und_total|default:0 }}</td>
+                    <td class="val">—</td>
+                    <td class="val" style="padding-right:10px">{{ resumo.gar_total|default:"0,00" }}</td>
+                    <td class="val" id="area-real-total" style="border-left:2px solid #6677aa">{{ resumo.area_real_total|default:0|br2 }}</td>
+                    <td class="val" id="area-priv-total" style="padding-right:10px">{{ resumo.area_priv_total|default:0|br2 }}</td>
+                    <td class="val" style="border-left:2px solid #6677aa">Receita Total :</td>
+                    <td class="val" id="rec-total-val">{{ resumo.rec_total|default:0|br2 }}</td>
+                    <td class="val">100,00</td>
+                  </tr>
+                  <tr>
+                    <td class="label">Permutadas :</td>
+                    <td class="val" id="und-permu">{{ resumo.und_permu|default:"0,00" }}</td>
+                    <td class="val">0,00</td>
+                    <td class="val" style="padding-right:10px">0,00</td>
+                    <td class="val" style="border-left:2px solid #6677aa">0,00</td>
+                    <td class="val" style="padding-right:10px">0,00</td>
+                    <td class="val" style="border-left:2px solid #6677aa">(-) Permutadas :</td>
+                    <td class="val">{{ resumo.rec_permu|default:"0,00"|br2 }}</td>
+                    <td class="val">0,00</td>
+                  </tr>
+                  <tr>
+                    <td class="label">Imobilizadas :</td>
+                    <td class="val" id="und-imob">{{ resumo.und_imob|default:"0,00" }}</td>
+                    <td class="val">0,00</td>
+                    <td class="val" style="padding-right:10px">0,00</td>
+                    <td class="val" style="border-left:2px solid #6677aa">0,00</td>
+                    <td class="val" style="padding-right:10px">0,00</td>
+                    <td class="val" style="border-left:2px solid #6677aa">(-) Imobilizadas :</td>
+                    <td class="val">0,00</td>
+                    <td class="val">0,00</td>
+                  </tr>
+                  <tr>
+                    <td class="label">Unid. à Venda :</td>
+                    <td class="val" id="und-avenda">{{ resumo.und_avenda|default:0 }}</td>
+                    <td class="val">—</td>
+                    <td class="val" id="und-gar" style="padding-right:10px">{{ resumo.gar_total|default:"0,00" }}</td>
+                    <td class="val" id="und-area-real" style="border-left:2px solid #6677aa">{{ resumo.area_real_total|default:0|br2 }}</td>
+                    <td class="val" id="und-area-priv" style="padding-right:10px">{{ resumo.area_priv_total|default:0|br2 }}</td>
+                    <td class="val" style="border-left:2px solid #6677aa">Receita Líquida :</td>
+                    <td class="val" id="rec-liq-val">{{ resumo.rec_liq|default:0|br2 }}</td>
+                    <td class="val" id="rec-liq-perc">100,00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div><!-- /quadro 3 -->
+
+            <!-- Quadros 1 e 2 lado a lado -->
+            <div class="d-flex gap-1">
+
+              <!-- Quadro 1: Preços médios + Áreas médias (2 colunas) -->
+              <div style="flex:1;background:#d4d0c8;border:1px solid #999;border-radius:3px;padding:4px 8px;font-size:11px;display:grid;grid-template-columns:1fr 1fr;gap:2px 16px">
+                <div class="d-flex justify-content-between gap-2">
+                  <span>Preço médio do m2 :</span>
+                  <b style="color:#00008b;white-space:nowrap" id="preco-medio-m2">{{ resumo.preco_medio_m2|default:0|br4 }}</b>
+                </div>
+                <div class="d-flex justify-content-between gap-2" style="border-left:2px solid #8899aa;padding-left:8px">
+                  <span>Área Real Média (unid.) :</span>
+                  <b style="color:#00008b;white-space:nowrap" id="area-real-media">{{ resumo.area_real_media_unid|default:0|br4 }}</b>
+                </div>
+                <div class="d-flex justify-content-between gap-2">
+                  <span>Preço médio da Unidade :</span>
+                  <b style="color:#00008b;white-space:nowrap" id="preco-medio-unid">{{ resumo.preco_medio_unid|default:0|br4 }}</b>
+                </div>
+                <div class="d-flex justify-content-between gap-2" style="border-left:2px solid #8899aa;padding-left:8px">
+                  <span>Área Priv. Média (unid.) :</span>
+                  <b style="color:#00008b;white-space:nowrap" id="area-priv-media">{{ resumo.area_priv_media_unid|default:0|br4 }}</b>
+                </div>
+              </div><!-- /quadro 1 -->
+
+              <!-- Quadro 2: Eficiência do Projeto -->
+              <div style="background:#d4d0c8;border:1px solid #999;border-radius:3px;padding:4px 8px;font-size:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:120px">
+                <span>Eficiência do Projeto :</span>
+                <b style="color:#00008b;font-size:14px;margin-top:4px" id="eficiencia-proj">{{ resumo.eficiencia_decimal|default:0|br2 }}</b>
+              </div><!-- /quadro 2 -->
+
+            </div><!-- /quadros 1 e 2 -->
+
+          </div><!-- /coluna esquerda -->
+
+          <!-- COLUNA DIREITA: quadro 5 (topo) + quadro 6 (baixo) -->
+          <div style="width:200px;flex-shrink:0;display:flex;flex-direction:column;gap:2px">
+
+            <!-- Quadro 5: Total das Permutas -->
+            <div style="background:#d4d0c8;border:1px solid #999;border-radius:3px;
+                        display:flex;align-items:center;justify-content:space-between;
+                        padding:4px 8px;font-size:11px">
+              <span>Total das Permutas :</span>
+              <span style="font-weight:700;color:#006">
+                <span id="res-permutas">0,00</span> %
+              </span>
+            </div><!-- /quadro 5 -->
+
+            <!-- Quadro 6: Resultados a VP -->
+            {% include "viabilidade/estudo/_resultados_vp.html" with style="flex:1" %}
+
+          </div><!-- /coluna direita -->
+
+        </div><!-- /linha 3 -->
+
+      </div><!-- /tab receita -->
+
+
+      <!-- ─────── ABA 2: VENDAS ─────── -->
+      <div class="tab-pane fade" id="tab-vendas">
+
+        <!-- ═══ CARD 1: Parâmetros das Vendas (grid completo, topo) ═══ -->
+        <fieldset class="grupo mb-1">
+          <legend>Velocidade de Vendas</legend>
+          <div id="param-section" class="overflow-auto-x">
+            {% include "viabilidade/htmx/param_table.html" %}
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-1 pt-1" style="border-top:1px solid #ccc">
+            <button type="button" class="btn-add"
+              hx-get="{% url 'viabilidade:htmx_param_form_new' estudo.pk %}"
+              hx-target="#htmxModalBody"
+              hx-trigger="click"
+              onclick="abrirModal('Novo Parâmetro de Venda')">
+              Parâmetros das Vendas
+            </button>
+            <label class="ck-label">
+              <input type="checkbox" name="financ_inicio_construcao"> Financiamento a partir do início da construção
+            </label>
+          </div>
+        </fieldset>
+
+        <!-- ═══ LINHA 2: Cards 2-6 ═══ -->
+        <div class="d-flex gap-1" style="align-items:stretch">
+
+          <!-- Coluna esquerda: Cards 2 e 3 -->
+          <div style="width:440px;flex-shrink:0;display:flex;flex-direction:column;gap:4px">
+
+            <!-- Card 2: Períodos -->
+            <fieldset class="grupo mb-0" style="flex:1">
+              <legend>Períodos</legend>
+              <table style="width:100%;font-size:11px;border-collapse:collapse">
+                <tr>
+                  <td style="white-space:nowrap;color:#334;padding:2px 0">Data Base :</td>
+                  <td style="padding:2px 3px">
+                    <input type="text" name="dt_base" id="per-dt-base" value="{{ estudo.dt_base }}"
+                           style="width:62px;font-size:11px;padding:1px 3px;border:1px solid #aaa;text-align:right"
+                           placeholder="MMAAAA"
+                           oninput="const t=document.getElementById('topo-dt-base');if(t)t.value=this.value"
+                           onblur="recalcPeriodos()">
+                  </td>
+                  <td id="per-dt-str" style="color:#336;font-size:11px;padding:2px 3px;white-space:nowrap">{{ periodos.0.2 }}</td>
+                  <td id="per-dt-num" style="color:#669;font-size:11px;padding:2px 0;text-align:right">{{ periodos.0.3 }}</td>
+                </tr>
+                <tr>
+                  <td style="white-space:nowrap;color:#334;padding:2px 0">Pré-Lançamento :</td>
+                  <td style="padding:2px 3px">
+                    <input type="number" name="pre_lancamento" id="per-pre" value="{{ periodos.1.1 }}"
+                           style="width:40px;font-size:11px;padding:1px 3px;border:1px solid #aaa;text-align:right"
+                           onblur="recalcPeriodos()">
+                  </td>
+                  <td id="per-pre-str" style="color:#336;font-size:11px;padding:2px 3px;white-space:nowrap">{{ periodos.1.2 }}</td>
+                  <td id="per-pre-num" style="color:#669;font-size:11px;padding:2px 0;text-align:right">{{ periodos.1.3 }}</td>
+                </tr>
+                <tr>
+                  <td style="white-space:nowrap;color:#334;padding:2px 0">Lançamento :</td>
+                  <td style="padding:2px 3px">
+                    <input type="number" name="lancamento" id="per-lanc" value="{{ periodos.2.1 }}"
+                           style="width:40px;font-size:11px;padding:1px 3px;border:1px solid #aaa;text-align:right"
+                           onblur="recalcPeriodos()">
+                  </td>
+                  <td id="per-lanc-str" style="color:#336;font-size:11px;padding:2px 3px;white-space:nowrap">{{ periodos.2.2 }}</td>
+                  <td id="per-lanc-num" style="color:#669;font-size:11px;padding:2px 0;text-align:right">{{ periodos.2.3 }}</td>
+                </tr>
+                <tr>
+                  <td style="white-space:nowrap;color:#334;padding:2px 0">Início Construção :</td>
+                  <td style="padding:2px 3px">
+                    <input type="number" name="inicio_construcao" id="per-ini" value="{{ periodos.3.1 }}"
+                           style="width:40px;font-size:11px;padding:1px 3px;border:1px solid #aaa;text-align:right"
+                           onblur="recalcPeriodos()">
+                  </td>
+                  <td id="per-ini-str" style="color:#336;font-size:11px;padding:2px 3px;white-space:nowrap">{{ periodos.3.2 }}</td>
+                  <td id="per-ini-num" style="color:#669;font-size:11px;padding:2px 0;text-align:right">{{ periodos.3.3 }}</td>
+                </tr>
+                <tr>
+                  <td style="white-space:nowrap;color:#334;padding:2px 0">Tempo de Construção :</td>
+                  <td style="padding:2px 3px">
+                    <input type="number" name="tempo_construcao" id="per-dur" value="{{ periodos.4.1 }}"
+                           style="width:40px;font-size:11px;padding:1px 3px;border:1px solid #aaa;text-align:right"
+                           onblur="recalcPeriodos()">
+                  </td>
+                  <td id="per-dur-str" style="color:#336;font-size:11px;padding:2px 3px;white-space:nowrap">{{ periodos.4.2 }}</td>
+                  <td id="per-dur-num" style="color:#669;font-size:11px;padding:2px 0;text-align:right">{{ periodos.4.3 }}</td>
+                </tr>
+              </table>
+            </fieldset>
+
+            <script>
+            (function() {
+              const MESES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+
+              function parseDtBase(v) {
+                if (!v || v.length !== 6) return [1, 2024];
+                const mes = parseInt(v.substring(0, 2));
+                const ano = parseInt(v.substring(2));
+                if (isNaN(mes) || isNaN(ano) || mes < 1 || mes > 12) return [1, 2024];
+                return [mes, ano];
+              }
+
+              function offsetStr(mb, ab, off) {
+                const total = (ab - 1) * 12 + mb + off;
+                const ano = Math.floor((total - 1) / 12) + 1;
+                const mes = ((total - 1) % 12) + 1;
+                return MESES[mes - 1] + '/' + ano;
+              }
+
+              function g(id) { return document.getElementById(id); }
+
+              window.recalcPeriodos = function() {
+                const [mb, ab] = parseDtBase(g('per-dt-base')?.value || '');
+                const pre  = parseInt(g('per-pre')?.value)  || 0;
+                const lanc = parseInt(g('per-lanc')?.value) || 0;
+                const ini  = parseInt(g('per-ini')?.value)  || 0;
+                const dur  = parseInt(g('per-dur')?.value)  || 0;
+
+                g('per-dt-str').textContent  = offsetStr(mb, ab, 0);
+                g('per-dt-num').textContent  = 0;
+                g('per-pre-str').textContent = offsetStr(mb, ab, pre);
+                g('per-pre-num').textContent = pre;
+                g('per-lanc-str').textContent = offsetStr(mb, ab, lanc);
+                g('per-lanc-num').textContent = lanc;
+                g('per-ini-str').textContent = offsetStr(mb, ab, ini);
+                g('per-ini-num').textContent = ini;
+                const durOff = dur > 0 ? ini + dur - 1 : ini;
+                g('per-dur-str').textContent = offsetStr(mb, ab, durOff);
+                g('per-dur-num').textContent = durOff;
+              };
+            })();
+            </script>
+
+            <!-- Card 3: Margem Negocial -->
+            <div class="grupo mb-0">
+              <div class="d-flex justify-content-between align-items-center">
+                <label class="form-label-sm mb-0">Margem Negocial :</label>
+                <input type="text" name="margem_negocial" value="{{ estudo.margem_negocial }}"
+                       class="form-control-sm num-input" style="width:70px">
+              </div>
+            </div>
+
+          </div><!-- /col esq -->
+
+          <!-- Coluna central: Cards 4 e 5 -->
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+
+            <!-- Card 4: Velocidade de Vendas (grid) -->
+            <fieldset class="grupo mb-0" style="flex:1;display:flex;flex-direction:column">
+              <legend>Velocidade de Vendas</legend>
+              <div id="veloc-section" class="overflow-auto-x" style="flex:1">
+                {% include "viabilidade/htmx/veloc_table.html" %}
+              </div>
+              <div class="mt-1 pt-1" style="border-top:1px solid #ccc">
+                <button type="button" class="btn-add"
+                  hx-get="{% url 'viabilidade:htmx_veloc_form_new' estudo.pk %}"
+                  hx-target="#htmxModalBody"
+                  hx-trigger="click"
+                  onclick="abrirModal('Nova Velocidade')">
+                  Velocidade
+                </button>
+              </div>
+            </fieldset>
+
+            <!-- Cards 5 + 6: Agrupamentos e Resultados a VP lado a lado -->
+            <div class="d-flex gap-1" style="align-items:stretch">
+
+              <!-- Card 5: Agrupamentos -->
+              <fieldset class="grupo mb-0" style="flex:1">
+                <legend>Agrupamentos</legend>
+                <table class="grid-inline" style="width:100%">
+                  <thead>
+                    <tr>
+                      <th>Agrupamento</th>
+                      <th class="text-end">Qtde</th>
+                      <th class="text-end">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for ag, qtde, valor in agrupamentos_valor %}
+                    <tr>
+                      <td>{{ ag }}</td>
+                      <td class="text-end num">{{ qtde }}</td>
+                      <td class="text-end num">{{ valor|br2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" style="text-align:center;color:#999;padding:4px">Nenhum agrupamento.</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </fieldset>
+
+              <!-- Card 6: Resultados a VP -->
+              {% include "viabilidade/estudo/_resultados_vp.html" with style="width:230px;flex-shrink:0" %}
+
+            </div><!-- /cards 5+6 -->
+
+          </div><!-- /col central -->
+
+        </div><!-- /linha 2 -->
+
+      </div><!-- /tab vendas -->
+
+
+      <!-- ─────── ABA 3: CONSTRUÇÃO ─────── -->
+      <div class="tab-pane fade" id="tab-construcao">
+        <div class="d-flex gap-1" style="align-items:stretch">
+
+          <!-- ══ COLUNA ESQUERDA: Cards 1-4 ══ -->
+          <div style="width:290px;flex-shrink:0;display:flex;flex-direction:column;gap:4px">
+
+            <!-- Card 1: Área Total Equivalente -->
+            <fieldset class="grupo mb-0">
+              <legend>Área Total Equivalente</legend>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label-sm mb-0">% sobre a Área Real Total :</label>
+                <input type="text" name="area_equivalente_perc" value="{{ estudo.area_equivalente_perc }}"
+                       class="form-control-sm num-input" style="width:80px">
+              </div>
+              <div class="d-flex justify-content-between align-items-center">
+                <label class="form-label-sm mb-0">Área Total Equivalente :</label>
+                <input type="text" value="{{ resumo.area_equivalente|default:'0,00' }}"
+                       class="form-control-sm num-input" readonly style="width:80px;background:#f0f0f0">
+              </div>
+            </fieldset>
+
+            <!-- Card 2: Tipo do Custo do M2 -->
+            <fieldset class="grupo mb-0">
+              <legend>Tipo do Custo do M2</legend>
+              <div class="d-flex gap-3">
+                <label class="ck-label">
+                  <input type="radio" name="custo_m2_tipo" value="1"
+                         {% if estudo.custo_m2_tipo == 1 %}checked{% endif %}> Área Real
+                </label>
+                <label class="ck-label">
+                  <input type="radio" name="custo_m2_tipo" value="2"
+                         {% if estudo.custo_m2_tipo == 2 %}checked{% endif %}> Área Privativa
+                </label>
+                <label class="ck-label">
+                  <input type="radio" name="custo_m2_tipo" value="3"
+                         {% if estudo.custo_m2_tipo == 3 %}checked{% endif %}> Área Equivalente
+                </label>
+              </div>
+            </fieldset>
+
+            <!-- Card 3: Histórico -->
+            <fieldset class="grupo mb-0">
+              <legend>Histórico</legend>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label-sm mb-0">Índice :</label>
+                <input type="text" name="indice_reajuste" value="{{ estudo.indice_reajuste }}"
+                       class="form-control-sm num-input" style="width:80px">
+              </div>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label-sm mb-0">Valor do CUB (R$) :</label>
+                <input type="text" name="valor_cub" value="{{ estudo.valor_cub }}"
+                       class="form-control-sm num-input" style="width:80px">
+              </div>
+              <div class="d-flex justify-content-between align-items-center">
+                <label class="form-label-sm mb-0">Custo do M2 :</label>
+                <input type="text" value="{{ resumo.custo_m2_calc|default:'0,00' }}"
+                       class="form-control-sm num-input" readonly style="width:80px;background:#f0f0f0">
+              </div>
+            </fieldset>
+
+            <!-- Card 4: Períodos (somente leitura — editável na aba Vendas) -->
+            <fieldset class="grupo mb-0" style="flex:1">
+              <legend>Períodos</legend>
+              <table style="width:100%;font-size:11px;border-collapse:collapse">
+                {% for label, campo, data_str, mes_num in periodos %}
+                <tr>
+                  <td style="white-space:nowrap;color:#334;padding:2px 0">{{ label }} :</td>
+                  <td style="padding:2px 3px;font-weight:700;color:#003;text-align:right">
+                    {% if label == 'Data Base' %}{{ estudo.dt_base }}
+                    {% else %}{{ campo }}{% endif %}
+                  </td>
+                  <td style="color:#336;font-size:11px;padding:2px 3px;white-space:nowrap">{{ data_str }}</td>
+                  <td style="color:#669;font-size:11px;padding:2px 0;text-align:right">{{ mes_num }}</td>
+                </tr>
+                {% endfor %}
+              </table>
+            </fieldset>
+
+          </div><!-- /col esq -->
+
+          <!-- ══ COLUNA DIREITA: Cards 5-8 ══ -->
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+
+            <!-- Card 5: Construção (grid) -->
+            <fieldset class="grupo mb-0" style="flex:1;display:flex;flex-direction:column">
+              <legend>Construção</legend>
+              <div id="constru-section" class="overflow-auto-x" style="flex:1">
+                {% include "viabilidade/htmx/constru_table.html" %}
+              </div>
+              <div class="d-flex gap-2 mt-1 pt-1" style="border-top:1px solid #ccc">
+                <button type="button" class="btn-add"
+                  hx-get="{% url 'viabilidade:htmx_constru_form_new' estudo.pk %}"
+                  hx-target="#htmxModalBody"
+                  hx-trigger="click"
+                  onclick="abrirModal('Nova Etapa de Construção')">
+                  Construção
+                </button>
+                <div style="flex:1"></div>
+                <button type="button" class="btn-add" style="background:#d0f0d0"
+                  hx-get="{% url 'viabilidade:htmx_curva_modal' %}"
+                  hx-target="#htmxModalBody"
+                  hx-trigger="click"
+                  onclick="abrirModal('Curvas de Construção')">Curvas</button>
+              </div>
+            </fieldset>
+
+            <!-- Card 6: Áreas (calculado) -->
+            <fieldset class="grupo mb-0">
+              <legend>Áreas</legend>
+              <table style="width:100%;font-size:11px;border-collapse:collapse">
+                <tr>
+                  <td style="color:#336;padding:2px 6px">Área Real Total (m2) :</td>
+                  <td style="text-align:right;font-weight:700;color:#003;padding:2px 6px;font-family:monospace">{{ resumo.area_real_total|default:0|br2 }}</td>
+                </tr>
+                <tr>
+                  <td style="color:#336;padding:2px 6px">Valor m2 da Área Real Total (R$) :</td>
+                  <td style="text-align:right;font-weight:700;color:#003;padding:2px 6px;font-family:monospace">{{ resumo.custo_m2_real|default:0|br2 }}</td>
+                </tr>
+                <tr><td colspan="2" style="height:4px"></td></tr>
+                <tr>
+                  <td style="color:#336;padding:2px 6px">Área Privativa Total (m2) :</td>
+                  <td style="text-align:right;font-weight:700;color:#003;padding:2px 6px;font-family:monospace">{{ resumo.area_priv_total|default:0|br2 }}</td>
+                </tr>
+                <tr>
+                  <td style="color:#336;padding:2px 6px">Valor m2 da Área Privativa Total (R$) :</td>
+                  <td style="text-align:right;font-weight:700;color:#003;padding:2px 6px;font-family:monospace">{{ resumo.custo_m2_priv|default:0|br2 }}</td>
+                </tr>
+                <tr><td colspan="2" style="height:4px"></td></tr>
+                <tr>
+                  <td style="color:#336;padding:2px 6px">Área Total Equivalente (m2) :</td>
+                  <td style="text-align:right;font-weight:700;color:#003;padding:2px 6px;font-family:monospace">{{ resumo.area_equivalente|default:0|br2 }}</td>
+                </tr>
+                <tr>
+                  <td style="color:#336;padding:2px 6px">Valor m2 da Área Total Equivalente (R$) :</td>
+                  <td style="text-align:right;font-weight:700;color:#003;padding:2px 6px;font-family:monospace">{{ resumo.custo_m2_equiv|default:0|br2 }}</td>
+                </tr>
+              </table>
+            </fieldset>
+
+            <!-- Cards 7 e 8: Custo de Construção + Resultados VP (lado a lado) -->
+            <div class="d-flex gap-1" style="align-items:stretch">
+
+              <!-- Card 7: Custo de Construção -->
+              <div class="grupo mb-0" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                <div style="color:#336;font-size:11px;margin-bottom:6px">Custo de Construção (R$) :</div>
+                <div style="color:#006;font-size:20px;font-weight:700;font-family:monospace">
+                  {{ resumo.custo_construcao|default:0|br2 }}
+                </div>
+              </div>
+
+              <!-- Card 8: Resultados a VP -->
+              {% include "viabilidade/estudo/_resultados_vp.html" with style="width:230px;flex-shrink:0" %}
+
+            </div><!-- /cards 7+8 -->
+
+          </div><!-- /col dir -->
+
+        </div><!-- /d-flex principal -->
+      </div><!-- /tab construcao -->
+
+
+      <!-- ─────── ABA 4: OUTROS CUSTOS ─────── -->
+      <div class="tab-pane fade" id="tab-custos">
+
+        <!-- ═══ PARTE 1: Percentuais dos Custos (full width) ═══ -->
+        <fieldset class="grupo mb-1">
+          <legend>Percentuais dos Custos</legend>
+          <div class="d-flex gap-2">
+
+            <!-- Coluna Esquerda -->
+            <div style="flex:1;min-width:0">
+              {% include "viabilidade/estudo/_custo_linha_esq.html" with icone=True ck=False label="Custo de Construção :" valor_calc=resumo.custo_construcao bold=True %}
+              {% include "viabilidade/estudo/_custo_linha_esq.html" with icone=True ck=True  ck_name="projetos_ck"      ck_val=estudo.projetos_ck      label="Projetos / Aprovação :"           campo="projetos_valor"   val=estudo.projetos_valor %}
+              {% include "viabilidade/estudo/_custo_linha_esq.html" with icone=True ck=False label="Terreno (Valor) :"                                                                              campo="terreno_valor"    val=estudo.terreno_valor %}
+              {% include "viabilidade/estudo/_custo_linha_esq.html" with icone=True ck=True  ck_name="terreno_desemb_ck" ck_val=estudo.terreno_desemb_ck label="Terreno (Desembolso Líquido) :"  valor_calc=resumo.cu_terreno_desemb %}
+              {% include "viabilidade/estudo/_custo_linha_esq.html" with icone=True ck=True  ck_name="terreno_cor_ck"   ck_val=estudo.terreno_cor_ck   label="Terreno (Corretagem) :"           campo="cu_terreno_cor"   val=estudo.cu_terreno_cor %}
+              {% include "viabilidade/estudo/_custo_linha_esq.html" with icone=True ck=True  ck_name="indice_ck"        ck_val=estudo.indice_ck        label="Índice de Construção / Solo Criado :" campo="indice_construcao" val=estudo.indice_construcao %}
+              <div class="custo-linha">
+                <span style="color:#888;font-size:11px">&#128196;</span>
+                <input type="checkbox" name="tx_adm_area_constr_ck" {% if estudo.tx_adm_area_constr_ck %}checked{% endif %}>
+                <span class="custo-desc">Considerar Taxa de Administração conforme área em construção :</span>
+              </div>
+            </div>
+
+            <!-- Separador -->
+            <div style="width:1px;background:#ddd;flex-shrink:0"></div>
+
+            <!-- Coluna Direita: valor calculado + % + base -->
+            <div style="flex:1;min-width:0">
+              <table style="width:100%;border-collapse:collapse">
+                {% include "viabilidade/estudo/_custo_linha_dir.html" with ck=True ck_name="itbi_ck"       ck_val=estudo.itbi_ck       label="Terreno (ITBI) :"                      cu=resumo.cu_itbi        campo="perc_itbi"        val=estudo.perc_itbi        base="% sobre Valor do Terreno" %}
+                {% include "viabilidade/estudo/_custo_linha_dir.html" with ck=True ck_name="despesas_ck"   ck_val=estudo.despesas_ck   label="Despesas Diversas :"                   cu=resumo.cu_despesas    campo="perc_despesas"    val=estudo.perc_despesas    base="% sobre VGV Líquido" %}
+                {% include "viabilidade/estudo/_custo_linha_dir.html" with ck=True ck_name="marketing_ck"  ck_val=estudo.marketing_ck  label="Marketing :"                           cu=resumo.cu_marketing   campo="perc_marketing"   val=estudo.perc_marketing   base="% sobre VGV Líquido" %}
+                {% include "viabilidade/estudo/_custo_linha_dir.html" with ck=True ck_name="corretagem_ck" ck_val=estudo.corretagem_ck label="Corretagem sobre Unidades :"           cu=resumo.cu_corretagem  campo="perc_corretagem"  val=estudo.perc_corretagem  base="% sobre VGV Líquido" %}
+                {% include "viabilidade/estudo/_custo_linha_dir.html" with ck=True ck_name="impostos_ck"   ck_val=estudo.impostos_ck   label="Impostos Federais (Lucro Presumido) :" cu=resumo.cu_impostos    campo="perc_impostos"    val=estudo.perc_impostos    base="% sobre VGV Líquido" %}
+                {% include "viabilidade/estudo/_custo_linha_dir.html" with ck=True ck_name="assistencia_ck" ck_val=estudo.assistencia_ck label="Assistência Técnica :"               cu=resumo.cu_assistencia campo="perc_assistencia" val=estudo.perc_assistencia base="% sobre Custo de Construção" %}
+                {% include "viabilidade/estudo/_custo_linha_dir.html" with ck=True ck_name="tx_adm_ck"     ck_val=estudo.tx_adm_ck     label="Taxa de Administração :"               cu=resumo.cu_tx_adm      campo="perc_tx_adm"      val=estudo.perc_tx_adm      base="% sobre Custo de Construção" %}
+              </table>
+            </div>
+
+          </div>
+        </fieldset>
+
+        <!-- ═══ LINHA INFERIOR: Partes 2 (esq) + 3/4/5 (dir) ═══ -->
+        <div class="d-flex gap-1" style="align-items:stretch">
+
+          <!-- PARTE 2: Distribuição dos Custos -->
+          <fieldset class="grupo mb-0" style="flex:1;min-width:0;display:flex;flex-direction:column">
+            <legend>Distribuição dos Custos</legend>
+            <div id="distrib-section" class="overflow-auto-x" style="flex:1">
+              {% include "viabilidade/htmx/distrib_table.html" %}
+            </div>
+            <div class="d-flex gap-2 mt-1 pt-1" style="border-top:1px solid #ccc">
+              <button type="button" class="btn-add"
+                hx-get="{% url 'viabilidade:htmx_distrib_form_new' estudo.pk %}"
+                hx-target="#htmxModalBody"
+                hx-trigger="click"
+                onclick="abrirModal('Nova Distribuição')">
+                Distribuição
+              </button>
+              <div style="flex:1"></div>
+              <button type="button" class="btn-add" style="background:#d0f0d0"
+                hx-get="{% url 'viabilidade:htmx_custo_modal' %}"
+                hx-target="#htmxModalBody"
+                hx-trigger="click"
+                onclick="abrirModal('Custos')">Custos</button>
+            </div>
+          </fieldset>
+
+          <!-- PARTES 3, 4 e 5 empilhadas à direita -->
+          <div style="width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:4px">
+
+            <!-- PARTE 3: Valor do Terreno/Base ITBI -->
+            <div class="grupo mb-0">
+              <div class="form-label-sm mb-1">Valor do Terreno/Base ITBI (R$) :</div>
+              <input type="text" name="terreno_valor_base_itbi"
+                     value="{{ estudo.terreno_valor_base_itbi }}"
+                     class="form-control-sm num-input" style="width:100%">
+            </div>
+
+            <!-- PARTE 4: Excluir do Custo Administrativo -->
+            <div class="grupo mb-0">
+              <label class="ck-label" style="font-size:11px">
+                <span style="color:#888;margin-right:3px">&#128196;</span>
+                <input type="checkbox" name="custo_adm_exclusao"
+                       {% if estudo.custo_adm_exclusao %}checked{% endif %}>
+                Excluir do Custo Administrativo
+              </label>
+            </div>
+
+            <!-- PARTE 5: Resultados a VP -->
+            {% include "viabilidade/estudo/_resultados_vp.html" with style="flex:1" %}
+
+          </div><!-- /dir -->
+
+        </div><!-- /linha inferior -->
+
+      </div><!-- /tab custos -->
+
+
+      <!-- ─────── ABA 5: FINANCEIRO ─────── -->
+      <div class="tab-pane fade" id="tab-financeiro">
+        <div class="d-flex gap-1" style="align-items:stretch">
+
+          <!-- ══ COLUNA ESQUERDA ══ -->
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+
+            <!-- PARTE 1: Taxas Financeiras -->
+            <fieldset class="grupo mb-0" style="flex:1">
+              <legend>Taxas Financeiras</legend>
+              <table style="width:100%;border-collapse:collapse;font-size:11px">
+                {% for tx in taxas_financeiras %}
+                <tr style="border-bottom:1px solid #eee">
+                  <td style="padding:4px 4px 4px 0;white-space:nowrap;color:#334;width:160px">{{ tx.label }} :</td>
+                  <td style="padding:3px 3px">
+                    <input type="text" name="{{ tx.campo_aa }}" value="{{ tx.val_aa }}"
+                           style="width:70px;font-size:11px;padding:1px 3px;border:1px solid #aaa;text-align:right">
+                  </td>
+                  {% if tx.am_only %}
+                    <td style="color:#668;white-space:nowrap;padding:3px 3px">% (a.m.)</td>
+                    <td colspan="3"></td>
+                  {% else %}
+                    <td style="color:#668;white-space:nowrap;padding:3px 3px">% (a.a.)</td>
+                    <td style="color:#336;font-family:monospace;font-size:11px;padding:3px 3px;white-space:nowrap">{{ tx.am_str }}</td>
+                    <td style="color:#668;white-space:nowrap;padding:3px 2px">% (a.m.)</td>
+                  {% endif %}
+                  <td style="padding:3px 4px">
+                    <input type="checkbox" name="{{ tx.campo_ck }}" {% if tx.ck %}checked{% endif %}>
+                  </td>
+                </tr>
+                {% endfor %}
+              </table>
+              <div class="mt-2 pt-1" style="border-top:1px solid #ddd;font-size:11px">
+                <div class="d-flex justify-content-between" style="color:#00a;padding:2px 0">
+                  <span>Investimento Máximo :</span>
+                  <span style="font-family:monospace">{{ resumo.custo_total|default:0|br2 }}</span>
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- PARTES 2 e 3: Terreneiro + Permuta (lado a lado) -->
+            <div class="d-flex gap-1">
+
+              <!-- PARTE 2: Terrreneiro -->
+              <fieldset class="grupo mb-0" style="flex:1">
+                <legend>Terrreneiro</legend>
+                {% include "viabilidade/estudo/_fin_linha.html" with label="Valor do Investimento :" campo="terreneiro_invest" val=estudo.terreneiro_invest %}
+                {% include "viabilidade/estudo/_fin_linha.html" with label="Preço do m2 :"           campo="terreneiro_valor_m2" val=estudo.terreneiro_valor_m2 %}
+                {% include "viabilidade/estudo/_fin_linha.html" with label="Percentual da Permuta :" campo="permu_fin_perc_receita" val=estudo.permu_fin_perc_receita %}
+                {% include "viabilidade/estudo/_fin_linha.html" with label="Percentual s/ Custo :"   campo="permu_fin_perc_comissao" val=estudo.permu_fin_perc_comissao %}
+              </fieldset>
+
+              <!-- PARTE 3: Permuta Financeira + Participação do Proprietário -->
+              <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+                <fieldset class="grupo mb-0">
+                  <legend>Permuta Financeira</legend>
+                  {% include "viabilidade/estudo/_fin_linha.html" with label="Percentual sobre a Receita :" campo="permu_fin_perc_marketing" val=estudo.permu_fin_perc_marketing %}
+                </fieldset>
+                <fieldset class="grupo mb-0" style="flex:1">
+                  <legend>Participação do Proprietário</legend>
+                  {% include "viabilidade/estudo/_fin_linha.html" with label="Sobre % do Marketing :"  campo="margem_negocial" val=estudo.margem_negocial %}
+                  {% include "viabilidade/estudo/_fin_linha.html" with label="Sobre % da Comissão :"   campo="permu_fin_perc_comissao" val=estudo.permu_fin_perc_comissao %}
+                </fieldset>
+              </div>
+
+            </div><!-- /partes 2+3 -->
+
+          </div><!-- /col esq -->
+
+          <!-- ══ COLUNA DIREITA: Partes 4, 5, 6, 7 empilhadas ══ -->
+          <div style="width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:4px">
+
+            <!-- PARTE 4: Participação do Investidor -->
+            <div class="grupo mb-0">
+              {% include "viabilidade/estudo/_fin_linha.html" with label="Participação do Investidor :" campo="investidor_partic" val=estudo.investidor_partic %}
+            </div>
+
+            <!-- PARTE 5: Financiamento (à Produção) -->
+            <fieldset class="grupo mb-0">
+              <legend>Financiamento (à Produção)</legend>
+              {% include "viabilidade/estudo/_fin_linha.html" with label="% Construído :"    campo="financ_prod_perc_construido"    val=estudo.financ_prod_perc_construido %}
+              {% include "viabilidade/estudo/_fin_linha.html" with label="% Vendido :"       campo="financ_prod_perc_vendido"       val=estudo.financ_prod_perc_vendido %}
+              {% include "viabilidade/estudo/_fin_linha.html" with label="% Financiamento :" campo="financ_prod_perc_financiamento" val=estudo.financ_prod_perc_financiamento %}
+            </fieldset>
+
+            <!-- PARTE 6: Condições para Pagamento -->
+            <fieldset class="grupo mb-0">
+              <legend>Condições para Pagamento do (financ. à Produção)</legend>
+              <div class="d-flex justify-content-between align-items-center mb-1" style="font-size:11px">
+                <label class="mb-0">Carência para pagamento :</label>
+                <div class="d-flex align-items-center gap-1">
+                  <input type="number" name="financ_prod_carencia" value="{{ estudo.financ_prod_carencia }}"
+                         style="width:40px;font-size:11px;padding:1px 3px;border:1px solid #aaa;text-align:right">
+                  <span style="color:#668;font-size:10px">meses</span>
+                </div>
+              </div>
+              <div class="d-flex justify-content-between align-items-center" style="font-size:11px">
+                <label class="mb-0">Quantidade de parcelas :</label>
+                <input type="number" name="financ_prod_qtde_parcelas" value="{{ estudo.financ_prod_qtde_parcelas }}"
+                       style="width:40px;font-size:11px;padding:1px 3px;border:1px solid #aaa;text-align:right">
+              </div>
+            </fieldset>
+
+            <!-- PARTE 7: Resultados a VP -->
+            {% include "viabilidade/estudo/_resultados_vp.html" with style="flex:1" %}
+
+          </div><!-- /col dir -->
+
+        </div><!-- /d-flex -->
+      </div><!-- /tab financeiro -->
+
+    </div><!-- /tab-content -->
+  </div><!-- /painel-conteudo -->
+
+</div><!-- /painel-body -->
+
+</form>
+
+
+{% endblock %}

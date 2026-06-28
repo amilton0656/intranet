@@ -1,0 +1,53 @@
+{% extends "viabilidade/base.html" %}
+{% block title %}Parâmetros de Venda{% endblock %}
+{% block content %}
+<div class="card mx-auto" style="max-width:800px">
+  <div class="card-header bg-white fw-semibold">Parâmetros de Venda &mdash; {{ estudo }}</div>
+  <div class="card-body">
+    <form method="post">{% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+      <div class="row g-3">
+        <div class="col-md-6"><label class="form-label">Descrição</label>{{ form.descricao }}</div>
+        <div class="col-md-3"><label class="form-label">Referência</label>{{ form.referencia }}</div>
+        <div class="col-md-3"><label class="form-label">Preço de Venda</label>{{ form.preco_venda }}</div>
+      </div>
+
+      <hr class="my-3">
+      <div class="row g-3">
+        <div class="col-12"><strong>Ato</strong></div>
+        <div class="col-md-3"><label class="form-label">% Ato</label>{{ form.ato_perc }}</div>
+        <div class="col-md-3"><label class="form-label">Qtde</label>{{ form.ato_qtde }}</div>
+
+        <div class="col-12"><strong>Parcelas</strong></div>
+        <div class="col-md-3"><label class="form-label">%</label>{{ form.parc_perc }}</div>
+        <div class="col-md-3"><label class="form-label">Qtde</label>{{ form.parc_qtde }}</div>
+        <div class="col-md-3"><label class="form-label">Após (meses)</label>{{ form.parc_apos }}</div>
+
+        <div class="col-12"><strong>Reforços</strong></div>
+        <div class="col-md-3"><label class="form-label">%</label>{{ form.ref_perc }}</div>
+        <div class="col-md-3"><label class="form-label">Qtde</label>{{ form.ref_qtde }}</div>
+        <div class="col-md-3"><label class="form-label">Intervalo (meses)</label>{{ form.ref_interv }}</div>
+
+        <div class="col-12"><strong>Chaves</strong></div>
+        <div class="col-md-3"><label class="form-label">%</label>{{ form.cha_perc }}</div>
+        <div class="col-md-3"><label class="form-label">Após (meses)</label>{{ form.cha_apos }}</div>
+
+        <div class="col-12"><strong>Financiamento 1 (Parcelas)</strong></div>
+        <div class="col-md-3"><label class="form-label">%</label>{{ form.fin_parc_perc }}</div>
+        <div class="col-md-3"><label class="form-label">Qtde</label>{{ form.fin_parc_qtde }}</div>
+        <div class="col-md-3"><label class="form-label">Após (meses)</label>{{ form.fin_parc_apos }}</div>
+
+        <div class="col-12"><strong>Financiamento 2 (Reforços)</strong></div>
+        <div class="col-md-3"><label class="form-label">%</label>{{ form.fin_ref_perc }}</div>
+        <div class="col-md-3"><label class="form-label">Qtde</label>{{ form.fin_ref_qtde }}</div>
+        <div class="col-md-3"><label class="form-label">Intervalo (meses)</label>{{ form.fin_ref_interv }}</div>
+      </div>
+
+      <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{% url 'viabilidade:paramvendas_list' estudo.pk %}" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "viabilidade/base.html" %}
+{% load viab_fmt %}
+{% block title %}Fluxo de Caixa - {{ estudo }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">Fluxo de Caixa: {{ estudo.planilha }}</h4>
+    <small class="text-muted">{{ estudo.empreendimento }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'viabilidade:estudo_resultado' estudo.pk %}" class="btn btn-success btn-sm"><i class="bi bi-calculator"></i> Resultado</a>
+    <a href="{% url 'viabilidade:estudo_detail' estudo.pk %}" class="btn btn-outline-secondary btn-sm">Voltar</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive" style="max-height:70vh; overflow:auto;">
+    <table class="table table-sm table-hover mb-0" style="font-size:.82rem;">
+      <thead class="sticky-top bg-white">
+        <tr>
+          <th>Mês</th>
+          <th class="text-end">Ref.</th>
+          <th class="text-end text-success">Receitas</th>
+          <th class="text-end text-danger">Construção</th>
+          <th class="text-end text-danger">Marketing</th>
+          <th class="text-end text-danger">Corretagem</th>
+          <th class="text-end text-danger">Impostos</th>
+          <th class="text-end text-danger">Tx.Adm</th>
+          <th class="text-end text-danger">Assistência</th>
+          <th class="text-end text-danger">Despesas</th>
+          <th class="text-end text-danger">Terreno</th>
+          <th class="text-end fw-bold">Fluxo</th>
+          <th class="text-end fw-bold">Acumulado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in fluxo %}
+        <tr {% if row.fluxo_caixa >= 0 %}class="table-success bg-opacity-10"{% elif row.fluxo_acum < 0 %}class="table-danger bg-opacity-10"{% endif %}>
+          <td class="num">{{ row.mes }}</td>
+          <td class="num">{{ row.referencia }}</td>
+          <td class="text-end num">{% if row.receitas %}{{ row.receitas|br0 }}{% endif %}</td>
+          <td class="text-end num text-danger">{% if row.construcao %}{{ row.construcao|br0 }}{% endif %}</td>
+          <td class="text-end num text-danger">{% if row.marketing %}{{ row.marketing|br0 }}{% endif %}</td>
+          <td class="text-end num text-danger">{% if row.corretagem %}{{ row.corretagem|br0 }}{% endif %}</td>
+          <td class="text-end num text-danger">{% if row.impostos %}{{ row.impostos|br0 }}{% endif %}</td>
+          <td class="text-end num text-danger">{% if row.tx_adm %}{{ row.tx_adm|br0 }}{% endif %}</td>
+          <td class="text-end num text-danger">{% if row.assist_tecnica %}{{ row.assist_tecnica|br0 }}{% endif %}</td>
+          <td class="text-end num text-danger">{% if row.despesas %}{{ row.despesas|br0 }}{% endif %}</td>
+          <td class="text-end num text-danger">{% if row.terreno %}{{ row.terreno|br0 }}{% endif %}</td>
+          <td class="text-end num fw-semibold {% if row.fluxo_caixa >= 0 %}text-success{% else %}text-danger{% endif %}">
+            {{ row.fluxo_caixa|br0 }}
+          </td>
+          <td class="text-end num fw-semibold {% if row.fluxo_acum >= 0 %}text-success{% else %}text-danger{% endif %}">
+            {{ row.fluxo_acum|br0 }}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="13" class="text-center text-muted py-4">Sem dados de fluxo. Cadastre configurações, construção e velocidade de vendas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

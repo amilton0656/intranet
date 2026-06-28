@@ -1,0 +1,29 @@
+<form hx-post="{% if obj %}{% url 'viabilidade:htmx_distrib_save_edit' estudo.pk obj.pk %}{% else %}{% url 'viabilidade:htmx_distrib_save_new' estudo.pk %}{% endif %}"
+      hx-target="#distrib-section" hx-swap="outerHTML">
+  {% csrf_token %}
+  <div class="row g-2">
+    <div class="col-12">
+      <label class="form-label-sm">Custo</label>
+      <select name="custo" class="form-select form-select-sm">
+        <option value="">— Selecione —</option>
+        {% for c in custos %}<option value="{{ c.pk }}" {% if obj and obj.custo_id == c.pk %}selected{% endif %}>{{ c.descricao }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-4">
+      <label class="form-label-sm">Percentual</label>
+      <input type="text" name="custo_perc" value="{{ obj.custo_perc|default:100 }}" class="form-control form-control-sm text-end">
+    </div>
+    <div class="col-4">
+      <label class="form-label-sm">Qtde de Meses</label>
+      <input type="number" name="custo_qtde" value="{{ obj.custo_qtde|default:1 }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-4">
+      <label class="form-label-sm">Mês de Início</label>
+      <input type="number" name="custo_inicio" value="{{ obj.custo_inicio|default:0 }}" class="form-control form-control-sm">
+    </div>
+  </div>
+  <div class="d-flex gap-2 mt-3">
+    <button type="submit" class="btn btn-sm btn-primary">Salvar</button>
+    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+  </div>
+</form>

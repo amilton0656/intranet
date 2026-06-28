@@ -1,0 +1,57 @@
+{% extends "viabilidade/base.html" %}
+{% block title %}Dashboard - Viabilidade{% endblock %}
+{% block content %}
+<h4 class="mb-4">Dashboard</h4>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card p-3 text-center">
+      <div class="fs-1 fw-bold text-primary">{{ total_empreendimentos }}</div>
+      <div class="text-muted">Empreendimentos</div>
+      <a href="{% url 'viabilidade:empreendimento_list' %}" class="btn btn-sm btn-outline-primary mt-2">Ver todos</a>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-3 text-center">
+      <div class="fs-1 fw-bold text-success">{{ total_estudos }}</div>
+      <div class="text-muted">Estudos de Viabilidade</div>
+      <a href="{% url 'viabilidade:estudo_list' %}" class="btn btn-sm btn-outline-success mt-2">Ver todos</a>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-3 text-center">
+      <div class="fs-1 fw-bold text-secondary"><i class="bi bi-plus-lg"></i></div>
+      <div class="text-muted">Novo Estudo</div>
+      <a href="{% url 'viabilidade:estudo_create' %}" class="btn btn-sm btn-outline-secondary mt-2">Criar</a>
+    </div>
+  </div>
+</div>
+
+{% if ultimos_estudos %}
+<div class="card">
+  <div class="card-header bg-white fw-semibold">Estudos Recentes</div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Empreendimento</th><th>Planilha</th><th>Data Base</th><th></th></tr></thead>
+      <tbody>
+        {% for e in ultimos_estudos %}
+        <tr>
+          <td>{{ e.empreendimento }}</td>
+          <td>{{ e.planilha }}</td>
+          <td>{{ e.dt_base }}</td>
+          <td>
+            <a href="{% url 'viabilidade:estudo_painel' e.pk %}" class="btn btn-sm btn-primary">
+              <i class="bi bi-grid-3x3-gap"></i> Painel
+            </a>
+            <a href="{% url 'viabilidade:estudo_resultado' e.pk %}" class="btn btn-sm btn-outline-success">
+              <i class="bi bi-calculator"></i> Resultado
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
