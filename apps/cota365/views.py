@@ -17,7 +17,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import F, Sum, Count, Q
-from django.db.models.functions import ExtractYear, ExtractMonth
+from django.db.models.functions import ExtractYear, ExtractMonth, TruncMonth
 from django.urls import reverse
 
 import openpyxl
@@ -1783,6 +1783,97 @@ def index(request):
     return render(request, 'cota365/index.html')
 
 
+def _calc_velocidade_vendas():
+    """Calcula métricas de velocidade de vendas — apenas unidades principais
+    (apartamentos, salas, lojas); exclui garagens e hobby boxes."""
+    from datetime import date as _date
+    hoje = _date.today()
+
+    # Unidades principais: exclui garagens, hobby boxes, motos e permutas
+    _EXCLUIR = r'garagem|hobby.box|hobby box|moto'
+    permutas = set(Permuta.objects.values_list('unidade', flat=True))
+
+    unidades_principais_qs = Unidade.objects.exclude(tipo__iregex=_EXCLUIR)
+    unidades_principais = set(unidades_principais_qs.values_list('unidade', flat=True)) - permutas
+
+    # Total de unidades principais (sem permutas)
+    total_unidades = len(unidades_principais)
+
+    # Vendas de unidades principais, sem permutas
+    vendas_qs = Venda.objects.filter(
+        data_venda__isnull=False,
+        unidade__in=unidades_principais,
+    ) if unidades_principais else Venda.objects.filter(data_venda__isnull=False)
+
+    meses_qs = (
+        vendas_qs
+        .annotate(mes=TruncMonth('data_venda'))
+        .values('mes')
+        .annotate(qtde=Count('id'))
+        .order_by('mes')
+    )
+    meses_list = list(meses_qs)
+    if not meses_list:
+        return None
+
+    total_vendas = sum(m['qtde'] for m in meses_list)
+    disponivel   = max(total_unidades - total_vendas, 0)
+
+    primeiro_mes = meses_list[0]['mes']
+    if hasattr(primeiro_mes, 'date'):
+        primeiro_mes = primeiro_mes.date()
+    n_meses = (hoje.year - primeiro_mes.year) * 12 + (hoje.month - primeiro_mes.month)
+    n_meses = max(n_meses, 1)
+    media_hist = total_vendas / n_meses
+
+    # Exclui mês corrente (pode estar incompleto)
+    mes_ini = hoje.replace(day=1)
+    def _as_date(v):
+        return v.date() if hasattr(v, 'date') and callable(v.date) else v
+
+    completos = [m for m in meses_list if _as_date(m['mes']) < mes_ini]
+
+    media_3m = sum(m['qtde'] for m in completos[-3:]) / 3 if completos else media_hist
+    media_6m = sum(m['qtde'] for m in completos[-6:]) / 6 if completos else media_hist
+
+    vendas_mes_atual = next(
+        (m['qtde'] for m in meses_list
+         if _as_date(m['mes']).year == hoje.year and _as_date(m['mes']).month == hoje.month), 0)
+
+    melhor = max(meses_list, key=lambda m: m['qtde'])
+
+    projecao = round(disponivel / media_3m) if media_3m > 0 else None
+
+    vso_hist = media_hist / total_unidades * 100 if total_unidades else 0
+    vso_3m   = media_3m  / total_unidades * 100 if total_unidades else 0
+
+    historico = [
+        {'mes': m['mes'].strftime('%m/%Y'), 'qtde': m['qtde']}
+        for m in meses_list[-18:]
+    ]
+
+    def _f1(v): return f'{v:.1f}'.replace('.', ',')
+
+    return {
+        'media_historica':   _f1(media_hist),
+        'media_3m':          _f1(media_3m),
+        'media_6m':          _f1(media_6m),
+        'vendas_mes_atual':  vendas_mes_atual,
+        'total_vendas':      total_vendas,
+        'total_unidades':    total_unidades,
+        'disponivel':        disponivel,
+        'projecao_meses':    projecao,
+        'vso_hist':          _f1(vso_hist) + '%',
+        'vso_3m':            _f1(vso_3m)   + '%',
+        'vso_6m':            _f1(media_6m / total_unidades * 100 if total_unidades else 0) + '%',
+        'melhor_mes':        melhor['mes'].strftime('%m/%Y'),
+        'melhor_mes_qtde':   melhor['qtde'],
+        'primeiro_mes':      primeiro_mes.strftime('%m/%Y'),
+        'n_meses':           n_meses,
+        'historico':         historico,
+    }
+
+
 def dashboard(request):
     # ── Fluxo mensal via Parcela ──────────────────────────────────────────────
     monthly_rec  = {}
@@ -1803,8 +1894,11 @@ def dashboard(request):
         monthly_pend[key] = r['pend'] or 0.0
         monthly_perm[key] = r['perm'] or 0.0
 
-    all_keys    = sorted(set(monthly_rec) | set(monthly_pend) | set(monthly_perm))
-    total_fluxo = sum(monthly_rec.get(k, 0) + monthly_pend.get(k, 0) + monthly_perm.get(k, 0) for k in all_keys)
+    all_keys        = sorted(set(monthly_rec) | set(monthly_pend) | set(monthly_perm))
+    total_recebido  = sum(monthly_rec.get(k, 0)  for k in all_keys)
+    total_a_receber = sum(monthly_pend.get(k, 0) for k in all_keys)
+    total_permutas  = sum(monthly_perm.get(k, 0) for k in all_keys)
+    total_fluxo     = total_recebido + total_a_receber + total_permutas
 
     acumulado = 0.0
     fluxo_mensal_rows = []
@@ -1970,11 +2064,15 @@ def dashboard(request):
         'desconto_cubs':        f'{_tot_cubs:.2f}'.replace('.', ','),
         'receita_por_ano':      receita_por_ano,
         'total_fluxo_fmt':      _fmt_brl(total_fluxo),
+        'total_recebido_fmt':   _fmt_brl(total_recebido),
+        'total_a_receber_fmt':  _fmt_brl(total_a_receber),
+        'total_permutas_fmt':   _fmt_brl(total_permutas),
         'fluxo_mensal_rows':    fluxo_mensal_rows,
         'tipos_parcela_rows':   tipos_parcela_rows,
         'clientes_pe':          clientes_pe,
         'ranking_imobiliaria':  ranking_imobiliaria,
         'ranking_total':        ranking_total,
+        'velocidade_vendas':    _calc_velocidade_vendas(),
     }
     return render(request, 'cota365/dashboard.html', context)
 
@@ -2624,6 +2722,53 @@ def _build_dashboard_pdf():
     )
     _tot_vgv = sum(r['vgv'] for r in ranking_imob)
     _tot_com = sum(r['com'] for r in ranking_imob)
+
+    # ── Velocidade de Vendas ──────────────────────────────────────────────────
+    vel = _calc_velocidade_vendas()
+    if vel:
+        story.append(Paragraph('Velocidade de Vendas', sec_s))
+
+        # Tabela de médias + VSO
+        vel_header = [[th('Período'), th('Unid./mês'), th('VSO')]]
+        vel_rows = [
+            [td(f'Média histórica (desde {vel["primeiro_mes"]}, {vel["n_meses"]} meses)'),
+             tdrb(vel['media_historica']), tdr(vel['vso_hist'])],
+            [td('Últimos 6 meses'), tdrb(vel['media_6m']), tdr(vel['vso_6m'])],
+            [td('Últimos 3 meses'), tdrb(vel['media_3m']), tdr(vel['vso_3m'])],
+            [td('Mês atual'),       tdrb(str(vel['vendas_mes_atual'])), tdr('—')],
+        ]
+        story.append(tbl(vel_header + vel_rows,
+                         [9*cm, 3*cm, 3*cm]))
+
+        # Tabela de estoque e projeção
+        story.append(Spacer(1, 6))
+        est_rows = [
+            [td('Total de unidades'), tdrb(str(vel['total_unidades']))],
+            [td('Vendidas'),          tdrb(str(vel['total_vendas']))],
+            [td('Disponíveis'),       tdrb(str(vel['disponivel']))],
+            [td(f'Melhor mês'),       tdrb(f'{vel["melhor_mes"]} ({vel["melhor_mes_qtde"]} unid.)')],
+        ]
+        if vel['projecao_meses']:
+            est_rows.append([tdb('Projeção de estoque'),
+                             tdrb(f'~{vel["projecao_meses"]} meses (no ritmo atual)')])
+        story.append(tbl([[th('Estoque'), th('Qtde')]] + est_rows,
+                         [9*cm, 6*cm], total_last=bool(vel['projecao_meses'])))
+
+        # Histórico mensal
+        if vel['historico']:
+            story.append(Spacer(1, 6))
+            hist_header = [[th(m['mes']) for m in vel['historico']]]
+            hist_row    = [[tdr(str(m['qtde'])) for m in vel['historico']]]
+            col_w = [W / len(vel['historico'])] * len(vel['historico'])
+            t_hist = Table(hist_header + hist_row, colWidths=col_w)
+            t_hist.setStyle(TableStyle([
+                ('BACKGROUND',    (0, 0), (-1, 0), NAVY),
+                ('GRID',          (0, 0), (-1, -1), 0.3, BORDER),
+                ('TOPPADDING',    (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                ('ROWBACKGROUNDS',(0, 1), (-1, -1), [LIGHT]),
+            ]))
+            story.append(t_hist)
 
     if ranking_imob:
         story.append(PageBreak())

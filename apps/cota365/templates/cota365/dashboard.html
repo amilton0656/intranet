@@ -117,9 +117,10 @@
     <a href="{% url 'cota365:export_dashboard' %}" class="btn btn-outline-danger btn-sm">
       <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
     </a>
-    <a href="{% url 'cota365:gerar_link_publico_resumo' %}" class="btn btn-outline-primary btn-sm d-none d-md-inline-flex">
-      <i class="bi bi-link-45deg me-1"></i>Gerar Link Público
-    </a>
+    <button id="btn-copiar-memoria" class="btn btn-outline-primary btn-sm"
+            data-url="{% url 'cota365:gerar_link_publico_resumo' %}?format=json">
+      <i class="bi bi-clipboard me-1"></i>Copiar para a memória
+    </button>
     <a href="{% url 'cota365:export_areas_comparativo' %}" class="btn btn-outline-success btn-sm d-none d-md-inline-flex">
       <i class="bi bi-file-earmark-excel me-1"></i>Comparativo de Áreas
     </a>
@@ -534,9 +535,9 @@
               {% endfor %}
               <tr style="font-weight:700; background:#f0f2f5;">
                 <td>Total</td>
-                <td class="text-end text-success">—</td>
-                <td class="text-end text-danger">—</td>
-                <td class="text-end text-warning">—</td>
+                <td class="text-end text-success">{{ total_recebido_fmt }}</td>
+                <td class="text-end text-danger">{{ total_a_receber_fmt }}</td>
+                <td class="text-end text-warning">{{ total_permutas_fmt }}</td>
                 <td class="text-end">{{ total_fluxo_fmt }}</td>
                 <td class="text-end"></td>
               </tr>
@@ -598,6 +599,110 @@
     {% endif %}
   </div>
 
+  <!-- ── Velocidade de Vendas ─────────────────────────────────────────────── -->
+  {% if velocidade_vendas %}
+  {% with v=velocidade_vendas %}
+  <div class="row g-3 mb-3">
+    <div class="col-12">
+      <div class="chart-card">
+        <div class="chart-title"><i class="bi bi-speedometer2 me-1"></i>Velocidade de Vendas</div>
+        <div class="row g-3">
+
+          <!-- Médias e VSO -->
+          <div class="col-md-6">
+            <div style="overflow-x:auto;">
+              <table class="table top-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Período</th>
+                    <th class="text-end">Unid./mês</th>
+                    <th class="text-end">VSO</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Média histórica <small class="text-muted">(desde {{ v.primeiro_mes }}, {{ v.n_meses }} meses)</small></td>
+                    <td class="text-end fw-semibold">{{ v.media_historica }}</td>
+                    <td class="text-end text-muted">{{ v.vso_hist }}</td>
+                  </tr>
+                  <tr>
+                    <td>Últimos 6 meses</td>
+                    <td class="text-end fw-semibold">{{ v.media_6m }}</td>
+                    <td class="text-end text-muted">{{ v.vso_6m|default:"—" }}</td>
+                  </tr>
+                  <tr class="table-light fw-bold">
+                    <td>Últimos 3 meses</td>
+                    <td class="text-end">{{ v.media_3m }}</td>
+                    <td class="text-end">{{ v.vso_3m }}</td>
+                  </tr>
+                  <tr>
+                    <td>Mês atual</td>
+                    <td class="text-end fw-semibold">{{ v.vendas_mes_atual }}</td>
+                    <td class="text-end text-muted">—</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Estoque e projeção -->
+          <div class="col-md-6">
+            <div style="overflow-x:auto;">
+              <table class="table top-table mb-0">
+                <tbody>
+                  <tr>
+                    <td class="text-muted">Total de unidades</td>
+                    <td class="text-end fw-semibold">{{ v.total_unidades }}</td>
+                  </tr>
+                  <tr>
+                    <td class="text-muted">Vendidas</td>
+                    <td class="text-end fw-semibold" style="color:var(--accent)">{{ v.total_vendas }}</td>
+                  </tr>
+                  <tr>
+                    <td class="text-muted">Disponíveis</td>
+                    <td class="text-end fw-semibold">{{ v.disponivel }}</td>
+                  </tr>
+                  <tr>
+                    <td class="text-muted">Melhor mês</td>
+                    <td class="text-end fw-semibold">{{ v.melhor_mes }} <span class="text-muted">({{ v.melhor_mes_qtde }} unid.)</span></td>
+                  </tr>
+                  {% if v.projecao_meses %}
+                  <tr class="table-light">
+                    <td class="fw-bold">Projeção de estoque</td>
+                    <td class="text-end fw-bold" style="color:var(--teal-dark)">
+                      ~{{ v.projecao_meses }} meses <small class="text-muted">(no ritmo atual)</small>
+                    </td>
+                  </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Histórico mensal -->
+          {% if v.historico %}
+          <div class="col-12">
+            <div class="chart-title mt-2" style="font-size:.7rem">Histórico mensal (últimos {{ v.historico|length }} meses)</div>
+            <div style="overflow-x:auto;">
+              <table class="table top-table mb-0" style="min-width:600px">
+                <thead>
+                  <tr>{% for m in v.historico %}<th class="text-center" style="font-size:.65rem;white-space:nowrap">{{ m.mes }}</th>{% endfor %}</tr>
+                </thead>
+                <tbody>
+                  <tr>{% for m in v.historico %}<td class="text-center fw-semibold">{{ m.qtde }}</td>{% endfor %}</tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endwith %}
+  {% endif %}
+
   <!-- Ranking por imobiliária -->
   {% if ranking_imobiliaria %}
   <div class="row g-3 mt-1">
@@ -644,4 +749,39 @@
   {% endif %}
 
 </div>
+
+<script>
+(function () {
+  const btn = document.getElementById('btn-copiar-memoria');
+  if (!btn) return;
+  btn.addEventListener('click', async function () {
+    const url = btn.dataset.url;
+    const icon = btn.querySelector('i');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Gerando...';
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('Erro ao gerar resumo');
+      const data = await resp.json();
+      await navigator.clipboard.writeText(data.texto);
+      btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copiado!';
+      btn.classList.replace('btn-outline-primary', 'btn-success');
+      setTimeout(() => {
+        btn.innerHTML = original;
+        btn.classList.replace('btn-success', 'btn-outline-primary');
+        btn.disabled = false;
+      }, 2500);
+    } catch (e) {
+      btn.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Erro';
+      btn.classList.replace('btn-outline-primary', 'btn-danger');
+      setTimeout(() => {
+        btn.innerHTML = original;
+        btn.classList.replace('btn-danger', 'btn-outline-primary');
+        btn.disabled = false;
+      }, 2500);
+    }
+  });
+})();
+</script>
 {% endblock %}

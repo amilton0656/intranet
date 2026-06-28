@@ -372,6 +372,7 @@ def atualizacao_mensal(request):
     return render(request, 'bliss/bliss_atualizacao_mensal.html')
 
 import re as _re
+import re
 
 def _strip_hyperlink(value: str) -> str:
     """Extrai o texto de exibição de fórmulas =HIPERLINK(...) / =HYPERLINK(...)."""
@@ -879,7 +880,254 @@ def bliss_resumo_test_email(request):
     return JsonResponse({'status': 'ok', 'message': 'E-mail de teste enviado'})
 
 
+# ---------------------------------------------------------------------------
+# Cartório Bliss Living
+# ---------------------------------------------------------------------------
 
+from django.conf import settings as _settings
+
+_CARTORIO_BLISS_XLSX = _settings.BASE_DIR / 'cartorio - bliss.xlsx'
+
+
+def _bliss_fmt_area(v):
+    if v is None:
+        return '—'
+    return f'{v:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+
+
+def _bliss_fmt_fi(v):
+    if v is None:
+        return '—'
+    return f'{v:.3f}%'.replace('.', ',')
+
+
+def _bliss_cartorio_parse_keys(col_val, skip_words=('sem vaga', 'sem hobby')):
+    if not col_val:
+        return []
+    s = str(col_val).strip()
+    if any(s.lower().startswith(w) for w in skip_words):
+        return []
+    s = re.sub(r'\s+c/', ';', s, flags=re.IGNORECASE)
+    result = []
+    for item in s.split(';'):
+        item = item.strip().upper()
+        item = re.sub(r'^GPCD\s+', 'G', item)
+        item = item.replace(' ', '')
+        if item:
+            result.append(item)
+    return result
+
+
+def _bliss_cartorio_load_grouped():
+    import openpyxl as _openpyxl
+    from pathlib import Path
+    if not Path(_CARTORIO_BLISS_XLSX).exists():
+        raise FileNotFoundError(_CARTORIO_BLISS_XLSX)
+    wb = _openpyxl.load_workbook(_CARTORIO_BLISS_XLSX)
+    ws = wb['cartorio']
+    rows = list(ws.iter_rows(values_only=True))
+
+    # Normaliza header para lowercase para evitar problemas de case do xlsx
+    header = [str(h).strip().lower() if h is not None else None for h in rows[0]]
+    data = [dict(zip(header, r)) for r in rows[1:] if r[0] is not None]
+    data = [r for r in data if r.get('tipo')]
+
+    def _get(r, *keys):
+        """Busca coluna ignorando acentuação e case (já normalizados no header)."""
+        for k in keys:
+            v = r.get(k.lower())
+            if v is not None:
+                return v
+        return None
+
+    def make_unit(r, stub=False):
+        return {
+            'unidade':    _get(r, 'unidade'),
+            'localizacao': _get(r, 'localização', 'localizacao', 'localização'),
+            'tipologia':  _get(r, 'tipologia'),
+            'ap':         _get(r, 'área privativa', 'area privativa'),
+            'apa':        _get(r, 'área privativa acessória', 'area privativa acessoria'),
+            'apt':        _get(r, 'área privativa total', 'area privativa total'),
+            'ac':         _get(r, 'área de uso comum', 'area de uso comum'),
+            'art':        _get(r, 'área real total', 'area real total'),
+            'fi':         _get(r, 'fração ideal', 'fracao ideal'),
+            'matricula':  _get(r, 'matricula', 'matrícula'),
+            'vinculo':    _get(r, 'vinculo-matricula', 'vínculo-matricula'),
+            'stub':       stub,
+        }
+
+    comp_dict = {}
+    for r in data:
+        if (r.get('tipo') or '').lower() in ('garagem', 'hobby box', 'moto'):
+            key = str(_get(r, 'unidade') or '').strip().upper().replace(' ', '')
+            comp_dict[key] = make_unit(r)
+
+    def resolve(key, garagens_do_grupo):
+        if key in comp_dict:
+            return comp_dict[key]
+        for g in garagens_do_grupo:
+            vinculo_parts = [x.strip() for x in (g.get('vinculo') or '').split(';')]
+            if key in vinculo_parts:
+                return {
+                    'unidade': key, 'localizacao': g.get('localizacao'),
+                    'tipologia': None, 'ap': g.get('apa'), 'apa': None,
+                    'apt': g.get('apa'), 'ac': None, 'art': None,
+                    'fi': None, 'matricula': g.get('matricula'), 'vinculo': None, 'stub': True,
+                }
+        return {
+            'unidade': key, 'localizacao': None, 'tipologia': None,
+            'ap': None, 'apa': None, 'apt': None, 'ac': None, 'art': None,
+            'fi': None, 'matricula': None, 'vinculo': None, 'stub': True,
+        }
+
+    groups_apt, groups_loja = [], []
+    for r in data:
+        tipo = (r.get('tipo') or '').lower()
+        if tipo not in ('apartamento', 'loja'):
+            continue
+        gar_keys = _bliss_cartorio_parse_keys(_get(r, 'garagens'), ('sem vaga',))
+        hb_keys  = _bliss_cartorio_parse_keys(_get(r, 'hbs', 'hb'), ('sem hobby',))
+        garagens = [comp_dict.get(k, {'unidade': k, 'stub': True, **{f: None for f in
+                    ('localizacao','tipologia','ap','apa','apt','ac','art','fi','matricula','vinculo')}})
+                    for k in gar_keys]
+        hbs = [resolve(k, garagens) for k in hb_keys]
+        group = {'principal': make_unit(r), 'garagens': garagens, 'hobby_boxes': hbs}
+        (groups_apt if tipo == 'apartamento' else groups_loja).append(group)
+
+    return {'apartamentos': groups_apt, 'lojas': groups_loja}
+
+
+def bliss_cartorio_view(request):
+    try:
+        grupos = _bliss_cartorio_load_grouped()
+    except FileNotFoundError:
+        return HttpResponse('cartorio - bliss.xlsx não encontrado na raiz do projeto.', status=404)
+    totais = {k: len(v) for k, v in grupos.items()}
+    return render(request, 'bliss/cartorio.html', {'grupos': grupos, 'totais': totais})
+
+
+def bliss_cartorio_pdf(request):
+    from reportlab.lib.pagesizes import landscape, A4
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, PageBreak
+    from django.http import FileResponse
+    from datetime import datetime
+
+    try:
+        grupos = _bliss_cartorio_load_grouped()
+    except FileNotFoundError:
+        return HttpResponse('cartorio - bliss.xlsx não encontrado.', status=404)
+
+    import io as _io
+    buf = _io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=landscape(A4),
+                            leftMargin=1.2*cm, rightMargin=1.2*cm,
+                            topMargin=1.4*cm, bottomMargin=1.4*cm)
+    styles = getSampleStyleSheet()
+
+    title_s = ParagraphStyle('bt', parent=styles['Heading1'], fontSize=13, spaceAfter=3)
+    sub_s   = ParagraphStyle('bs', parent=styles['Normal'], fontSize=8, spaceAfter=10,
+                              textColor=colors.HexColor('#6c757d'))
+    sec_s   = ParagraphStyle('be', parent=styles['Heading2'], fontSize=10, spaceAfter=4,
+                              spaceBefore=8, textColor=colors.HexColor('#1a1a2e'))
+    cell_s  = ParagraphStyle('bc', parent=styles['Normal'], fontSize=6.5, leading=8)
+    nr_s    = ParagraphStyle('bn', parent=styles['Normal'], fontSize=6.5, leading=8, alignment=2)
+    hdr_s   = ParagraphStyle('bh', parent=styles['Normal'], fontSize=6, leading=7.5, alignment=1,
+                              textColor=colors.white)
+    mat_s   = ParagraphStyle('bm', parent=styles['Normal'], fontSize=5.5, leading=7,
+                              textColor=colors.HexColor('#444'))
+    unit_p  = ParagraphStyle('bu', parent=styles['Normal'], fontSize=10, leading=12,
+                              fontName='Helvetica-Bold', textColor=colors.HexColor('#1a1a2e'))
+
+    HEADERS = [
+        'Unidade', 'Localização', 'Tipologia',
+        'Área Priv.\n(m²)', 'Área Priv.\nAces. (m²)', 'Área Priv.\nTotal (m²)',
+        'Área\nComum (m²)', 'Área Real\nTotal (m²)', 'Fração\nIdeal (%)',
+        'Matrícula',
+    ]
+    W = doc.width
+    fixed_w = [1.8, 3.0, 1.8, 1.8, 1.8, 1.8, 1.8, 1.9, 1.6]
+    mat_w = W - sum(x * cm for x in fixed_w)
+    COL_W = [x * cm for x in fixed_w] + [mat_w]
+
+    C_PRINCIPAL = colors.HexColor('#dbeafe')
+    C_GARAGEM   = colors.HexColor('#fff3e0')
+    C_HB        = colors.HexColor('#f3e5f5')
+    C_SEP       = colors.HexColor('#f8f9fa')
+    NAVY        = colors.HexColor('#1a1a2e')
+
+    def _fmt_unidade(u):
+        """Remove sufixo após '-' (ex: 101-SUN → 101, G46 → G46)."""
+        nome = str(u['unidade'] or '')
+        return nome.split('-')[0] if '-' in nome else nome
+
+    def make_row(u, principal=False):
+        return [
+            Paragraph(_fmt_unidade(u), unit_p if principal else cell_s),
+            Paragraph(str(u['localizacao'] or ''), cell_s),
+            Paragraph(str(u['tipologia'] or ''), cell_s),
+            Paragraph(_bliss_fmt_area(u['ap']),  nr_s),
+            Paragraph(_bliss_fmt_area(u['apa']), nr_s),
+            Paragraph(_bliss_fmt_area(u['apt']), nr_s),
+            Paragraph(_bliss_fmt_area(u['ac']),  nr_s),
+            Paragraph(_bliss_fmt_area(u['art']), nr_s),
+            Paragraph(_bliss_fmt_fi(u['fi']),    nr_s),
+            Paragraph(str(u['matricula'] or ''), mat_s),
+        ]
+
+    def make_blank_row():
+        return [Paragraph('', cell_s)] * len(HEADERS)
+
+    def build_table(group_list):
+        hrow = [Paragraph(f'<b>{h}</b>', hdr_s) for h in HEADERS]
+        table_data, row_colors = [hrow], []
+        for group in group_list:
+            p_idx = len(table_data)
+            table_data.append(make_row(group['principal'], principal=True))
+            row_colors.append((p_idx, C_PRINCIPAL))
+            for g in group['garagens']:
+                idx = len(table_data); table_data.append(make_row(g))
+                row_colors.append((idx, C_GARAGEM))
+            for h in group['hobby_boxes']:
+                idx = len(table_data); table_data.append(make_row(h))
+                row_colors.append((idx, C_HB))
+            sep = len(table_data); table_data.append(make_blank_row())
+            row_colors.append((sep, C_SEP))
+        t = Table(table_data, colWidths=COL_W, repeatRows=1)
+        cmds = [
+            ('BACKGROUND',    (0, 0), (-1, 0), NAVY),
+            ('GRID',          (0, 0), (-1, -1), 0.3, colors.HexColor('#dee2e6')),
+            ('TOPPADDING',    (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ('VALIGN',        (0, 0), (-1, -1), 'TOP'),
+        ]
+        for ri, c in row_colors:
+            cmds.append(('BACKGROUND', (0, ri), (-1, ri), c))
+        t.setStyle(TableStyle(cmds))
+        return t
+
+    story = [
+        Paragraph('Bliss Living — Matrícula Cartório', title_s),
+        Paragraph(f'Gerado em {datetime.now().strftime("%d/%m/%Y %H:%M")}', sub_s),
+    ]
+    first = True
+    for key, label in [('apartamentos', 'APARTAMENTOS'), ('lojas', 'LOJAS')]:
+        group_list = grupos.get(key, [])
+        if not group_list:
+            continue
+        if not first:
+            story.append(PageBreak())
+        first = False
+        story.append(Paragraph(f'{label} — {len(group_list)} unidades', sec_s))
+        story.append(build_table(group_list))
+
+    doc.build(story)
+    buf.seek(0)
+    resp = FileResponse(buf, content_type='application/pdf')
+    resp['Content-Disposition'] = 'inline; filename="cartorio_bliss.pdf"'
+    return resp
 
 
 
