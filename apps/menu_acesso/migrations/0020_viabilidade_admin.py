@@ -26,7 +26,7 @@ def reverter(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('menu_acesso', '0015_gerencial_descontos_link'),
+        ('menu_acesso', '0019_gerencial_maxflora_tabela'),
     ]
     operations = [
         migrations.RunPython(aplicar, reverter),
