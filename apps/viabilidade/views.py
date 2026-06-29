@@ -805,7 +805,7 @@ def _build_resultado_pdf(estudo):
     cu_itbi    = r['cu_itbi']
     terreno_v  = float(e.terreno_valor)
     terreno_a  = float(e.terreno_area)
-    terreno_m2 = float(e.terreneiro_valor_m2)
+    terreno_m2 = terreno_v / terreno_a if terreno_a else 0.0
 
     custo_raso_avenda = (r['custo_construcao'] / und_avenda) if und_avenda else 0.0
 
