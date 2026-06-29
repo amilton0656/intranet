@@ -821,12 +821,7 @@ def _build_resultado_pdf(estudo):
         _pc('V.G.Extras', bold=True, size=6.5),
         _pc('Área Real (m²)', bold=True, size=6.5),
         _pc('Área Privativa (m²)', bold=True, size=6.5),
-        Paragraph(
-            '<font name="Helvetica-Bold" size="6.5" color="#ffffff">Custo Raso da Unidade</font>'
-            '<br/> <br/>'
-            f'<font name="Helvetica-Bold" size="7.5" color="#ffffff">{_brl(custo_raso_avenda)}</font>',
-            ps('cru_hdr', alignment=1, leading=10)
-        ),
+        _pc('Custo Raso\nda Unidade', bold=True, size=6.5),
         _pc('Terreno\nValor', bold=True, size=6.5),
         _pc('Área', bold=True, size=6.5),
         _pc('Preço/m²', bold=True, size=6.5),
@@ -840,7 +835,7 @@ def _build_resultado_pdf(estudo):
             _pr(_n(ge,2),      bold=bold),       # col 3: vg extras
             _pr(_n(area_r,2),  bold=bold),       # col 4: área real
             _pr(_n(area_p,2),  bold=bold),       # col 5: área priv
-            _pr(''),                             # col 6: custo raso (valor só no cabeçalho)
+            _pr(_brl(custo_raso) if custo_raso else '', bold=bold),  # col 6
             _pr(_brl(terr_v),  bold=bold),       # col 7: terreno valor
             _pr(f'{_n(terr_a,2)} m²', bold=bold),# col 8: área terreno
             _pr(_brl(terr_m2), bold=bold),       # col 9: preço/m²
@@ -848,12 +843,12 @@ def _build_resultado_pdf(estudo):
 
     pe_data = [
         pe_hdr,
-        pe_row('Total',       und_total, gar_total, area_real_tot, area_priv_tot,
-               terreno_v, terreno_v, terreno_a, terreno_m2, bold=True),
-        pe_row('Permutadas',  und_permu, 0, 0, 0,   0, 0, 0, 0),
-        pe_row('Imobilizadas',und_imob,  0, 0, 0,   0, 0, 0, 0),
-        pe_row('À Venda',     und_avenda,0, area_real_tot, area_priv_tot,
-               custo_raso_avenda, 0, 0, 0, bold=True),
+        pe_row('Total',        und_total,  gar_total, area_real_tot, area_priv_tot,
+               0, terreno_v, terreno_a, terreno_m2, bold=True),
+        pe_row('Permutadas',   und_permu,  0, 0, 0,   custo_raso_avenda, 0, 0, 0),
+        pe_row('Imobilizadas', und_imob,   0, 0, 0,   0, 0, 0, 0),
+        pe_row('À Venda',      und_avenda, 0, area_real_tot, area_priv_tot,
+               0, 0, 0, 0, bold=True),
     ]
     t_pe = Table(pe_data, colWidths=cw_pe)
     t_pe.setStyle(TableStyle(BASE_STYLE + [
