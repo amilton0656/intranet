@@ -809,14 +809,12 @@ def _build_resultado_pdf(estudo):
 
     custo_raso_avenda = (r['custo_construcao'] / und_avenda) if und_avenda else 0.0
 
-    # col 0 = W*0.10 vazia, alinhada com "Eficiência do Projeto" acima
-    # col 1 = label da linha | cols 7 = Terreno (Valor+Área combinados) | col 8 = Preço/m²
+    # 10 colunas: 0=vazia | 1=labels | 2=unid | 3=vg | 4=areaR | 5=areaP |
+    #             6=custoRaso | 7=Terreno(span) | 8="="(span) | 9=Preço/m²(span)
     cw_pe = [W*0.10, W*0.09, W*0.07, W*0.07, W*0.10, W*0.10,
-             W*0.13, W*0.23, W*0.11]
+             W*0.13, W*0.21, W*0.04, W*0.09]
 
     def _terr_span_cell(terr_v, terr_a):
-        """Célula Terreno: span nas 4 linhas de dados.
-        Linha 1: Valor | Linha 2: R$ xxx (com barra divisória) | Linha 3: Área | Linha 4: xxx m²"""
         return Paragraph(
             '<font name="Helvetica"      size="6.5" color="#555555">Valor</font>'
             f'<br/><font name="Helvetica-Bold" size="8" color="#111111"><u>{_brl(terr_v)}</u></font>'
@@ -825,19 +823,27 @@ def _build_resultado_pdf(estudo):
             ps('terr_span', alignment=1, leading=12)
         )
 
+    def _preco_span_cell(terr_m2):
+        return Paragraph(
+            '<font name="Helvetica"      size="6.5" color="#555555">Preço m²</font>'
+            f'<br/><font name="Helvetica-Bold" size="8" color="#111111">{_brl(terr_m2)}</font>',
+            ps('preco_span', alignment=1, leading=12)
+        )
+
     pe_hdr = [
-        _pc('',                          bold=True, size=6.5, color='#ffffff'),
-        _pc('Quantidades/\nÁreas',       bold=True, size=6.5, color='#ffffff'),
-        _pc('Unidades',                  bold=True, size=6.5, color='#ffffff'),
-        _pc('V.G.Extras',                bold=True, size=6.5, color='#ffffff'),
-        _pc('Área Real (m²)',             bold=True, size=6.5, color='#ffffff'),
-        _pc('Área Privativa (m²)',        bold=True, size=6.5, color='#ffffff'),
-        _pc('Custo Raso\nda Unidade',    bold=True, size=6.5, color='#ffffff'),
-        _pc('Terreno',                   bold=True, size=6.5, color='#ffffff'),
-        _pc('Preço/m²',                  bold=True, size=6.5, color='#ffffff'),
+        _pc('',                       bold=True, size=6.5, color='#ffffff'),
+        _pc('Quantidades/\nÁreas',    bold=True, size=6.5, color='#ffffff'),
+        _pc('Unidades',               bold=True, size=6.5, color='#ffffff'),
+        _pc('V.G.Extras',             bold=True, size=6.5, color='#ffffff'),
+        _pc('Área Real (m²)',          bold=True, size=6.5, color='#ffffff'),
+        _pc('Área Privativa (m²)',     bold=True, size=6.5, color='#ffffff'),
+        _pc('Custo Raso\nda Unidade', bold=True, size=6.5, color='#ffffff'),
+        _pc('Terreno',                bold=True, size=6.5, color='#ffffff'),
+        _pc('',                       bold=True, size=6.5, color='#ffffff'),
+        _pc('Preço m²',               bold=True, size=6.5, color='#ffffff'),
     ]
 
-    def pe_row(label, qtde, ge, area_r, area_p, custo_raso, terr_m2, bold=False):
+    def pe_row(label, qtde, ge, area_r, area_p, custo_raso, bold=False):
         return [
             _pc(''),
             _p(label,         bold=bold),
@@ -846,13 +852,14 @@ def _build_resultado_pdf(estudo):
             _pr(_n(area_r,2), bold=bold),
             _pr(_n(area_p,2), bold=bold),
             _pc(_brl(custo_raso) if custo_raso else '', bold=bold),
-            _pc(''),                           # col 7: preenchida pelo SPAN da row 1
-            _pr(_brl(terr_m2), bold=bold),
+            _pc(''),   # col 7: coberta pelo SPAN
+            _pc(''),   # col 8: coberta pelo SPAN
+            _pc(''),   # col 9: coberta pelo SPAN
         ]
 
     pe_data = [
         pe_hdr,
-        # row 1 — Total (col 7 recebe o conteúdo que vai spanar as 4 linhas)
+        # row 1 — Total: cols 7, 8, 9 iniciam os SPANs
         [_pc(''),
          _p('Total', bold=True),
          _pr(_n(und_total,2),    bold=True),
@@ -860,11 +867,12 @@ def _build_resultado_pdf(estudo):
          _pr(_n(area_real_tot,2),bold=True),
          _pr(_n(area_priv_tot,2),bold=True),
          _pc(''),
-         _terr_span_cell(terreno_v, terreno_a),   # span col 7, rows 1-4
-         _pr(_brl(terreno_m2),   bold=True)],
-        pe_row('Permutadas',   und_permu,  0, 0, 0,   custo_raso_avenda, 0),
-        pe_row('Imobilizadas', und_imob,   0, 0, 0,   0,                 0),
-        pe_row('À Venda',      und_avenda, 0, area_real_tot, area_priv_tot, 0, 0, bold=True),
+         _terr_span_cell(terreno_v, terreno_a),
+         _pc('=', bold=True, size=12),
+         _preco_span_cell(terreno_m2)],
+        pe_row('Permutadas',   und_permu,  0, 0, 0,   custo_raso_avenda),
+        pe_row('Imobilizadas', und_imob,   0, 0, 0,   0),
+        pe_row('À Venda',      und_avenda, 0, area_real_tot, area_priv_tot, 0, bold=True),
     ]
     t_pe = Table(pe_data, colWidths=cw_pe)
     t_pe.setStyle(TableStyle(BASE_STYLE + [
@@ -873,9 +881,13 @@ def _build_resultado_pdf(estudo):
         ('FONTNAME',      (0,0), (-1,0), 'Helvetica-Bold'),
         ('BACKGROUND',    (0,1), (-1,1), C_SUBBG),
         ('BACKGROUND',    (0,4), (-1,4), C_SUBBG),
-        # Col 7 span nas 4 linhas de dados
+        # SPANs nas 4 linhas de dados
         ('SPAN',          (7,1), (7,4)),
+        ('SPAN',          (8,1), (8,4)),
+        ('SPAN',          (9,1), (9,4)),
         ('VALIGN',        (7,1), (7,4), 'MIDDLE'),
+        ('VALIGN',        (8,1), (8,4), 'MIDDLE'),
+        ('VALIGN',        (9,1), (9,4), 'MIDDLE'),
         # Divisores verticais
         ('LINEAFTER',     (0,0), (0,-1), 1.5, C_SEC),
         ('LINEAFTER',     (5,0), (5,-1), 1.5, C_SEC),
