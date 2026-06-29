@@ -514,13 +514,14 @@ def _build_resultado_pdf(estudo):
 
     buf = BytesIO()
     MG = 10 * mm
+    MG_V = 5 * mm  # margem vertical (superior/inferior)
     W_PAGE, _ = landscape(A4)
     W = W_PAGE - 2 * MG  # ≈ 257 mm
 
     doc = SimpleDocTemplate(
         buf, pagesize=landscape(A4),
         leftMargin=MG, rightMargin=MG,
-        topMargin=MG, bottomMargin=MG,
+        topMargin=MG_V, bottomMargin=MG_V,
     )
 
     # ── Cálculo ─────────────────────────────────────────────────────────
