@@ -809,32 +809,36 @@ def _build_resultado_pdf(estudo):
 
     custo_raso_avenda = (r['custo_construcao'] / und_avenda) if und_avenda else 0.0
 
-    cw_pe = [W*0.08, W*0.07, W*0.07, W*0.10, W*0.10,
-             W*0.13, W*0.13, W*0.12, W*0.20]
+    # col 0 = W*0.10 vazia, alinhada com "Eficiência do Projeto" acima
+    # col 1 = label da linha (Total / Permutadas / etc.)
+    cw_pe = [W*0.10, W*0.09, W*0.07, W*0.07, W*0.10, W*0.10,
+             W*0.13, W*0.12, W*0.11, W*0.11]
 
     pe_hdr = [
-        _pc('Forma de\nPermuta',bold=True,size=6.5),
-        _pc('Unidades',bold=True,size=6.5),
-        _pc('V.G.Extras',bold=True,size=6.5),
-        _pc('Área Real (m²)',bold=True,size=6.5),
-        _pc('Área Privativa (m²)',bold=True,size=6.5),
-        _pc('Custo Raso\nd/Unidade',bold=True,size=6.5),
-        _pc('Terreno\nValor',bold=True,size=6.5),
-        _pc('Área',bold=True,size=6.5),
-        _pc('Preço/m²',bold=True,size=6.5),
+        _pc('', bold=True, size=6.5),           # col 0: vazia
+        _pc('Quantidades/\nÁreas', bold=True, size=6.5),
+        _pc('Unidades', bold=True, size=6.5),
+        _pc('V.G.Extras', bold=True, size=6.5),
+        _pc('Área Real (m²)', bold=True, size=6.5),
+        _pc('Área Privativa (m²)', bold=True, size=6.5),
+        _pc('Custo Raso\nd/Unidade', bold=True, size=6.5),
+        _pc('Terreno\nValor', bold=True, size=6.5),
+        _pc('Área', bold=True, size=6.5),
+        _pc('Preço/m²', bold=True, size=6.5),
     ]
 
     def pe_row(label, qtde, ge, area_r, area_p, custo_raso, terr_v, terr_a, terr_m2, bold=False):
         return [
-            _p(label, bold=bold),
-            _pc(_n(qtde,2),  bold=bold),
-            _pc(_n(ge,2),    bold=bold),
-            _pr(_n(area_r,2), bold=bold),
-            _pr(_n(area_p,2), bold=bold),
-            _pr(_brl(custo_raso), bold=bold),
-            _pr(_brl(terr_v),  bold=bold),
-            _pr(f'{_n(terr_a,2)} m²', bold=bold),
-            _pr(_brl(terr_m2), bold=bold),
+            _pc(''),                             # col 0: vazia
+            _p(label, bold=bold),                # col 1: label
+            _pr(_n(qtde,2),    bold=bold),       # col 2: unidades
+            _pr(_n(ge,2),      bold=bold),       # col 3: vg extras
+            _pr(_n(area_r,2),  bold=bold),       # col 4: área real
+            _pr(_n(area_p,2),  bold=bold),       # col 5: área priv
+            _pr(_brl(custo_raso), bold=bold),    # col 6: custo raso
+            _pr(_brl(terr_v),  bold=bold),       # col 7: terreno valor
+            _pr(f'{_n(terr_a,2)} m²', bold=bold),# col 8: área terreno
+            _pr(_brl(terr_m2), bold=bold),       # col 9: preço/m²
         ]
 
     pe_data = [
