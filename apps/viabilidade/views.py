@@ -821,7 +821,11 @@ def _build_resultado_pdf(estudo):
         _pc('V.G.Extras', bold=True, size=6.5),
         _pc('Área Real (m²)', bold=True, size=6.5),
         _pc('Área Privativa (m²)', bold=True, size=6.5),
-        _pc('Custo Raso\nda Unidade', bold=True, size=6.5),
+        Paragraph(
+            '<font name="Helvetica-Bold" size="6.5" color="#ffffff">Custo Raso da Unidade</font>'
+            f'<br/><font name="Helvetica-Bold" size="7.5" color="#ffffff">{_brl(custo_raso_avenda)}</font>',
+            ps('cru_hdr', alignment=1, leading=10)
+        ),
         _pc('Terreno\nValor', bold=True, size=6.5),
         _pc('Área', bold=True, size=6.5),
         _pc('Preço/m²', bold=True, size=6.5),
@@ -835,7 +839,7 @@ def _build_resultado_pdf(estudo):
             _pr(_n(ge,2),      bold=bold),       # col 3: vg extras
             _pr(_n(area_r,2),  bold=bold),       # col 4: área real
             _pr(_n(area_p,2),  bold=bold),       # col 5: área priv
-            _pr(_brl(custo_raso), bold=bold),    # col 6: custo raso
+            _pr(''),                             # col 6: custo raso (valor só no cabeçalho)
             _pr(_brl(terr_v),  bold=bold),       # col 7: terreno valor
             _pr(f'{_n(terr_a,2)} m²', bold=bold),# col 8: área terreno
             _pr(_brl(terr_m2), bold=bold),       # col 9: preço/m²
