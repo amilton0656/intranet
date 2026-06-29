@@ -1033,3 +1033,300 @@ def _build_resultado_pdf(estudo):
 
     doc.build(story)
     return buf.getvalue()
+
+
+# ------------------------------------------------------------------
+# Relatório PDF — Fluxo de Caixa
+# ------------------------------------------------------------------
+
+@login_required
+def exportar_fluxo_caixa(request, pk):
+    from django.http import HttpResponse
+    estudo = get_object_or_404(
+        Estudo.objects.select_related('empreendimento'), pk=pk
+    )
+    pdf_bytes = _build_fluxo_pdf(estudo)
+    resp = HttpResponse(pdf_bytes, content_type='application/pdf')
+    resp['Content-Disposition'] = (
+        f'inline; filename="fluxo_{estudo.planilha}.pdf"'
+    )
+    return resp
+
+
+def _build_fluxo_pdf(estudo):
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from io import BytesIO
+    import datetime as dt
+
+    from .calculos import CalculadorViabilidade
+
+    buf  = BytesIO()
+    MG   = 10 * mm
+    MG_V = 5  * mm
+    W_PAGE, _ = landscape(A4)
+    W = W_PAGE - 2 * MG
+
+    doc = SimpleDocTemplate(
+        buf, pagesize=landscape(A4),
+        leftMargin=MG, rightMargin=MG,
+        topMargin=MG_V, bottomMargin=MG_V,
+    )
+
+    calc     = CalculadorViabilidade(estudo).calcular()
+    r        = calc.resumo()
+    fluxo    = calc.fluxo_mensal()
+    e        = estudo
+
+    # ── helpers ──────────────────────────────────────────────────────
+    def _brl(v):
+        if v is None: return '—'
+        return '{:,.2f}'.format(float(v)).replace(',','X').replace('.',',').replace('X','.')
+
+    def _pct(v):
+        return '{:,.2f}%'.format(float(v)).replace(',','X').replace('.',',').replace('X','.')
+
+    sty = getSampleStyleSheet()
+    def ps(name, **kw):
+        return ParagraphStyle(name, parent=sty['Normal'], **kw)
+
+    def _p(txt, bold=False, size=6.5, color='#222222', align=0):
+        fn = 'Helvetica-Bold' if bold else 'Helvetica'
+        return Paragraph(
+            f'<font name="{fn}" size="{size}" color="{color}">{txt}</font>',
+            ps(f'fp{id(txt)}', alignment=align, leading=size + 1.5)
+        )
+    def _pc(txt, **kw): return _p(txt, align=1, **kw)
+    def _pr(txt, **kw): return _p(txt, align=2, **kw)
+
+    # ── cores ────────────────────────────────────────────────────────
+    C_HDR   = colors.HexColor('#1a3a5c')
+    C_HDR2  = colors.HexColor('#2d5986')
+    C_ALT   = colors.HexColor('#eef3f8')
+    C_POS   = colors.HexColor('#e8f5e9')
+    C_TOT   = colors.HexColor('#2d5986')
+    C_WHITE = colors.white
+    C_GRID  = colors.HexColor('#bbbbbb')
+    C_IGRID = colors.HexColor('#dddddd')
+
+    # ── larguras das colunas ──────────────────────────────────────────
+    # 12 colunas: Mês + 11 valores
+    CM = W * 0.04
+    CV = (W - CM) / 11
+    cw = [CM] + [CV] * 11
+
+    # ── cabeçalho duplo ──────────────────────────────────────────────
+    def _ph(txt, op=''):
+        content = txt
+        if op:
+            content = f'<b>{op}</b><br/>{txt}'
+        return Paragraph(
+            f'<font name="Helvetica-Bold" size="6" color="#ffffff">{content}</font>',
+            ps(f'ph{id(txt)}', alignment=1, leading=8)
+        )
+
+    hdr_row = [
+        _ph('Mês'),
+        _ph('Receitas por\nVendas',         '(+)'),
+        _ph('Custos',                        '(-)'),
+        _ph('Receitas\nFinanc. À Prod.',     '(+)'),
+        _ph('Desembolso\nFinanc. À Prod.',   '(-)'),
+        _ph('Juros\nFinanc. À Prod.',        '(-)'),
+        _ph('Juros\nCapital Próprio',        '(-)'),
+        _ph('Disponibilidade\nno Mês',       '(=)'),
+        _ph('Desembolsos\nCapital Próprio',  '(-)'),
+        _ph('Aporte\nCapital Próprio',       '(+)'),
+        _ph('Saldo\nCapital Próprio',        '(=)'),
+        _ph('Saldo\ndo Mês',                 '(=)'),
+    ]
+
+    # ── linhas de dados ───────────────────────────────────────────────
+    data_rows = [hdr_row]
+    aporte_acum = 0.0
+
+    for row in fluxo:
+        mes          = row['mes']
+        receitas     = row['receitas']
+        custos       = (row['construcao'] + row['marketing'] + row['corretagem']
+                        + row['impostos'] + row['tx_adm'] + row['assist_tecnica']
+                        + row['despesas'] + row['terreno'])
+        disp         = row['fluxo_caixa']
+
+        if disp >= 0:
+            aporte   = 0.0
+            desemb   = min(disp, aporte_acum)
+            aporte_acum = max(0.0, aporte_acum - desemb)
+            saldo_mes = disp - desemb
+        else:
+            aporte   = abs(disp)
+            desemb   = 0.0
+            aporte_acum += aporte
+            saldo_mes = 0.0
+
+        data_rows.append([
+            _pc(str(mes)),
+            _pr(_brl(receitas)),
+            _pr(_brl(custos)),
+            _pr(_brl(0.0)),   # Rec. Financ. Prod.
+            _pr(_brl(0.0)),   # Desemb. Financ. Prod.
+            _pr(_brl(0.0)),   # Juros Financ. Prod.
+            _pr(_brl(0.0)),   # Juros Cap. Próprio
+            _pr(_brl(disp)),
+            _pr(_brl(desemb) if desemb else _brl(0.0)),
+            _pr(_brl(aporte) if aporte else _brl(0.0)),
+            _pr(_brl(0.0)),   # Saldo CP
+            _pr(_brl(saldo_mes) if saldo_mes else _brl(0.0)),
+        ])
+
+    # ── linha de totais ───────────────────────────────────────────────
+    tot_rec  = sum(row['receitas']     for row in fluxo)
+    tot_cus  = sum(
+        row['construcao'] + row['marketing'] + row['corretagem']
+        + row['impostos'] + row['tx_adm'] + row['assist_tecnica']
+        + row['despesas'] + row['terreno']
+        for row in fluxo
+    )
+    tot_disp = sum(row['fluxo_caixa'] for row in fluxo)
+
+    def _pt(txt, bold=True):
+        return _p(txt, bold=bold, color='#ffffff', align=2)
+
+    tot_row = [
+        _p('Totais', bold=True, color='#ffffff', align=1),
+        _pt(_brl(tot_rec)),
+        _pt(_brl(tot_cus)),
+        _pt(_brl(0.0)),
+        _pt(_brl(0.0)),
+        _pt(_brl(0.0)),
+        _pt(_brl(0.0)),
+        _pt(_brl(tot_disp)),
+        _pt(_brl(0.0)),
+        _pt(_brl(0.0)),
+        _pt(_brl(0.0)),
+        _pt(_brl(0.0)),
+    ]
+    data_rows.append(tot_row)
+
+    # ── monta tabela ─────────────────────────────────────────────────
+    n_rows = len(data_rows)
+    tot_idx = n_rows - 1
+
+    t = Table(data_rows, colWidths=cw, repeatRows=1)
+    ts = [
+        ('BOX',           (0,0), (-1,-1), 0.5, C_GRID),
+        ('INNERGRID',     (0,0), (-1,-1), 0.3, C_IGRID),
+        ('FONTSIZE',      (0,0), (-1,-1), 6.5),
+        ('LEADING',       (0,0), (-1,-1), 8),
+        ('TOPPADDING',    (0,0), (-1,-1), 1),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1),
+        ('LEFTPADDING',   (0,0), (-1,-1), 2),
+        ('RIGHTPADDING',  (0,0), (-1,-1), 2),
+        ('VALIGN',        (0,0), (-1,-1), 'MIDDLE'),
+        # Header
+        ('BACKGROUND',    (0,0), (-1,0), C_HDR),
+        ('ROWHEIGHT',     (0,0), (-1,0), 26),
+        # Alternating rows
+        *[('BACKGROUND',  (0,i), (-1,i), C_ALT)
+          for i in range(2, tot_idx, 2)],
+        # Totals row
+        ('BACKGROUND',    (0,tot_idx), (-1,tot_idx), C_TOT),
+        ('FONTNAME',      (0,tot_idx), (-1,tot_idx), 'Helvetica-Bold'),
+        ('ROWHEIGHT',     (0,tot_idx), (-1,tot_idx), 14),
+    ]
+    t.setStyle(TableStyle(ts))
+
+    # ── cabeçalho da empresa (repete em cada página via onLaterPages) ─
+    now    = dt.datetime.now()
+    ds     = ['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira',
+              'Sexta-feira','Sábado','Domingo'][now.weekday()]
+    dt_str = f'{ds}, {now.strftime("%d de %B de %Y")} às {now.strftime("%H:%M")} h'
+
+    def _make_page_hdr():
+        hdr_data = [[
+            _p('<b>COTA</b>  <font size="7">COTA Empreendimentos Imobiliários Ltda.</font>'
+               '<br/><font size="7.5">Viabilidade - Fluxo de Caixa</font>',
+               size=10, color='#ffffff'),
+            _p(f'Data da Impressão :  {dt_str}', size=6.5, color='#ccddee', align=2),
+        ]]
+        th = Table(hdr_data, colWidths=[W * 0.6, W * 0.4])
+        th.setStyle(TableStyle([
+            ('BACKGROUND',    (0,0), (-1,-1), C_HDR),
+            ('VALIGN',        (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING',    (0,0), (-1,-1), 5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+            ('LEFTPADDING',   (0,0), (0,0), 8),
+            ('BOX',           (0,0), (-1,-1), 0.5, colors.HexColor('#0a2040')),
+        ]))
+        return th
+
+    def _make_proj_hdr():
+        proj_data = [[
+            _p(f'Empreendimento :   <b>{e.empreendimento.nome}</b>', size=7),
+            _p(f'Planilha :   <b>{e.planilha}</b>', size=7),
+        ]]
+        tp = Table(proj_data, colWidths=[W * 0.5, W * 0.5])
+        tp.setStyle(TableStyle([
+            ('BOX',       (0,0), (-1,-1), 0.5, C_GRID),
+            ('INNERGRID', (0,0), (-1,-1), 0.3, C_IGRID),
+            ('TOPPADDING', (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+            ('LEFTPADDING', (0,0), (-1,-1), 5),
+        ]))
+        return tp
+
+    # ── resumo final ──────────────────────────────────────────────────
+    SJ = 'Sem Juros Cliente'
+    CJ = 'Com Juros Cliente'
+
+    def _sr(label, vp, sj, cj, bold=False):
+        return [
+            _p(label, bold=bold, size=7),
+            _pr(_brl(vp), bold=bold, size=7),
+            _pr(_brl(sj), bold=bold, size=7),
+            _pr(_brl(cj), bold=bold, size=7),
+        ]
+
+    resumo_data = [
+        [_p('Totais', bold=True, color='#ffffff'),
+         _pc('a VP',            bold=True, color='#ffffff', size=7),
+         _pc(SJ,                bold=True, color='#ffffff', size=7),
+         _pc(CJ,                bold=True, color='#ffffff', size=7)],
+        _sr('Total das Receitas',      r['rec_liq'],       r['rec_liq'],       r['rec_liq']),
+        _sr('Total dos Custos',        r['custo_total'],   r['custo_total'],   r['custo_total'], bold=True),
+        _sr('Lucro Líquido',           r['resultado_liq'], r['resultado_liq'], r['resultado_liq'], bold=True),
+        [_p('Lucro Líquido / Receitas', bold=True, size=7),
+         _pr(_pct(r['margem_liq']), bold=True, size=7),
+         _pr(_pct(r['margem_liq']), bold=True, size=7),
+         _pr(_pct(r['margem_liq']), bold=True, size=7)],
+    ]
+    cw_res = [W * 0.35, W * 0.21, W * 0.22, W * 0.22]
+    t_res = Table(resumo_data, colWidths=cw_res)
+    t_res.setStyle(TableStyle([
+        ('BOX',           (0,0), (-1,-1), 0.5, C_GRID),
+        ('INNERGRID',     (0,0), (-1,-1), 0.3, C_IGRID),
+        ('FONTSIZE',      (0,0), (-1,-1), 7),
+        ('TOPPADDING',    (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ('LEFTPADDING',   (0,0), (-1,-1), 4),
+        ('RIGHTPADDING',  (0,0), (-1,-1), 4),
+        ('VALIGN',        (0,0), (-1,-1), 'MIDDLE'),
+        ('BACKGROUND',    (0,0), (-1,0), C_HDR2),
+        ('BACKGROUND',    (0,2), (-1,2), colors.HexColor('#eef3f8')),
+        ('BACKGROUND',    (0,3), (-1,3), colors.HexColor('#e8f5e9')),
+    ]))
+
+    # ── story ─────────────────────────────────────────────────────────
+    story = [
+        _make_page_hdr(),
+        _make_proj_hdr(),
+        Spacer(1, 2*mm),
+        t,
+        Spacer(1, 4*mm),
+        t_res,
+    ]
+
+    doc.build(story)
+    return buf.getvalue()
