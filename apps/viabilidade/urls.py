@@ -8,6 +8,7 @@ urlpatterns = [
     # ---- Painel principal (interface única com abas) ----
     path('estudos/<int:pk>/painel/', vp.EstudoPainelView.as_view(), name='estudo_painel'),
     path('estudos/<int:pk>/calcular/', vp.estudo_calcular_ajax, name='estudo_calcular'),
+    path('estudos/<int:pk>/resultado/', views.exportar_resultado, name='estudo_resultado'),
 
     # HTMX — Config
     path('htmx/<int:estudo_pk>/config/', vp.htmx_config_table, name='htmx_config_table'),
