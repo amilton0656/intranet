@@ -718,8 +718,8 @@ def _build_resultado_pdf(estudo):
          _pc(''), _pc('Assistência Técnica',size=6.5),
          _pc('=',bold=True,size=9),
          Paragraph(
-             '<font name="Helvetica" size="6.5" color="#333333">Custo Total Construção</font>'
-             f'<br/><font name="Helvetica-Bold" size="8" color="#1a3a5c">{_brl(custo_const_total)}</font>',
+             '<font name="Helvetica" size="6.5" color="#333333">Custo de Construção (R$)</font>'
+             f'<br/><font name="Helvetica-Bold" size="8" color="#1a3a5c">{_brl(r["custo_construcao"])}</font>',
              ps('cttot', alignment=1, leading=10)
          )],
         # row 1: valores linha real
