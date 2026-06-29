@@ -670,7 +670,7 @@ def _build_resultado_pdf(estudo):
          _pc(_brl(preco_medio_m2),bold=True),
          _pc('=',bold=True,size=9),
          _pc(_brl(preco_venda_unid),bold=True),
-         _pc('+',bold=True,size=9),
+         _pc('×',bold=True,size=9),
          _pc(_n(und_avenda,2),bold=True),
          _pc('+',bold=True,size=9),
          _pc(_n(gar_total,2),bold=True),
