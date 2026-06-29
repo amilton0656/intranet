@@ -857,6 +857,8 @@ def _build_resultado_pdf(estudo):
         ('FONTNAME',      (0,0), (-1,0), 'Helvetica-Bold'),
         ('BACKGROUND',    (0,1), (-1,1), C_SUBBG),
         ('BACKGROUND',    (0,4), (-1,4), C_SUBBG),
+        # Divisor após col 5 (Área Privativa)
+        ('LINEAFTER',     (5,0), (5,-1), 1.5, C_SEC),
     ]))
     story.append(t_pe)
 
