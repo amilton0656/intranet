@@ -821,7 +821,7 @@ def _build_resultado_pdf(estudo):
         _pc('V.G.Extras', bold=True, size=6.5),
         _pc('Área Real (m²)', bold=True, size=6.5),
         _pc('Área Privativa (m²)', bold=True, size=6.5),
-        _pc('Custo Raso\nd/Unidade', bold=True, size=6.5),
+        _pc('Custo Raso\nda Unidade', bold=True, size=6.5),
         _pc('Terreno\nValor', bold=True, size=6.5),
         _pc('Área', bold=True, size=6.5),
         _pc('Preço/m²', bold=True, size=6.5),
@@ -857,8 +857,10 @@ def _build_resultado_pdf(estudo):
         ('FONTNAME',      (0,0), (-1,0), 'Helvetica-Bold'),
         ('BACKGROUND',    (0,1), (-1,1), C_SUBBG),
         ('BACKGROUND',    (0,4), (-1,4), C_SUBBG),
-        # Divisor após col 5 (Área Privativa)
-        ('LINEAFTER',     (5,0), (5,-1), 1.5, C_SEC),
+        # Divisores verticais
+        ('LINEAFTER',     (0,0), (0,-1), 1.5, C_SEC),   # antes de Quantidades/Áreas
+        ('LINEAFTER',     (5,0), (5,-1), 1.5, C_SEC),   # após Área Privativa
+        ('LINEAFTER',     (6,0), (6,-1), 1.5, C_SEC),   # após Custo Raso da Unidade
     ]))
     story.append(t_pe)
 
