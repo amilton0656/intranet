@@ -919,86 +919,74 @@ def _build_resultado_pdf(estudo):
     custo_outr_grp    = cu_despesas
     custo_fin_grp     = 0.0
 
-    CL = W * 0.38  # label column
-    CV = (W - CL) / 3  # 3 value columns
+    # 7 colunas: Itens | VP_val | VP_lbl | SJ_val | SJ_lbl | CJ_val | CJ_lbl
+    CL  = W * 0.25
+    cw_fin = [CL, W*0.13, W*0.04, W*0.16, W*0.09, W*0.16, W*0.17]
 
-    cw_fin = [CL, CV, CV, CV]
+    SJ = '(Sem Juros Cliente)'
+    CJ = '(Com Juros Cliente)'
 
-    def _fr(label, v1, v2=None, v3=None, bold=False, indent=False, bg=None, tc=None):
-        """Financial row: label + 3 value columns."""
+    def _fr(label, v1, v2=None, v3=None, bold=False, indent=False, lbl_sj='', lbl_cj=''):
         if v2 is None: v2 = v1
         if v3 is None: v3 = v2
         lbl = ('    ' if indent else '') + label
-        return [
-            _p(lbl, bold=bold),
-            _pr(_brl(v1) if v1 != '' else '', bold=bold),
-            _pr(_brl(v2) if v2 != '' else '', bold=bold),
-            _pr(_brl(v3) if v3 != '' else '', bold=bold),
-        ]
+        def _val(v): return _pr(_brl(v) if v != '' else '', bold=bold)
+        def _lbl(t): return _p(t, size=6, color='#555555')
+        return [_p(lbl, bold=bold), _val(v1), _lbl(''), _val(v2), _lbl(lbl_sj), _val(v3), _lbl(lbl_cj)]
+
+    def _sec(label):
+        return [_p(label, bold=True, size=7, color='#ffffff'),
+                _p(''), _p(''), _p(''), _p(''), _p(''), _p('')]
+
+    def _pct_row(label, v, bold=True):
+        return [_p(label, bold=bold),
+                _pr(_pct(v), bold=bold), _pc(''),
+                _pr(_pct(v), bold=bold), _pc(''),
+                _pr(_pct(v), bold=bold), _pc('')]
 
     fin_col_hdr = [
-        _p('Itens', bold=True, size=6.5, color='#ffffff'),
+        _p('Itens',             bold=True, size=6.5, color='#ffffff'),
         _pc('Total a V.P. (R$)', bold=True, size=6.5, color='#ffffff'),
-        _pc('Total (R$)\n(Sem Juros Cliente)', bold=True, size=6.5, color='#ffffff'),
-        _pc('Total (R$)\n(Com Juros Cliente)', bold=True, size=6.5, color='#ffffff'),
+        _pc('',                  bold=True, size=6.5, color='#ffffff'),  # span
+        _pc('Total (R$)',        bold=True, size=6.5, color='#ffffff'),
+        _pc('',                  bold=True, size=6.5, color='#ffffff'),  # span
+        _pc('Total (R$)',        bold=True, size=6.5, color='#ffffff'),
+        _pc('',                  bold=True, size=6.5, color='#ffffff'),  # span
     ]
-
-    # Seção helper
-    def _sec(label):
-        return [_p(label, bold=True, size=7, color='#ffffff'), _p(''), _p(''), _p('')]
 
     fin_rows = [
         fin_col_hdr,
-
-        # Receitas
         _sec('(+) Receitas'),
-        _fr('Receita Líquida', rec_liq, indent=True),
-        _fr('Permutas', r['rec_permu'], indent=True),
-
-        # Custo Construção
+        _fr('Receita Líquida', rec_liq,          indent=True, lbl_sj=SJ, lbl_cj=CJ),
+        _fr('Permutas',        r['rec_permu'],    indent=True),
         _sec('(-) Custo Construção'),
-        _fr('Construção', custo_construcao, indent=True),
-        _fr('Projetos / Aprovação', projetos_v, indent=True),
-        _fr('Taxa de Administração', cu_tx_adm, indent=True),
-        _fr('Assistência Técnica', cu_assistencia, indent=True),
-
-        # Despesas Comerciais
+        _fr('Construção',                   custo_construcao, indent=True),
+        _fr('Projetos / Aprovação',          projetos_v,       indent=True),
+        _fr('Taxa de Administração',         cu_tx_adm,        indent=True),
+        _fr('Assistência Técnica',           cu_assistencia,   indent=True),
         _sec('(-) Despesas Comerciais e Marketing'),
-        _fr('Marketing', cu_marketing, indent=True),
-        _fr('Corretagem sobre Unidades', cu_corretagem, indent=True),
-        _fr('Impostos Federais (Lucro Presumido)', cu_impostos, indent=True),
-
-        # Terreno
+        _fr('Marketing',                     cu_marketing,     indent=True),
+        _fr('Corretagem sobre Unidades',     cu_corretagem,    indent=True),
+        _fr('Impostos Federais (Lucro Presumido)', cu_impostos, indent=True, lbl_sj=SJ, lbl_cj=CJ),
         _sec('(-) Terreno'),
-        _fr('Terreno (ITBI)', cu_itbi, indent=True),
-        _fr('Terreno (Desembolso Líquido)', cu_terreno_desemb, indent=True),
-        _fr('Terreno (Corretagem)', cu_terreno_cor, indent=True),
-        _fr('Índices de Construção / Solo Criado', cu_indice, indent=True),
-
-        # Outros
+        _fr('Terreno (ITBI)',                cu_itbi,          indent=True),
+        _fr('Terreno (Desembolso Líquido)',  cu_terreno_desemb,indent=True),
+        _fr('Terreno (Corretagem)',          cu_terreno_cor,   indent=True),
+        _fr('Índices de Construção / Solo Criado', cu_indice,  indent=True),
         _sec('(-) Outros'),
-        _fr('Despesas Diversas', cu_despesas, indent=True),
-
-        # Financeiro
+        _fr('Despesas Diversas',             cu_despesas,      indent=True),
         _sec('(-) Financeiro (Juros)'),
-        _fr('Financiamento Produção - Juros', 0.0, indent=True),
-        _fr('Capital Próprio - Juros', 0.0, indent=True),
-        _fr('Investimento Máximo', 0.0, indent=True),
-        _fr('Maior Investimento no Mês', 0.0, indent=True),
-
-        # Totais
-        _fr('(-) Custo Total', custo_total, bold=True),
-        _fr('= Lucro Líquido', resultado_liq, bold=True),
-        [_p('Lucro Líquido / Receita (%)', bold=True),
-         _pr(_pct(margem_liq), bold=True),
-         _pr(_pct(margem_liq), bold=True),
-         _pr(_pct(margem_liq), bold=True)],
+        _fr('Financiamento Produção - Juros', 0.0,             indent=True),
+        _fr('Capital Próprio - Juros',        0.0,             indent=True),
+        _fr('Investimento Máximo',            0.0,             indent=True),
+        _fr('Maior Investimento no Mês',      0.0,             indent=True),
+        _fr('(-) Custo Total',   custo_total,   bold=True),
+        _fr('= Lucro Líquido',   resultado_liq, bold=True),
+        _pct_row('Lucro Líquido / Receita (%)', margem_liq),
     ]
 
-    # Índices das seções (para colorir)
-    SEC_ROWS    = [1, 4, 9, 13, 18, 20]   # linhas de seção (0-based)
-    TOT_ROWS    = [26, 27, 28]
-    SUBTOT_ROWS = []
+    SEC_ROWS = [1, 4, 9, 13, 18, 20]
+    TOT_ROWS = [25, 26, 27]
 
     t_fin = Table(fin_rows, colWidths=cw_fin)
     fin_style = list(BASE_STYLE)
@@ -1010,16 +998,19 @@ def _build_resultado_pdf(estudo):
         ]
     for i in TOT_ROWS:
         fin_style += [
-            ('BACKGROUND', (0,i), (-1,i), C_TOT if i < 28 else C_LBRL),
+            ('BACKGROUND', (0,i), (-1,i), C_TOT if i < 27 else C_LBRL),
             ('FONTNAME',   (0,i), (-1,i), 'Helvetica-Bold'),
         ]
     fin_style += [
         ('BACKGROUND',  (0,0), (-1,0), C_SEC),
         ('TEXTCOLOR',   (0,0), (-1,0), C_WHITE),
         ('FONTNAME',    (0,0), (-1,0), 'Helvetica-Bold'),
-        # Linha do cabeçalho mais alta
-        ('ROWHEIGHT',   (0,0), (-1,0), 22),
+        ('ROWHEIGHT',   (0,0), (-1,0), 20),
         ('VALIGN',      (0,0), (-1,0), 'MIDDLE'),
+        # SPANs do cabeçalho: cada par valor+lbl mergeado no header
+        ('SPAN',        (1,0), (2,0)),
+        ('SPAN',        (3,0), (4,0)),
+        ('SPAN',        (5,0), (6,0)),
     ]
     t_fin.setStyle(TableStyle(fin_style))
     story.append(t_fin)
