@@ -835,7 +835,7 @@ def _build_resultado_pdf(estudo):
             _pr(_n(ge,2),      bold=bold),       # col 3: vg extras
             _pr(_n(area_r,2),  bold=bold),       # col 4: área real
             _pr(_n(area_p,2),  bold=bold),       # col 5: área priv
-            _pr(_brl(custo_raso) if custo_raso else '', bold=bold),  # col 6
+            _pc(_brl(custo_raso) if custo_raso else '', bold=bold),  # col 6
             _pr(_brl(terr_v),  bold=bold),       # col 7: terreno valor
             _pr(f'{_n(terr_a,2)} m²', bold=bold),# col 8: área terreno
             _pr(_brl(terr_m2), bold=bold),       # col 9: preço/m²
