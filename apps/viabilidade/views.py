@@ -502,7 +502,7 @@ def exportar_resultado(request, pk):
 
 
 def _build_resultado_pdf(estudo):
-    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib import colors
     from reportlab.lib.units import mm
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -514,11 +514,11 @@ def _build_resultado_pdf(estudo):
 
     buf = BytesIO()
     MG = 10 * mm
-    W_PAGE, _ = A4
-    W = W_PAGE - 2 * MG  # ≈ 190 mm
+    W_PAGE, _ = landscape(A4)
+    W = W_PAGE - 2 * MG  # ≈ 257 mm
 
     doc = SimpleDocTemplate(
-        buf, pagesize=A4,
+        buf, pagesize=landscape(A4),
         leftMargin=MG, rightMargin=MG,
         topMargin=MG, bottomMargin=MG,
     )
