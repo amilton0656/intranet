@@ -809,50 +809,91 @@ def _build_resultado_pdf(estudo):
 
     custo_raso_avenda = (r['custo_construcao'] / und_avenda) if und_avenda else 0.0
 
-    cw_pe = [W*0.08, W*0.07, W*0.07, W*0.10, W*0.10,
-             W*0.13, W*0.13, W*0.12, W*0.20]
-
-    pe_hdr = [
-        _pc('Forma de\nPermuta',bold=True,size=6.5),
-        _pc('Unidades',bold=True,size=6.5),
-        _pc('V.G.Extras',bold=True,size=6.5),
-        _pc('Área Real (m²)',bold=True,size=6.5),
-        _pc('Área Privativa (m²)',bold=True,size=6.5),
-        _pc('Custo Raso\nd/Unidade',bold=True,size=6.5),
-        _pc('Terreno\nValor',bold=True,size=6.5),
-        _pc('Área',bold=True,size=6.5),
-        _pc('Preço/m²',bold=True,size=6.5),
+    # 11 colunas:
+    # 0=FormadePermuta 1=Quantidades/Áreas 2=Unidades 3=VGExtras
+    # 4=ÁreaReal 5=ÁreaPriv 6=CustoRaso | 7=TerrValor 8=TerrÁrea 9== 10=Preço/m²
+    cw_pe = [
+        W*0.08, W*0.10, W*0.07, W*0.06,
+        W*0.10, W*0.10, W*0.13,
+        W*0.13, W*0.09, W*0.03, W*0.11,
     ]
 
-    def pe_row(label, qtde, ge, area_r, area_p, custo_raso, terr_v, terr_a, terr_m2, bold=False):
-        return [
-            _p(label, bold=bold),
-            _pc(_n(qtde,2),  bold=bold),
-            _pc(_n(ge,2),    bold=bold),
-            _pr(_n(area_r,2), bold=bold),
-            _pr(_n(area_p,2), bold=bold),
-            _pr(_brl(custo_raso), bold=bold),
-            _pr(_brl(terr_v),  bold=bold),
-            _pr(f'{_n(terr_a,2)} m²', bold=bold),
-            _pr(_brl(terr_m2), bold=bold),
-        ]
+    def _ph(txt): return _pc(txt, bold=True, size=6.5, color='#ffffff')
+    def _ph2(txt): return _pc(txt, bold=True, size=6.5, color='#222222')
 
     pe_data = [
-        pe_hdr,
-        pe_row('Total',       und_total, gar_total, area_real_tot, area_priv_tot,
-               terreno_v, terreno_v, terreno_a, terreno_m2, bold=True),
-        pe_row('Permutadas',  und_permu, 0, 0, 0,   0, 0, 0, 0),
-        pe_row('Imobilizadas',und_imob,  0, 0, 0,   0, 0, 0, 0),
-        pe_row('À Venda',     und_avenda,0, area_real_tot, area_priv_tot,
-               custo_raso_avenda, 0, 0, 0, bold=True),
+        # ── Header row 0 ────────────────────────────────────────────────
+        [_ph('Forma de\nPermuta'),
+         _ph('Quantidades/\nÁreas'),
+         _ph('Unidades'),
+         _ph('V.G.\nExtras'),
+         _ph('Área Real\n(m²)'),
+         _ph('Área Privativa\n(m²)'),
+         _ph('Custo Raso\nd/Unidade'),
+         _ph('Terreno'), _pc(''), _pc(''), _pc('')],   # Terreno spans cols 7-10
+        # ── Header row 1 (sub-headers Terreno) ──────────────────────────
+        [_pc(''), _pc(''), _pc(''), _pc(''), _pc(''), _pc(''), _pc(''),
+         _ph2('Valor'), _ph2('Área'), _ph2(''), _ph2('Preço/m²')],
+        # ── Total ────────────────────────────────────────────────────────
+        [_p('Total', bold=True),
+         _pc(''),
+         _pr(_n(und_total, 2),   bold=True),
+         _pr(_n(gar_total, 2),   bold=True),
+         _pr(_n(area_real_tot,2),bold=True),
+         _pr(_n(area_priv_tot,2),bold=True),
+         _pr(''),
+         _pr(_brl(terreno_v),    bold=True),
+         _pr(f'{_n(terreno_a,2)} m²'),
+         _pc('=', bold=True),
+         _pr(_brl(terreno_m2))],
+        # ── Permutadas ───────────────────────────────────────────────────
+        [_p('Permutadas'),
+         _pc(''),
+         _pr(_n(und_permu,2)), _pr('0,00'),
+         _pr('0,00'), _pr('0,00'),
+         _pr(_brl(0)),
+         _pr(_brl(0)), _pr(''), _pc(''), _pr('')],
+        # ── Imobilizadas ─────────────────────────────────────────────────
+        [_p('Imobilizadas'),
+         _pc(''),
+         _pr(_n(und_imob,2)), _pr('0,00'),
+         _pr('0,00'), _pr('0,00'),
+         _pr(_brl(0)),
+         _pr(_brl(0)), _pr(''), _pc(''), _pr('')],
+        # ── À Venda ──────────────────────────────────────────────────────
+        [_p('À Venda', bold=True),
+         _pc(''),
+         _pr(_n(und_avenda,2),    bold=True),
+         _pr('0,00',              bold=True),
+         _pr(_n(area_real_tot,2), bold=True),
+         _pr(_n(area_priv_tot,2), bold=True),
+         _pr(_brl(custo_raso_avenda), bold=True),
+         _pr(_brl(0)), _pr(''), _pc(''), _pr('')],
     ]
+
     t_pe = Table(pe_data, colWidths=cw_pe)
     t_pe.setStyle(TableStyle(BASE_STYLE + [
-        ('BACKGROUND',    (0,0), (-1,0), C_SEC),
-        ('TEXTCOLOR',     (0,0), (-1,0), C_WHITE),
-        ('FONTNAME',      (0,0), (-1,0), 'Helvetica-Bold'),
-        ('BACKGROUND',    (0,1), (-1,1), C_SUBBG),
-        ('BACKGROUND',    (0,4), (-1,4), C_SUBBG),
+        # Header row 0: fundo escuro
+        ('BACKGROUND', (0,0), (-1,0), C_SEC),
+        ('TEXTCOLOR',  (0,0), (-1,0), C_WHITE),
+        ('FONTNAME',   (0,0), (-1,0), 'Helvetica-Bold'),
+        # "Terreno" span cols 7-10 na row 0
+        ('SPAN',       (7,0), (10,0)),
+        # Header row 1: fundo cinza claro
+        ('BACKGROUND', (0,1), (-1,1), C_LBLBG),
+        ('FONTNAME',   (0,1), (-1,1), 'Helvetica-Bold'),
+        # Cols 0-6 da row 1: span com row 0 (ocultar linha vazia)
+        ('SPAN',       (0,0), (0,1)),
+        ('SPAN',       (1,0), (1,1)),
+        ('SPAN',       (2,0), (2,1)),
+        ('SPAN',       (3,0), (3,1)),
+        ('SPAN',       (4,0), (4,1)),
+        ('SPAN',       (5,0), (5,1)),
+        ('SPAN',       (6,0), (6,1)),
+        # Linhas de dados alternadas
+        ('BACKGROUND', (0,2), (-1,2), C_SUBBG),   # Total
+        ('BACKGROUND', (0,5), (-1,5), C_SUBBG),   # À Venda
+        ('ROWHEIGHT',  (0,0), (-1,0), 22),
     ]))
     story.append(t_pe)
 
