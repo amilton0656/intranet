@@ -1017,6 +1017,7 @@ def _build_resultado_pdf(estudo):
         ('TEXTCOLOR',   (0,0), (-1,0), C_WHITE),
         ('FONTNAME',    (0,0), (-1,0), 'Helvetica-Bold'),
         ('ROWHEIGHT',   (0,0), (-1,0), 20),
+        ('ROWHEIGHT',   (0,1), (-1,-1), 11),
         ('VALIGN',      (0,0), (-1,0), 'MIDDLE'),
         # SPANs do cabeçalho: cada par valor+lbl mergeado no header
         ('SPAN',        (1,0), (2,0)),
