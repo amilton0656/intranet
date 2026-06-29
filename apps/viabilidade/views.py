@@ -934,9 +934,10 @@ def _build_resultado_pdf(estudo):
         def _lbl(t): return _p(t, size=6, color='#555555')
         return [_p(lbl, bold=bold), _val(v1), _lbl(''), _val(v2), _lbl(lbl_sj), _val(v3), _lbl(lbl_cj)]
 
-    def _sec(label):
+    def _sec(label, total=None):
+        def _v(): return _pr(_brl(total), bold=True, color='#ffffff') if total is not None else _p('')
         return [_p(label, bold=True, size=7, color='#ffffff'),
-                _p(''), _p(''), _p(''), _p(''), _p(''), _p('')]
+                _v(), _p(''), _v(), _p(''), _v(), _p('')]
 
     def _pct_row(label, v, bold=True):
         return [_p(label, bold=bold),
@@ -954,28 +955,36 @@ def _build_resultado_pdf(estudo):
         _pc('',                  bold=True, size=6.5, color='#ffffff'),  # span
     ]
 
+    # Subtotais por seção
+    tot_receitas  = rec_liq + r['rec_permu']
+    tot_construcao = custo_construcao + projetos_v + cu_tx_adm + cu_assistencia
+    tot_despesas  = cu_marketing + cu_corretagem + cu_impostos
+    tot_terreno   = cu_itbi + cu_terreno_desemb + cu_terreno_cor + cu_indice
+    tot_outros    = cu_despesas
+    tot_fin       = 0.0
+
     fin_rows = [
         fin_col_hdr,
-        _sec('(+) Receitas'),
+        _sec('(+) Receitas',                         tot_receitas),
         _fr('Receita Líquida', rec_liq,          indent=True, lbl_sj=SJ, lbl_cj=CJ),
         _fr('Permutas',        r['rec_permu'],    indent=True),
-        _sec('(-) Custo Construção'),
+        _sec('(-) Custo Construção',                  tot_construcao),
         _fr('Construção',                   custo_construcao, indent=True),
         _fr('Projetos / Aprovação',          projetos_v,       indent=True),
         _fr('Taxa de Administração',         cu_tx_adm,        indent=True),
         _fr('Assistência Técnica',           cu_assistencia,   indent=True),
-        _sec('(-) Despesas Comerciais e Marketing'),
+        _sec('(-) Despesas Comerciais e Marketing',   tot_despesas),
         _fr('Marketing',                     cu_marketing,     indent=True),
         _fr('Corretagem sobre Unidades',     cu_corretagem,    indent=True),
         _fr('Impostos Federais (Lucro Presumido)', cu_impostos, indent=True, lbl_sj=SJ, lbl_cj=CJ),
-        _sec('(-) Terreno'),
+        _sec('(-) Terreno',                           tot_terreno),
         _fr('Terreno (ITBI)',                cu_itbi,          indent=True),
         _fr('Terreno (Desembolso Líquido)',  cu_terreno_desemb,indent=True),
         _fr('Terreno (Corretagem)',          cu_terreno_cor,   indent=True),
         _fr('Índices de Construção / Solo Criado', cu_indice,  indent=True),
-        _sec('(-) Outros'),
+        _sec('(-) Outros',                            tot_outros),
         _fr('Despesas Diversas',             cu_despesas,      indent=True),
-        _sec('(-) Financeiro (Juros)'),
+        _sec('(-) Financeiro (Juros)',                tot_fin),
         _fr('Financiamento Produção - Juros', 0.0,             indent=True),
         _fr('Capital Próprio - Juros',        0.0,             indent=True),
         _fr('Investimento Máximo',            0.0,             indent=True),
