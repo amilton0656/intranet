@@ -831,7 +831,7 @@ def _build_resultado_pdf(estudo):
         )
 
     pe_hdr = [
-        _pc('',                       bold=True, size=6.5, color='#ffffff'),
+        _pc('Forma de\nPermuta',       bold=True, size=6.5, color='#ffffff'),
         _pc('Quantidades/\nÁreas',    bold=True, size=6.5, color='#ffffff'),
         _pc('Unidades',               bold=True, size=6.5, color='#ffffff'),
         _pc('V.G.Extras',             bold=True, size=6.5, color='#ffffff'),
