@@ -823,7 +823,7 @@ def _build_resultado_pdf(estudo):
         _pc('Área Privativa (m²)', bold=True, size=6.5),
         Paragraph(
             '<font name="Helvetica-Bold" size="6.5" color="#ffffff">Custo Raso da Unidade</font>'
-            '<br/> <br/> <br/>'
+            '<br/> <br/>'
             f'<font name="Helvetica-Bold" size="7.5" color="#ffffff">{_brl(custo_raso_avenda)}</font>',
             ps('cru_hdr', alignment=1, leading=10)
         ),
