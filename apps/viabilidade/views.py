@@ -658,7 +658,8 @@ def _build_resultado_pdf(estudo):
     rec_liq          = r['rec_liq']
 
     OP = W * 0.025   # coluna do operador (×, +, =)
-    cw_f1 = [W*0.13, OP, W*0.12, OP, W*0.14, OP, W*0.09, OP, W*0.09, OP, W*0.165, W*0.135]
+    # soma deve ser exatamente W: 0.13+0.12+0.14+0.09+0.09+0.165+0.14 + 5×0.025 = 1.00
+    cw_f1 = [W*0.13, OP, W*0.12, OP, W*0.14, OP, W*0.09, OP, W*0.09, OP, W*0.165, W*0.14]
     f1_data = [
         [_pc('ÁreaPriv.Média(unid.)',size=6.5), _pc(''),
          _pc('Preço médio p/ m²',size=6.5),     _pc(''),
