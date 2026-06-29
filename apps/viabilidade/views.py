@@ -815,16 +815,16 @@ def _build_resultado_pdf(estudo):
              W*0.13, W*0.12, W*0.11, W*0.11]
 
     pe_hdr = [
-        _pc('', bold=True, size=6.5),           # col 0: vazia
-        _pc('Quantidades/\nÁreas', bold=True, size=6.5),
-        _pc('Unidades', bold=True, size=6.5),
-        _pc('V.G.Extras', bold=True, size=6.5),
-        _pc('Área Real (m²)', bold=True, size=6.5),
-        _pc('Área Privativa (m²)', bold=True, size=6.5),
-        _pc('Custo Raso\nda Unidade', bold=True, size=6.5),
-        _pc('Terreno\nValor', bold=True, size=6.5),
-        _pc('Área', bold=True, size=6.5),
-        _pc('Preço/m²', bold=True, size=6.5),
+        _pc('', bold=True, size=6.5, color='#ffffff'),
+        _pc('Quantidades/\nÁreas', bold=True, size=6.5, color='#ffffff'),
+        _pc('Unidades', bold=True, size=6.5, color='#ffffff'),
+        _pc('V.G.Extras', bold=True, size=6.5, color='#ffffff'),
+        _pc('Área Real (m²)', bold=True, size=6.5, color='#ffffff'),
+        _pc('Área Privativa (m²)', bold=True, size=6.5, color='#ffffff'),
+        _pc('Custo Raso\nda Unidade', bold=True, size=6.5, color='#ffffff'),
+        _pc('Terreno\nValor', bold=True, size=6.5, color='#ffffff'),
+        _pc('Área', bold=True, size=6.5, color='#ffffff'),
+        _pc('Preço/m²', bold=True, size=6.5, color='#ffffff'),
     ]
 
     def pe_row(label, qtde, ge, area_r, area_p, custo_raso, terr_v, terr_a, terr_m2, bold=False):
@@ -906,10 +906,10 @@ def _build_resultado_pdf(estudo):
         ]
 
     fin_col_hdr = [
-        _p('Itens', bold=True, size=6.5),
-        _pc('Total a V.P. (R$)', bold=True, size=6.5),
-        _pc('Total (R$)\n(Sem Juros Cliente)', bold=True, size=6.5),
-        _pc('Total (R$)\n(Com Juros Cliente)', bold=True, size=6.5),
+        _p('Itens', bold=True, size=6.5, color='#ffffff'),
+        _pc('Total a V.P. (R$)', bold=True, size=6.5, color='#ffffff'),
+        _pc('Total (R$)\n(Sem Juros Cliente)', bold=True, size=6.5, color='#ffffff'),
+        _pc('Total (R$)\n(Com Juros Cliente)', bold=True, size=6.5, color='#ffffff'),
     ]
 
     # Seção helper
