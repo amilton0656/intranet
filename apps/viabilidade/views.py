@@ -716,7 +716,12 @@ def _build_resultado_pdf(estudo):
         [_pc('Área Real Total',size=6.5),   _pc(''), _pc('Custo/m² (Real)',size=6.5),
          _pc(''), _pc('Tx Administração',size=6.5),
          _pc(''), _pc('Assistência Técnica',size=6.5),
-         _pc('=',bold=True,size=9), _pc('Custo Total Construção',size=6.5)],
+         _pc('=',bold=True,size=9),
+         Paragraph(
+             '<font name="Helvetica" size="6.5" color="#333333">Custo Total Construção</font>'
+             f'<br/><font name="Helvetica-Bold" size="8" color="#1a3a5c">{_brl(custo_const_total)}</font>',
+             ps('cttot', alignment=1, leading=10)
+         )],
         # row 1: valores linha real
         [_pc(f'{_n(area_real_tot,2)} m²',bold=True),
          _pc('×',bold=True,size=9), _pc(_brl(cm2_real),bold=True),
