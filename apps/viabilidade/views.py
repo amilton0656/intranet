@@ -840,7 +840,7 @@ def _build_resultado_pdf(estudo):
         _pc('Custo Raso\nda Unidade', bold=True, size=6.5, color='#ffffff'),
         _pc('Terreno',                bold=True, size=6.5, color='#ffffff'),
         _pc('',                       bold=True, size=6.5, color='#ffffff'),
-        _pc('Preço m²',               bold=True, size=6.5, color='#ffffff'),
+        _pc('',                       bold=True, size=6.5, color='#ffffff'),
     ]
 
     def pe_row(label, qtde, ge, area_r, area_p, custo_raso, bold=False):
@@ -881,6 +881,8 @@ def _build_resultado_pdf(estudo):
         ('FONTNAME',      (0,0), (-1,0), 'Helvetica-Bold'),
         ('BACKGROUND',    (0,1), (-1,1), C_SUBBG),
         ('BACKGROUND',    (0,4), (-1,4), C_SUBBG),
+        # SPAN do cabeçalho: cols 7-9 mescladas em "Terreno"
+        ('SPAN',          (7,0), (9,0)),
         # SPANs nas 4 linhas de dados
         ('SPAN',          (7,1), (7,4)),
         ('SPAN',          (8,1), (8,4)),
