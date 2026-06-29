@@ -810,35 +810,45 @@ def _build_resultado_pdf(estudo):
     custo_raso_avenda = (r['custo_construcao'] / und_avenda) if und_avenda else 0.0
 
     # col 0 = W*0.10 vazia, alinhada com "Eficiência do Projeto" acima
-    # col 1 = label da linha (Total / Permutadas / etc.)
+    # col 1 = label da linha | cols 7 = Terreno (Valor+Área combinados) | col 8 = Preço/m²
     cw_pe = [W*0.10, W*0.09, W*0.07, W*0.07, W*0.10, W*0.10,
-             W*0.13, W*0.12, W*0.11, W*0.11]
+             W*0.13, W*0.23, W*0.11]
+
+    def _terr_cell(terr_v, terr_a, bold=False):
+        """Célula combinada: Valor (sublinhado) / Área"""
+        fn  = 'Helvetica-Bold' if bold else 'Helvetica'
+        fnb = 'Helvetica-Bold'
+        return Paragraph(
+            f'<font name="{fn}"    size="6"  color="#555555">Valor</font>'
+            f'<br/><font name="{fnb}" size="7.5" color="#111111"><u>{_brl(terr_v)}</u></font>'
+            f'<br/><font name="{fn}"    size="6"  color="#555555">Área</font>'
+            f'<br/><font name="{fnb}" size="7"   color="#111111">{_n(terr_a,2)} m²</font>',
+            ps('terr_comb', alignment=1, leading=10)
+        )
 
     pe_hdr = [
         _pc('', bold=True, size=6.5, color='#ffffff'),
-        _pc('Quantidades/\nÁreas', bold=True, size=6.5, color='#ffffff'),
-        _pc('Unidades', bold=True, size=6.5, color='#ffffff'),
-        _pc('V.G.Extras', bold=True, size=6.5, color='#ffffff'),
-        _pc('Área Real (m²)', bold=True, size=6.5, color='#ffffff'),
-        _pc('Área Privativa (m²)', bold=True, size=6.5, color='#ffffff'),
-        _pc('Custo Raso\nda Unidade', bold=True, size=6.5, color='#ffffff'),
-        _pc('Terreno\nValor', bold=True, size=6.5, color='#ffffff'),
-        _pc('Área', bold=True, size=6.5, color='#ffffff'),
-        _pc('Preço/m²', bold=True, size=6.5, color='#ffffff'),
+        _pc('Quantidades/\nÁreas',      bold=True, size=6.5, color='#ffffff'),
+        _pc('Unidades',                 bold=True, size=6.5, color='#ffffff'),
+        _pc('V.G.Extras',               bold=True, size=6.5, color='#ffffff'),
+        _pc('Área Real (m²)',            bold=True, size=6.5, color='#ffffff'),
+        _pc('Área Privativa (m²)',       bold=True, size=6.5, color='#ffffff'),
+        _pc('Custo Raso\nda Unidade',   bold=True, size=6.5, color='#ffffff'),
+        _pc('Terreno',                  bold=True, size=6.5, color='#ffffff'),
+        _pc('Preço/m²',                 bold=True, size=6.5, color='#ffffff'),
     ]
 
     def pe_row(label, qtde, ge, area_r, area_p, custo_raso, terr_v, terr_a, terr_m2, bold=False):
         return [
-            _pc(''),                             # col 0: vazia
-            _p(label, bold=bold),                # col 1: label
-            _pr(_n(qtde,2),    bold=bold),       # col 2: unidades
-            _pr(_n(ge,2),      bold=bold),       # col 3: vg extras
-            _pr(_n(area_r,2),  bold=bold),       # col 4: área real
-            _pr(_n(area_p,2),  bold=bold),       # col 5: área priv
-            _pc(_brl(custo_raso) if custo_raso else '', bold=bold),  # col 6
-            _pr(_brl(terr_v),  bold=bold),       # col 7: terreno valor
-            _pr(f'{_n(terr_a,2)} m²', bold=bold),# col 8: área terreno
-            _pr(_brl(terr_m2), bold=bold),       # col 9: preço/m²
+            _pc(''),
+            _p(label, bold=bold),
+            _pr(_n(qtde,2),   bold=bold),
+            _pr(_n(ge,2),     bold=bold),
+            _pr(_n(area_r,2), bold=bold),
+            _pr(_n(area_p,2), bold=bold),
+            _pc(_brl(custo_raso) if custo_raso else '', bold=bold),
+            _terr_cell(terr_v, terr_a, bold=bold),
+            _pr(_brl(terr_m2), bold=bold),
         ]
 
     pe_data = [
@@ -857,10 +867,11 @@ def _build_resultado_pdf(estudo):
         ('FONTNAME',      (0,0), (-1,0), 'Helvetica-Bold'),
         ('BACKGROUND',    (0,1), (-1,1), C_SUBBG),
         ('BACKGROUND',    (0,4), (-1,4), C_SUBBG),
+        ('VALIGN',        (7,1), (7,-1), 'MIDDLE'),
         # Divisores verticais
-        ('LINEAFTER',     (0,0), (0,-1), 1.5, C_SEC),   # antes de Quantidades/Áreas
-        ('LINEAFTER',     (5,0), (5,-1), 1.5, C_SEC),   # após Área Privativa
-        ('LINEAFTER',     (6,0), (6,-1), 1.5, C_SEC),   # após Custo Raso da Unidade
+        ('LINEAFTER',     (0,0), (0,-1), 1.5, C_SEC),
+        ('LINEAFTER',     (5,0), (5,-1), 1.5, C_SEC),
+        ('LINEAFTER',     (6,0), (6,-1), 1.5, C_SEC),
     ]))
     story.append(t_pe)
 
