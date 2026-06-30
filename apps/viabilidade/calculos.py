@@ -45,6 +45,7 @@ class Linha:
     CAP_GIRO_APORTE = 31
     CAP_GIRO_DESEMB = 32
     CAP_GIRO_JUROS = 33
+    CAP_GIRO_SALDO = 34
     FLUXO_CAIXA = 40
     FLUXO_ACUM = 41
     FLUXO_VP = 42
@@ -127,6 +128,7 @@ class CalculadorViabilidade:
         self.tir_mensal = 0.0
         self.vpl = 0.0
         self.cu_terreno_desemb = 0.0
+        self._curva_perc_mes = [0.0] * TAM_FLUXO  # % de construção por mês (para FIN_PROD)
 
         # Custos individuais (calculados em calc_custos, usados em resumo())
         self.cu_itbi = 0.0
@@ -316,27 +318,89 @@ class CalculadorViabilidade:
                 for cm in constru.curva.meses.all():
                     mes = constru.constru_inicio + cm.curva_mes
                     if 0 <= mes < TAM_FLUXO:
-                        self.fluxo[Linha.CONSTRUCAO][mes].valor += (
-                            valor_total * float(cm.curva_perc) / 100
-                        )
+                        perc = float(cm.curva_perc)
+                        self.fluxo[Linha.CONSTRUCAO][mes].valor += valor_total * perc / 100
+                        self._curva_perc_mes[mes] += perc
                         self.tamanho_ff = max(self.tamanho_ff, mes + 1)
 
     def _incluir_velocidade(self):
-        for veloc in self.estudo.velocidades.select_related('agrupamento').all():
+        e = self.estudo
+        entrega = int(e.inicio_construcao) + int(e.tempo_construcao)
+
+        # ParamVendas padrão do estudo (usado quando velocidade não tem vínculo direto)
+        params_list = list(e.params_vendas.all())
+        default_pv = params_list[0] if len(params_list) == 1 else None
+
+        def _add_rec(mes, valor):
+            if 0 <= mes < TAM_FLUXO and valor > 0:
+                self.fluxo[Linha.RECEITAS][mes].valor += valor
+                self.tamanho_ff = max(self.tamanho_ff, mes + 1)
+
+        for veloc in e.velocidades.select_related('agrupamento', 'param_vendas').all():
             if veloc.veloc_qtde <= 0:
                 continue
+
             base = (
                 self.rec_por_agrupamento.get(veloc.agrupamento_id, 0.0)
                 if veloc.agrupamento_id
                 else self.rec_liq
             )
-            valor_agrup = base * float(veloc.veloc_perc) / 100
-            valor_mes = valor_agrup / veloc.veloc_qtde
+            valor_total_block = base * float(veloc.veloc_perc) / 100
+            valor_por_mes     = valor_total_block / veloc.veloc_qtde
+
+            pv = veloc.param_vendas or default_pv
+
+            if pv is None:
+                # Sem parcelamento: distribui uniformemente
+                for i in range(veloc.veloc_qtde):
+                    _add_rec(veloc.veloc_inicio + i, valor_por_mes)
+                continue
+
+            ato_perc      = float(pv.ato_perc)      / 100
+            parc_perc     = float(pv.parc_perc)     / 100
+            ref_perc      = float(pv.ref_perc)      / 100
+            cha_perc      = float(pv.cha_perc)      / 100
+            fin_parc_perc = float(pv.fin_parc_perc) / 100
+            fin_ref_perc  = float(pv.fin_ref_perc)  / 100
+
             for i in range(veloc.veloc_qtde):
-                mes = veloc.veloc_inicio + i
-                if 0 <= mes < TAM_FLUXO:
-                    self.fluxo[Linha.RECEITAS][mes].valor += valor_mes
-                    self.tamanho_ff = max(self.tamanho_ff, mes + 1)
+                mes_venda = veloc.veloc_inicio + i
+                v = valor_por_mes  # receita das unidades vendidas neste mês
+
+                # ATO: pago em ato_qtde parcelas iguais a partir do mês da venda
+                if ato_perc > 0:
+                    qtde = max(pv.ato_qtde, 1)
+                    parc = v * ato_perc / qtde
+                    for j in range(qtde):
+                        _add_rec(mes_venda + j, parc)
+
+                # PARCELAS: parc_qtde mensais começando em mes_venda + parc_apos
+                if parc_perc > 0 and pv.parc_qtde > 0:
+                    parc = v * parc_perc / pv.parc_qtde
+                    for j in range(pv.parc_qtde):
+                        _add_rec(mes_venda + pv.parc_apos + j, parc)
+
+                # REFORÇOS: ref_qtde pagamentos a cada ref_interv meses após a venda
+                if ref_perc > 0 and pv.ref_qtde > 0 and pv.ref_interv > 0:
+                    parc = v * ref_perc / pv.ref_qtde
+                    for j in range(1, pv.ref_qtde + 1):
+                        _add_rec(mes_venda + j * pv.ref_interv, parc)
+
+                # CHAVES: pago em entrega + cha_apos (data fixa, independe da venda)
+                if cha_perc > 0:
+                    _add_rec(entrega + pv.cha_apos, v * cha_perc)
+
+                # FIN. CLIENTE (parcelas): fin_parc_qtde mensais a partir de entrega + fin_parc_apos
+                if fin_parc_perc > 0 and pv.fin_parc_qtde > 0:
+                    parc = v * fin_parc_perc / pv.fin_parc_qtde
+                    for j in range(pv.fin_parc_qtde):
+                        _add_rec(entrega + pv.fin_parc_apos + j, parc)
+
+                # FIN. CLIENTE (reforços): fin_ref_qtde a cada fin_ref_interv após entrega
+                if fin_ref_perc > 0 and pv.fin_ref_qtde > 0 and pv.fin_ref_interv > 0:
+                    parc = v * fin_ref_perc / pv.fin_ref_qtde
+                    for j in range(1, pv.fin_ref_qtde + 1):
+                        _add_rec(entrega + j * pv.fin_ref_interv, parc)
 
     def _incluir_custos_percentuais(self):
         e = self.estudo
@@ -385,7 +449,77 @@ class CalculadorViabilidade:
             else:
                 distribuir(linha, valor_total, inicio_def, meses_def)
 
+    def _incluir_fin_producao(self):
+        e = self.estudo
+        if not e.tx_financ_producao_ck:
+            return
+        perc_financ = float(e.financ_prod_perc_financiamento)
+        if perc_financ <= 0:
+            return
+
+        total_financiavel = self.custo_construcao * perc_financ / 100
+        perc_construido_min = float(e.financ_prod_perc_construido)
+        perc_vendido_min = float(e.financ_prod_perc_vendido)
+
+        # limite_vendas = 0 desativa condição de vendas (precisa de 100% = nunca)
+        limite_vendas = self.rec_liq * perc_vendido_min / 100 if perc_vendido_min > 0 else self.rec_liq
+
+        curva_acum = 0.0
+        receitas_acum = 0.0
+        condicao_ativa = False
+        repasse_total = 0.0
+
+        for mes in range(self.tamanho_ff):
+            curva_perc_mes = self._curva_perc_mes[mes]
+            receitas_acum += self.fluxo[Linha.RECEITAS][mes].valor
+            curva_acum += curva_perc_mes
+
+            if curva_perc_mes <= 0:
+                continue  # só libera em meses de construção
+
+            if not condicao_ativa:
+                cond_v = receitas_acum >= limite_vendas
+                cond_c = (curva_acum >= perc_construido_min) if perc_construido_min > 0 else False
+                if cond_v or cond_c:
+                    condicao_ativa = True
+
+            if condicao_ativa:
+                repasse = total_financiavel * curva_perc_mes / 100
+                self.fluxo[Linha.FIN_PROD_RECEITA][mes].valor += repasse
+                repasse_total += repasse
+
+        if repasse_total <= 0:
+            return
+
+        # Desembolso (amortização pós-entrega + carência)
+        inicio_obra = int(e.inicio_construcao)
+        tempo_obra = int(e.tempo_construcao) or 1
+        entrega = inicio_obra + tempo_obra
+        carencia = int(e.financ_prod_carencia)
+        parcelas = int(e.financ_prod_qtde_parcelas) or 1
+
+        parcela_desemb = repasse_total / parcelas
+        inicio_desemb = entrega + carencia
+        for i in range(parcelas):
+            mes = inicio_desemb + i
+            if 0 <= mes < TAM_FLUXO:
+                self.fluxo[Linha.FIN_PROD_DESEMB][mes].valor += parcela_desemb
+                self.tamanho_ff = max(self.tamanho_ff, mes + 1)
+
+        # Juros mensais sobre saldo devedor
+        taxa_mensal = taxa_ano_to_mes(float(e.tx_financ_producao)) / 100
+        saldo_devedor = 0.0
+        for mes in range(self.tamanho_ff):
+            saldo_devedor += self.fluxo[Linha.FIN_PROD_RECEITA][mes].valor
+            saldo_devedor -= self.fluxo[Linha.FIN_PROD_DESEMB][mes].valor
+            if saldo_devedor < 0:
+                saldo_devedor = 0.0
+            if saldo_devedor > 0 and mes + 1 < TAM_FLUXO:
+                self.fluxo[Linha.FIN_PROD_JUROS][mes + 1].valor += saldo_devedor * taxa_mensal
+                self.tamanho_ff = max(self.tamanho_ff, mes + 2)
+
     def _calcular_fluxo_caixa(self):
+        # Pass 1: FLUXO_CAIXA simples (receitas - custos, sem financiamento)
         for mes in range(self.tamanho_ff):
             entradas = self.fluxo[Linha.RECEITAS][mes].valor
             saidas = sum(
@@ -399,12 +533,53 @@ class CalculadorViabilidade:
             )
             self.fluxo[Linha.FLUXO_CAIXA][mes].valor = entradas - saidas
 
-        acum = 0.0
-        for mes in range(self.tamanho_ff):
-            acum += self.fluxo[Linha.FLUXO_CAIXA][mes].valor
-            self.fluxo[Linha.FLUXO_ACUM][mes].valor = acum
+        # Pass 2: Capital Próprio (aporte / desembolso / saldo / juros)
+        e = self.estudo
+        taxa_cg = taxa_ano_to_mes(float(e.tx_cap_giro)) / 100 if e.tx_cap_giro_ck else 0.0
 
-        self.resultado_fluxo_acum = acum  # acumulado do fluxo (não sobrescreve resultado_liq)
+        cap_giro_saldo = 0.0
+        fluxo_saldo = 0.0
+
+        for mes in range(self.tamanho_ff):
+            fc_simples = self.fluxo[Linha.FLUXO_CAIXA][mes].valor
+            fin_rec    = self.fluxo[Linha.FIN_PROD_RECEITA][mes].valor
+            fin_desemb = self.fluxo[Linha.FIN_PROD_DESEMB][mes].valor
+            fin_juros  = self.fluxo[Linha.FIN_PROD_JUROS][mes].valor
+            cg_juros   = self.fluxo[Linha.CAP_GIRO_JUROS][mes].valor
+
+            disponib = fc_simples + fin_rec - fin_desemb - fin_juros - cg_juros
+
+            prev_fluxo_saldo = fluxo_saldo
+
+            if disponib < 0:
+                needed = disponib + prev_fluxo_saldo
+                aporte = abs(needed) if needed < 0 else 0.0
+                desemb = 0.0
+            else:
+                aporte = 0.0
+                if cap_giro_saldo > 0:
+                    total_avail = disponib + prev_fluxo_saldo
+                    if total_avail >= cap_giro_saldo:
+                        desemb = cap_giro_saldo
+                    else:
+                        desemb = min(disponib, cap_giro_saldo)
+                else:
+                    desemb = 0.0
+
+            cap_giro_saldo += aporte - desemb
+            fluxo_saldo += disponib + aporte - desemb
+
+            self.fluxo[Linha.CAP_GIRO_APORTE][mes].valor = aporte
+            self.fluxo[Linha.CAP_GIRO_DESEMB][mes].valor = desemb
+            self.fluxo[Linha.CAP_GIRO_SALDO][mes].valor = cap_giro_saldo
+            self.fluxo[Linha.FLUXO_ACUM][mes].valor = fluxo_saldo
+
+            # Juros CG do próximo mês
+            if taxa_cg > 0 and cap_giro_saldo > 0 and mes + 1 < TAM_FLUXO:
+                self.fluxo[Linha.CAP_GIRO_JUROS][mes + 1].valor += cap_giro_saldo * taxa_cg
+                self.tamanho_ff = max(self.tamanho_ff, mes + 2)
+
+        self.resultado_fluxo_acum = fluxo_saldo
 
     def _calcular_vpl(self):
         taxa_mensal = taxa_ano_to_mes(float(self.estudo.tx_vp)) / 100
@@ -432,6 +607,7 @@ class CalculadorViabilidade:
         self._incluir_construcao()
         self._incluir_velocidade()
         self._incluir_custos_percentuais()
+        self._incluir_fin_producao()
         self._calcular_fluxo_caixa()
         self._calcular_vpl()
         return self
@@ -502,25 +678,38 @@ class CalculadorViabilidade:
         rows = []
         for mes in range(self.tamanho_ff):
             ref = self.fluxo[Linha.MES_REF][mes]
+            fc  = self.fluxo[Linha.FLUXO_CAIXA][mes].valor
+            fpr = self.fluxo[Linha.FIN_PROD_RECEITA][mes].valor
+            fpd = self.fluxo[Linha.FIN_PROD_DESEMB][mes].valor
+            fpj = self.fluxo[Linha.FIN_PROD_JUROS][mes].valor
+            cgj = self.fluxo[Linha.CAP_GIRO_JUROS][mes].valor
             rows.append({
                 'mes': mes,
                 'referencia': ref.mex,
-                'receitas': round(self.fluxo[Linha.RECEITAS][mes].valor, 2),
-                'construcao': round(self.fluxo[Linha.CONSTRUCAO][mes].valor, 2),
-                'marketing': round(self.fluxo[Linha.MARKETING][mes].valor, 2),
-                'corretagem': round(self.fluxo[Linha.CORRETAGEM][mes].valor, 2),
-                'impostos': round(self.fluxo[Linha.IMPOSTOS][mes].valor, 2),
-                'tx_adm': round(self.fluxo[Linha.TX_ADM][mes].valor, 2),
-                'assist_tecnica': round(self.fluxo[Linha.ASSIST_TECNICA][mes].valor, 2),
-                'despesas': round(self.fluxo[Linha.DESPESAS][mes].valor, 2),
-                'projetos': round(self.fluxo[Linha.PROJETOS][mes].valor, 2),
-                'indice': round(self.fluxo[Linha.INDICES][mes].valor, 2),
+                'receitas':      round(self.fluxo[Linha.RECEITAS][mes].valor, 2),
+                'construcao':    round(self.fluxo[Linha.CONSTRUCAO][mes].valor, 2),
+                'marketing':     round(self.fluxo[Linha.MARKETING][mes].valor, 2),
+                'corretagem':    round(self.fluxo[Linha.CORRETAGEM][mes].valor, 2),
+                'impostos':      round(self.fluxo[Linha.IMPOSTOS][mes].valor, 2),
+                'tx_adm':        round(self.fluxo[Linha.TX_ADM][mes].valor, 2),
+                'assist_tecnica':round(self.fluxo[Linha.ASSIST_TECNICA][mes].valor, 2),
+                'despesas':      round(self.fluxo[Linha.DESPESAS][mes].valor, 2),
+                'projetos':      round(self.fluxo[Linha.PROJETOS][mes].valor, 2),
+                'indice':        round(self.fluxo[Linha.INDICES][mes].valor, 2),
                 'terreno': round(
                     self.fluxo[Linha.TERRENO_ITBI][mes].valor
                     + self.fluxo[Linha.TERRENO_DESEMB][mes].valor
                     + self.fluxo[Linha.TERRENO_CORRET][mes].valor, 2
                 ),
-                'fluxo_caixa': round(self.fluxo[Linha.FLUXO_CAIXA][mes].valor, 2),
-                'fluxo_acum': round(self.fluxo[Linha.FLUXO_ACUM][mes].valor, 2),
+                'fluxo_caixa':       round(fc, 2),
+                'fin_prod_receita':  round(fpr, 2),
+                'fin_prod_desemb':   round(fpd, 2),
+                'fin_prod_juros':    round(fpj, 2),
+                'cap_giro_juros':    round(cgj, 2),
+                'disponib':          round(fc + fpr - fpd - fpj - cgj, 2),
+                'cap_giro_aporte':   round(self.fluxo[Linha.CAP_GIRO_APORTE][mes].valor, 2),
+                'cap_giro_desemb':   round(self.fluxo[Linha.CAP_GIRO_DESEMB][mes].valor, 2),
+                'cap_giro_saldo':    round(self.fluxo[Linha.CAP_GIRO_SALDO][mes].valor, 2),
+                'fluxo_acum':        round(self.fluxo[Linha.FLUXO_ACUM][mes].valor, 2),
             })
         return rows

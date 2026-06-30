@@ -1145,45 +1145,43 @@ def _build_fluxo_pdf(estudo):
 
     # ── linhas de dados ───────────────────────────────────────────────
     data_rows = [hdr_row]
-    aporte_acum = 0.0
+
+    def _v(v): return _pr(_brl(v)) if v else _pr(_brl(0.0))
 
     for row in fluxo:
-        mes          = row['mes']
-        receitas     = row['receitas']
-        custos       = (row['construcao'] + row['projetos'] + row['indice']
-                        + row['marketing'] + row['corretagem']
-                        + row['impostos'] + row['tx_adm'] + row['assist_tecnica']
-                        + row['despesas'] + row['terreno'])
-        disp         = row['fluxo_caixa']
-
-        if disp >= 0:
-            aporte   = 0.0
-            desemb   = min(disp, aporte_acum)
-            aporte_acum = max(0.0, aporte_acum - desemb)
-            saldo_mes = disp - desemb
-        else:
-            aporte   = abs(disp)
-            desemb   = 0.0
-            aporte_acum += aporte
-            saldo_mes = 0.0
+        mes      = row['mes']
+        receitas = row['receitas']
+        custos   = (row['construcao'] + row['projetos'] + row['indice']
+                    + row['marketing'] + row['corretagem']
+                    + row['impostos'] + row['tx_adm'] + row['assist_tecnica']
+                    + row['despesas'] + row['terreno'])
+        fpr      = row['fin_prod_receita']
+        fpd      = row['fin_prod_desemb']
+        fpj      = row['fin_prod_juros']
+        cgj      = row['cap_giro_juros']
+        disp     = row['disponib']
+        cgd      = row['cap_giro_desemb']
+        cga      = row['cap_giro_aporte']
+        cgs      = row['cap_giro_saldo']
+        saldo    = row['fluxo_acum']
 
         data_rows.append([
             _pc(str(mes)),
-            _pr(_brl(receitas)),
-            _pr(_brl(custos)),
-            _pr(_brl(0.0)),   # Rec. Financ. Prod.
-            _pr(_brl(0.0)),   # Desemb. Financ. Prod.
-            _pr(_brl(0.0)),   # Juros Financ. Prod.
-            _pr(_brl(0.0)),   # Juros Cap. Próprio
-            _pr(_brl(disp)),
-            _pr(_brl(desemb) if desemb else _brl(0.0)),
-            _pr(_brl(aporte) if aporte else _brl(0.0)),
-            _pr(_brl(0.0)),   # Saldo CP
-            _pr(_brl(saldo_mes) if saldo_mes else _brl(0.0)),
+            _v(receitas),
+            _v(custos),
+            _v(fpr),
+            _v(fpd),
+            _v(fpj),
+            _v(cgj),
+            _v(disp),
+            _v(cgd),
+            _v(cga),
+            _v(cgs),
+            _v(saldo),
         ])
 
     # ── linha de totais ───────────────────────────────────────────────
-    tot_rec  = sum(row['receitas']     for row in fluxo)
+    tot_rec  = sum(row['receitas'] for row in fluxo)
     tot_cus  = sum(
         row['construcao'] + row['projetos'] + row['indice']
         + row['marketing'] + row['corretagem']
@@ -1191,7 +1189,15 @@ def _build_fluxo_pdf(estudo):
         + row['despesas'] + row['terreno']
         for row in fluxo
     )
-    tot_disp = sum(row['fluxo_caixa'] for row in fluxo)
+    tot_fpr  = sum(row['fin_prod_receita'] for row in fluxo)
+    tot_fpd  = sum(row['fin_prod_desemb']  for row in fluxo)
+    tot_fpj  = sum(row['fin_prod_juros']   for row in fluxo)
+    tot_cgj  = sum(row['cap_giro_juros']   for row in fluxo)
+    tot_disp = sum(row['disponib']         for row in fluxo)
+    tot_cgd  = sum(row['cap_giro_desemb']  for row in fluxo)
+    tot_cga  = sum(row['cap_giro_aporte']  for row in fluxo)
+    tot_cgs  = fluxo[-1]['cap_giro_saldo'] if fluxo else 0.0
+    tot_sld  = fluxo[-1]['fluxo_acum']     if fluxo else 0.0
 
     def _pt(txt, bold=True):
         return _p(txt, bold=bold, color='#ffffff', align=2)
@@ -1200,15 +1206,15 @@ def _build_fluxo_pdf(estudo):
         _p('Totais', bold=True, color='#ffffff', align=1),
         _pt(_brl(tot_rec)),
         _pt(_brl(tot_cus)),
-        _pt(_brl(0.0)),
-        _pt(_brl(0.0)),
-        _pt(_brl(0.0)),
-        _pt(_brl(0.0)),
+        _pt(_brl(tot_fpr)),
+        _pt(_brl(tot_fpd)),
+        _pt(_brl(tot_fpj)),
+        _pt(_brl(tot_cgj)),
         _pt(_brl(tot_disp)),
-        _pt(_brl(0.0)),
-        _pt(_brl(0.0)),
-        _pt(_brl(0.0)),
-        _pt(_brl(0.0)),
+        _pt(_brl(tot_cgd)),
+        _pt(_brl(tot_cga)),
+        _pt(_brl(tot_cgs)),
+        _pt(_brl(tot_sld)),
     ]
     data_rows.append(tot_row)
 
