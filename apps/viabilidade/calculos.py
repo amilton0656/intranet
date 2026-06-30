@@ -142,12 +142,13 @@ class CalculadorViabilidade:
     # ------------------------------------------------------------------
 
     def calc_config(self):
-        configs = list(self.estudo.configuracoes.select_related('tipo').all())
+        configs = list(self.estudo.configuracoes.select_related('tipo', 'agrupamento').all())
 
         self.und_total = self.und_permu = self.und_imob = self.und_avenda = 0
         self.gar_total = 0
         self.area_real_total = self.area_priv_total = 0.0
         self.rec_total = self.rec_permu = self.rec_imob = 0.0
+        self.rec_por_agrupamento: dict[int, float] = {}  # agrupamento_id → receita líquida
 
         for c in configs:
             qtde = c.config_qtde_total
@@ -177,9 +178,16 @@ class CalculadorViabilidade:
                 else:
                     valor_und = area_p * valor_m2
 
-            self.rec_total += valor_und * qtde
+            rec_und = valor_und * qtde
+            rec_und_liq = valor_und * (qtde - qtde_permu - qtde_imob)
+            self.rec_total += rec_und
             self.rec_permu += valor_und * qtde_permu
             self.rec_imob += valor_und * qtde_imob
+
+            if c.agrupamento_id:
+                self.rec_por_agrupamento[c.agrupamento_id] = (
+                    self.rec_por_agrupamento.get(c.agrupamento_id, 0.0) + rec_und_liq
+                )
 
         self.rec_liq = self.rec_total - self.rec_permu - self.rec_imob
         self.area_real_final = self.area_real_total
@@ -314,10 +322,15 @@ class CalculadorViabilidade:
                         self.tamanho_ff = max(self.tamanho_ff, mes + 1)
 
     def _incluir_velocidade(self):
-        for veloc in self.estudo.velocidades.all():
+        for veloc in self.estudo.velocidades.select_related('agrupamento').all():
             if veloc.veloc_qtde <= 0:
                 continue
-            valor_agrup = self.rec_liq * float(veloc.veloc_perc) / 100
+            base = (
+                self.rec_por_agrupamento.get(veloc.agrupamento_id, 0.0)
+                if veloc.agrupamento_id
+                else self.rec_liq
+            )
+            valor_agrup = base * float(veloc.veloc_perc) / 100
             valor_mes = valor_agrup / veloc.veloc_qtde
             for i in range(veloc.veloc_qtde):
                 mes = veloc.veloc_inicio + i
@@ -327,8 +340,9 @@ class CalculadorViabilidade:
 
     def _incluir_custos_percentuais(self):
         e = self.estudo
-        rec = self.rec_liq
-        tam = self.tamanho_ff or 1
+        inicio_obra = int(e.inicio_construcao)
+        tempo_obra = int(e.tempo_construcao) or 1
+        entrega = inicio_obra + tempo_obra
 
         def distribuir(linha: int, valor: float, inicio: int = 0, meses: int = 1):
             if valor <= 0 or meses <= 0:
@@ -340,35 +354,36 @@ class CalculadorViabilidade:
                     self.fluxo[linha][mes].valor += v_mes
                     self.tamanho_ff = max(self.tamanho_ff, mes + 1)
 
-        # Distribuições manuais por VIAB_DISTRIBUICAO
-        for dist in self.estudo.distribuicoes.select_related('custo').all():
-            valor_custo = self._valor_custo_por_tipo(dist.custo, rec)
-            if valor_custo > 0:
-                distribuir(Linha.PROJETOS, valor_custo * float(dist.custo_perc) / 100,
-                           dist.custo_inicio, dist.custo_qtde)
+        # Mapa: descrição do custo → (checkbox, Linha, valor_total, inicio_default, meses_default)
+        CUSTO_MAP = {
+            'Projetos / Aprovação':                 (e.projetos_ck,       Linha.PROJETOS,       float(e.projetos_valor),    0,           1),
+            'Terreno (Desembolso Líquido)':          (e.terreno_desemb_ck, Linha.TERRENO_DESEMB, self.cu_terreno_desemb,     0,           1),
+            'Terreno (Corretagem)':                  (e.terreno_cor_ck,    Linha.TERRENO_CORRET, float(e.cu_terreno_cor),    0,           1),
+            'Terreno (ITBI)':                        (e.itbi_ck,           Linha.TERRENO_ITBI,   self.cu_itbi,               0,           1),
+            'Índice de Construção / Solo Criado':    (e.indice_ck,         Linha.INDICES,        float(e.indice_construcao), 0,           1),
+            'Despesas Diversas':                     (e.despesas_ck,       Linha.DESPESAS,       self.cu_despesas,           inicio_obra, tempo_obra),
+            'Marketing':                             (e.marketing_ck,      Linha.MARKETING,      self.cu_marketing,          inicio_obra, tempo_obra),
+            'Corretagem sobre Unidades':             (e.corretagem_ck,     Linha.CORRETAGEM,     self.cu_corretagem,         inicio_obra, tempo_obra),
+            'Impostos Federais (Lucro Presumido)':   (e.impostos_ck,       Linha.IMPOSTOS,       self.cu_impostos,           inicio_obra, tempo_obra),
+            'Taxa de Administração':                 (e.tx_adm_ck,         Linha.TX_ADM,         self.cu_tx_adm,             inicio_obra, tempo_obra),
+            'Assistência Técnica':                   (e.assistencia_ck,    Linha.ASSIST_TECNICA, self.cu_assistencia,        entrega,     60),
+        }
 
-        # Custos percentuais diretos distribuídos ao longo da obra
-        inicio_obra = int(self.estudo.inicio_construcao)
-        tempo_obra = int(self.estudo.tempo_construcao) or 1
+        # Agrupa distribuições manuais por descrição do custo
+        distrib_por_custo: dict[str, list] = {}
+        for dist in e.distribuicoes.select_related('custo').all():
+            distrib_por_custo.setdefault(dist.custo.descricao, []).append(dist)
 
-        distribuir(Linha.MARKETING, rec * float(e.perc_marketing) / 100, inicio_obra, tempo_obra)
-        distribuir(Linha.CORRETAGEM, rec * float(e.perc_corretagem) / 100, inicio_obra, tempo_obra)
-        distribuir(Linha.IMPOSTOS, rec * float(e.perc_impostos) / 100, inicio_obra, tempo_obra)
-        distribuir(Linha.DESPESAS, rec * float(e.perc_despesas) / 100, inicio_obra, tempo_obra)
-        distribuir(Linha.TX_ADM, self.cu_tx_adm, inicio_obra, tempo_obra)
-
-        # ITBI do terreno — no desembolso do terreno
-        distribuir(Linha.TERRENO_ITBI,
-                   float(e.perc_itbi) * float(e.terreno_valor) / 100, 0, 1)
-        distribuir(Linha.TERRENO_DESEMB, self.cu_terreno_desemb, 0, 1)
-        distribuir(Linha.TERRENO_CORRET, float(e.cu_terreno_cor), 0, 1)
-
-        # Assistência técnica: 60 meses (5 anos) após a entrega — padrão do setor
-        entrega = inicio_obra + tempo_obra
-        distribuir(Linha.ASSIST_TECNICA, self.cu_assistencia, entrega, 60)
-
-    def _valor_custo_por_tipo(self, custo, rec_liq: float) -> float:
-        return rec_liq  # simplificado; custo define % via Distribuicao.custo_perc
+        for nome, (ck, linha, valor_total, inicio_def, meses_def) in CUSTO_MAP.items():
+            if not ck or valor_total <= 0:
+                continue
+            distribs = distrib_por_custo.get(nome)
+            if distribs:
+                for d in distribs:
+                    distribuir(linha, valor_total * float(d.custo_perc) / 100,
+                               d.custo_inicio, d.custo_qtde)
+            else:
+                distribuir(linha, valor_total, inicio_def, meses_def)
 
     def _calcular_fluxo_caixa(self):
         for mes in range(self.tamanho_ff):

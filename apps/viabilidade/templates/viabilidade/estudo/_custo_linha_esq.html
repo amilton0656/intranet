@@ -1,6 +1,14 @@
 {% load viab_fmt %}
 <div class="custo-linha">
+  {% if custo_key %}
+  <span style="color:#5577aa;font-size:11px;flex-shrink:0;cursor:pointer" title="Ver fluxo mensal"
+        hx-get="{% url 'viabilidade:htmx_custo_fluxo' estudo.pk custo_key %}"
+        hx-target="#htmxModalBody"
+        hx-trigger="click"
+        onclick="abrirModal('{{ label }}')">&#128196;</span>
+  {% else %}
   <span style="color:#888;font-size:11px;flex-shrink:0">&#128196;</span>
+  {% endif %}
   {% if ck %}<input type="checkbox" name="{{ ck_name }}" {% if ck_val %}checked{% endif %} style="flex-shrink:0">
   {% else %}<span style="width:13px;display:inline-block;flex-shrink:0"></span>{% endif %}
   <span class="custo-desc {% if bold %}fw-bold{% endif %}">{{ label }}</span>

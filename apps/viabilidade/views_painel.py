@@ -744,3 +744,51 @@ def htmx_tipo_save(request, pk=None):
 def htmx_tipo_delete(request, pk):
     get_object_or_404(Tipo, pk=pk).delete()
     return _render_tipo_modal(request)
+
+
+# ---------------------------------------------------------------------------
+# HTMX — Fluxo mensal por custo individual
+# ---------------------------------------------------------------------------
+
+_CUSTO_KEY_MAP = {
+    'construcao':     ('Custo de Construção',                    2),
+    'projetos':       ('Projetos / Aprovação',                   3),
+    'terreno_desemb': ('Terreno (Desembolso Líquido)',           10),
+    'terreno_cor':    ('Terreno (Corretagem)',                   11),
+    'terreno_itbi':   ('Terreno (ITBI)',                          9),
+    'indice':         ('Índice de Construção / Solo Criado',     12),
+    'despesas':       ('Despesas Diversas',                      13),
+    'marketing':      ('Marketing',                               6),
+    'corretagem':     ('Corretagem sobre Unidades',               7),
+    'impostos':       ('Impostos Federais (Lucro Presumido)',      8),
+    'assistencia':    ('Assistência Técnica',                     5),
+    'tx_adm':         ('Taxa de Administração',                   4),
+}
+
+
+@login_required
+def htmx_custo_fluxo(request, estudo_pk, custo_key):
+    if custo_key not in _CUSTO_KEY_MAP:
+        return HttpResponse('Custo não encontrado', status=404)
+
+    estudo = get_object_or_404(Estudo, pk=estudo_pk)
+    calc = CalculadorViabilidade(estudo).calcular()
+    label, linha_idx = _CUSTO_KEY_MAP[custo_key]
+
+    rows = []
+    total = 0.0
+    for mes in range(calc.tamanho_ff):
+        val = calc.fluxo[linha_idx][mes].valor
+        if val:
+            rows.append({
+                'mes': mes,
+                'referencia': calc.fluxo[0][mes].mex,
+                'valor': val,
+            })
+            total += val
+
+    return _render_htmx(request, 'viabilidade/htmx/custo_fluxo.html',
+        label=label,
+        rows=rows,
+        total=total,
+    )

@@ -72,6 +72,9 @@ urlpatterns = [
     path('htmx/curvas/<int:curva_pk>/meses/save/', vp.htmx_curvames_save, name='htmx_curvames_save'),
     path('htmx/curvas/<int:curva_pk>/meses/<int:pk>/delete/', vp.htmx_curvames_delete, name='htmx_curvames_delete'),
 
+    # HTMX — Fluxo mensal por custo
+    path('htmx/<int:estudo_pk>/custo-fluxo/<str:custo_key>/', vp.htmx_custo_fluxo, name='htmx_custo_fluxo'),
+
     # HTMX — Tipos (catálogo global)
     path('htmx/tipos/', vp.htmx_tipo_modal, name='htmx_tipo_modal'),
     path('htmx/tipos/form/', vp.htmx_tipo_form, name='htmx_tipo_form_new'),

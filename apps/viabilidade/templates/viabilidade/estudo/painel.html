@@ -697,12 +697,12 @@
 
             <!-- Coluna Esquerda -->
             <div style="flex:1;min-width:0">
-              {% include "viabilidade/estudo/_custo_linha_esq.html" with icone=True ck=False label="Custo de Construção :" valor_calc=resumo.custo_construcao bold=True %}
-              {% include "viabilidade/estudo/_custo_linha_esq.html" with icone=True ck=True  ck_name="projetos_ck"      ck_val=estudo.projetos_ck      label="Projetos / Aprovação :"           campo="projetos_valor"   val=estudo.projetos_valor %}
-              {% include "viabilidade/estudo/_custo_linha_esq.html" with icone=True ck=False label="Terreno (Valor) :"                                                                              campo="terreno_valor"    val=estudo.terreno_valor %}
-              {% include "viabilidade/estudo/_custo_linha_esq.html" with icone=True ck=True  ck_name="terreno_desemb_ck" ck_val=estudo.terreno_desemb_ck label="Terreno (Desembolso Líquido) :"  valor_calc=resumo.cu_terreno_desemb %}
-              {% include "viabilidade/estudo/_custo_linha_esq.html" with icone=True ck=True  ck_name="terreno_cor_ck"   ck_val=estudo.terreno_cor_ck   label="Terreno (Corretagem) :"           campo="cu_terreno_cor"   val=estudo.cu_terreno_cor %}
-              {% include "viabilidade/estudo/_custo_linha_esq.html" with icone=True ck=True  ck_name="indice_ck"        ck_val=estudo.indice_ck        label="Índice de Construção / Solo Criado :" campo="indice_construcao" val=estudo.indice_construcao %}
+              {% include "viabilidade/estudo/_custo_linha_esq.html" with custo_key="construcao"    ck=False label="Custo de Construção :"              valor_calc=resumo.custo_construcao bold=True %}
+              {% include "viabilidade/estudo/_custo_linha_esq.html" with custo_key="projetos"     ck=True  ck_name="projetos_ck"      ck_val=estudo.projetos_ck      label="Projetos / Aprovação :"           campo="projetos_valor"    val=estudo.projetos_valor %}
+              {% include "viabilidade/estudo/_custo_linha_esq.html" with custo_key=""             ck=False label="Terreno (Valor) :"                                                                              campo="terreno_valor"     val=estudo.terreno_valor %}
+              {% include "viabilidade/estudo/_custo_linha_esq.html" with custo_key="terreno_desemb" ck=True ck_name="terreno_desemb_ck" ck_val=estudo.terreno_desemb_ck label="Terreno (Desembolso Líquido) :" valor_calc=resumo.cu_terreno_desemb %}
+              {% include "viabilidade/estudo/_custo_linha_esq.html" with custo_key="terreno_cor"  ck=True  ck_name="terreno_cor_ck"   ck_val=estudo.terreno_cor_ck   label="Terreno (Corretagem) :"           campo="cu_terreno_cor"    val=estudo.cu_terreno_cor %}
+              {% include "viabilidade/estudo/_custo_linha_esq.html" with custo_key="indice"       ck=True  ck_name="indice_ck"        ck_val=estudo.indice_ck        label="Índice de Construção / Solo Criado :" campo="indice_construcao" val=estudo.indice_construcao %}
               <div class="custo-linha">
                 <span style="color:#888;font-size:11px">&#128196;</span>
                 <input type="checkbox" name="tx_adm_area_constr_ck" {% if estudo.tx_adm_area_constr_ck %}checked{% endif %}>
@@ -716,13 +716,13 @@
             <!-- Coluna Direita: valor calculado + % + base -->
             <div style="flex:1;min-width:0">
               <table style="width:100%;border-collapse:collapse">
-                {% include "viabilidade/estudo/_custo_linha_dir.html" with ck=True ck_name="itbi_ck"       ck_val=estudo.itbi_ck       label="Terreno (ITBI) :"                      cu=resumo.cu_itbi        campo="perc_itbi"        val=estudo.perc_itbi        base="% sobre Valor do Terreno" %}
-                {% include "viabilidade/estudo/_custo_linha_dir.html" with ck=True ck_name="despesas_ck"   ck_val=estudo.despesas_ck   label="Despesas Diversas :"                   cu=resumo.cu_despesas    campo="perc_despesas"    val=estudo.perc_despesas    base="% sobre VGV Líquido" %}
-                {% include "viabilidade/estudo/_custo_linha_dir.html" with ck=True ck_name="marketing_ck"  ck_val=estudo.marketing_ck  label="Marketing :"                           cu=resumo.cu_marketing   campo="perc_marketing"   val=estudo.perc_marketing   base="% sobre VGV Líquido" %}
-                {% include "viabilidade/estudo/_custo_linha_dir.html" with ck=True ck_name="corretagem_ck" ck_val=estudo.corretagem_ck label="Corretagem sobre Unidades :"           cu=resumo.cu_corretagem  campo="perc_corretagem"  val=estudo.perc_corretagem  base="% sobre VGV Líquido" %}
-                {% include "viabilidade/estudo/_custo_linha_dir.html" with ck=True ck_name="impostos_ck"   ck_val=estudo.impostos_ck   label="Impostos Federais (Lucro Presumido) :" cu=resumo.cu_impostos    campo="perc_impostos"    val=estudo.perc_impostos    base="% sobre VGV Líquido" %}
-                {% include "viabilidade/estudo/_custo_linha_dir.html" with ck=True ck_name="assistencia_ck" ck_val=estudo.assistencia_ck label="Assistência Técnica :"               cu=resumo.cu_assistencia campo="perc_assistencia" val=estudo.perc_assistencia base="% sobre Custo de Construção" %}
-                {% include "viabilidade/estudo/_custo_linha_dir.html" with ck=True ck_name="tx_adm_ck"     ck_val=estudo.tx_adm_ck     label="Taxa de Administração :"               cu=resumo.cu_tx_adm      campo="perc_tx_adm"      val=estudo.perc_tx_adm      base="% sobre Custo de Construção" %}
+                {% include "viabilidade/estudo/_custo_linha_dir.html" with custo_key="terreno_itbi" ck=True ck_name="itbi_ck"        ck_val=estudo.itbi_ck        label="Terreno (ITBI) :"                      cu=resumo.cu_itbi        campo="perc_itbi"        val=estudo.perc_itbi        base="% sobre Valor do Terreno" %}
+                {% include "viabilidade/estudo/_custo_linha_dir.html" with custo_key="despesas"    ck=True ck_name="despesas_ck"    ck_val=estudo.despesas_ck    label="Despesas Diversas :"                   cu=resumo.cu_despesas    campo="perc_despesas"    val=estudo.perc_despesas    base="% sobre VGV Líquido" %}
+                {% include "viabilidade/estudo/_custo_linha_dir.html" with custo_key="marketing"   ck=True ck_name="marketing_ck"   ck_val=estudo.marketing_ck   label="Marketing :"                           cu=resumo.cu_marketing   campo="perc_marketing"   val=estudo.perc_marketing   base="% sobre VGV Líquido" %}
+                {% include "viabilidade/estudo/_custo_linha_dir.html" with custo_key="corretagem"  ck=True ck_name="corretagem_ck"  ck_val=estudo.corretagem_ck  label="Corretagem sobre Unidades :"           cu=resumo.cu_corretagem  campo="perc_corretagem"  val=estudo.perc_corretagem  base="% sobre VGV Líquido" %}
+                {% include "viabilidade/estudo/_custo_linha_dir.html" with custo_key="impostos"    ck=True ck_name="impostos_ck"    ck_val=estudo.impostos_ck    label="Impostos Federais (Lucro Presumido) :" cu=resumo.cu_impostos    campo="perc_impostos"    val=estudo.perc_impostos    base="% sobre VGV Líquido" %}
+                {% include "viabilidade/estudo/_custo_linha_dir.html" with custo_key="assistencia" ck=True ck_name="assistencia_ck" ck_val=estudo.assistencia_ck label="Assistência Técnica :"                 cu=resumo.cu_assistencia campo="perc_assistencia" val=estudo.perc_assistencia base="% sobre Custo de Construção" %}
+                {% include "viabilidade/estudo/_custo_linha_dir.html" with custo_key="tx_adm"      ck=True ck_name="tx_adm_ck"     ck_val=estudo.tx_adm_ck      label="Taxa de Administração :"               cu=resumo.cu_tx_adm      campo="perc_tx_adm"      val=estudo.perc_tx_adm      base="% sobre Custo de Construção" %}
               </table>
             </div>
 

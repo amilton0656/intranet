@@ -1,0 +1,32 @@
+{% load viab_fmt %}
+<div style="font-size:12px">
+  <div style="font-weight:600;margin-bottom:8px;color:#334">{{ label }}</div>
+  {% if rows %}
+  <table style="width:100%;border-collapse:collapse">
+    <thead>
+      <tr style="background:#e8edf3;font-size:11px">
+        <th style="padding:3px 6px;text-align:center;width:40px">Mês</th>
+        <th style="padding:3px 6px;text-align:center;width:80px">Data</th>
+        <th style="padding:3px 6px;text-align:right">Valor (R$)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr style="border-bottom:1px solid #eee;{% if forloop.counter|divisibleby:2 %}background:#f7f9fc{% endif %}">
+        <td style="padding:2px 6px;text-align:center;font-family:monospace">{{ r.mes }}</td>
+        <td style="padding:2px 6px;text-align:center;font-family:monospace">{{ r.referencia }}</td>
+        <td style="padding:2px 8px;text-align:right;font-family:monospace">{{ r.valor|br2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr style="background:#2d5986;color:#fff;font-weight:600">
+        <td colspan="2" style="padding:3px 6px;font-size:11px">Total</td>
+        <td style="padding:3px 8px;text-align:right;font-family:monospace">{{ total|br2 }}</td>
+      </tr>
+    </tfoot>
+  </table>
+  {% else %}
+  <p style="color:#888;font-style:italic;margin:12px 0">Nenhum valor distribuído para este custo.</p>
+  {% endif %}
+</div>
