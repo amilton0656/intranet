@@ -87,7 +87,7 @@ BANK_LINKS = [
     {"name": "Redasset", "url": "https://redasset.com.br"},
     {"name": "Safra", "url": "https://www.safra.com.br/pessoa-juridica.htm"},
     {"name": "Santander", "url": "https://www.santander.com.br"},
-    {"name": "Sicoob", "url": "https://www.sicoob.com.br/sicoobnet/"},
+    {"name": "Sicoob", "url": "https://ib.sicoob.com.br/sicoobnet/ib/#/login"},
     {"name": "Sicredi", "url": "https://www.sicredi.com.br"},
     {"name": "Unicred", "url": "https://www.unicred.com.br/valorcapital/home"},
     {"name": "Unilos", "url": "https://www.unilos.coop.br"},
@@ -130,8 +130,10 @@ USEFUL_LINKS = [
 GERENCIAL_LINKS = [
     {"name": "Bliss Living - Resumo", "url": reverse('bliss_resumo')},
     {"name": "Cota365 - Resumo", "url": reverse('cota365:dashboard')},
-    {"name": "Cota365 - Fluxo Mensal", "url": reverse('cota365:export_fluxo') + '?format=pdf'},
-    {"name": "Cota365 - Descontos", "url": reverse('cota365:export_descontos')},
+    {"name": "Cota365 - Fluxo Mensal",
+        "url": reverse('cota365:export_fluxo') + '?format=pdf'},
+    {"name": "Cota365 - Descontos",
+        "url": reverse('cota365:export_descontos')},
 ]
 
 ADMIN_LINKS = [
@@ -139,7 +141,8 @@ ADMIN_LINKS = [
     {"name": "Tabela Bliss", "url": "/bliss/"},
     {"name": "Chat - IA", "url": reverse('chat:chat')},
     {"name": "Cota365", "url": reverse('cota365:index')},
-    {"name": "Cota365 - Resumo (Imagem WhatsApp)", "url": reverse('cota365:export_dashboard_whatsapp')},
+    {"name": "Cota365 - Resumo (Imagem WhatsApp)",
+     "url": reverse('cota365:export_dashboard_whatsapp')},
     {"name": "Tabelas PDF", "url": reverse('intranet_uploads')},
     {"name": "Imagem para Word", "url": reverse('img2word:index')},
 ]
@@ -164,11 +167,11 @@ def navbar_links(request):
         show_gerencial_menu = bool(group_names & {"admin", "manager"})
         show_admin_menu = "admin" in group_names
         show_financeiro_menu = bool(group_names & {"admin", "financeiro"})
-        show_incorporadora_menu = bool(group_names & {"admin", "incorporadora"})
+        show_incorporadora_menu = bool(
+            group_names & {"admin", "incorporadora"})
         show_pessoas_menu = bool(group_names & {"admin", "incorporadora"})
         show_propostas_menu = bool(group_names & {"admin", "incorporadora"})
         show_contratos_menu = bool(group_names & {"admin", "incorporadora"})
-
 
     return {
         "empreendimento_links": EMPREENDEDIMENTO_LINKS,
