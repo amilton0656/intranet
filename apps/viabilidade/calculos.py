@@ -513,6 +513,8 @@ class CalculadorViabilidade:
                 'tx_adm': round(self.fluxo[Linha.TX_ADM][mes].valor, 2),
                 'assist_tecnica': round(self.fluxo[Linha.ASSIST_TECNICA][mes].valor, 2),
                 'despesas': round(self.fluxo[Linha.DESPESAS][mes].valor, 2),
+                'projetos': round(self.fluxo[Linha.PROJETOS][mes].valor, 2),
+                'indice': round(self.fluxo[Linha.INDICES][mes].valor, 2),
                 'terreno': round(
                     self.fluxo[Linha.TERRENO_ITBI][mes].valor
                     + self.fluxo[Linha.TERRENO_DESEMB][mes].valor

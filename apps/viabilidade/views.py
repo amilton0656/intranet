@@ -1150,7 +1150,8 @@ def _build_fluxo_pdf(estudo):
     for row in fluxo:
         mes          = row['mes']
         receitas     = row['receitas']
-        custos       = (row['construcao'] + row['marketing'] + row['corretagem']
+        custos       = (row['construcao'] + row['projetos'] + row['indice']
+                        + row['marketing'] + row['corretagem']
                         + row['impostos'] + row['tx_adm'] + row['assist_tecnica']
                         + row['despesas'] + row['terreno'])
         disp         = row['fluxo_caixa']
@@ -1184,7 +1185,8 @@ def _build_fluxo_pdf(estudo):
     # ── linha de totais ───────────────────────────────────────────────
     tot_rec  = sum(row['receitas']     for row in fluxo)
     tot_cus  = sum(
-        row['construcao'] + row['marketing'] + row['corretagem']
+        row['construcao'] + row['projetos'] + row['indice']
+        + row['marketing'] + row['corretagem']
         + row['impostos'] + row['tx_adm'] + row['assist_tecnica']
         + row['despesas'] + row['terreno']
         for row in fluxo
