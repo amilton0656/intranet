@@ -102,6 +102,7 @@ urlpatterns = [
     # Resultado / Fluxo
     path('estudos/<int:pk>/resultado/', views.EstudoResultadoView.as_view(), name='estudo_resultado'),
     path('estudos/<int:pk>/fluxo/', views.EstudoFluxoView.as_view(), name='estudo_fluxo'),
+    path('estudos/<int:pk>/custos/', views.EstudoCustosMensaisView.as_view(), name='estudo_custos'),
 
     # Configurações de Unidades
     path('estudos/<int:estudo_pk>/configs/', views.ConfigListView.as_view(), name='config_list'),

@@ -172,6 +172,56 @@ class EstudoFluxoView(LoginRequiredMixin, View):
         })
 
 
+class EstudoCustosMensaisView(LoginRequiredMixin, View):
+    template_name = 'viabilidade/estudo/custos_mensais.html'
+
+    # Colunas de custo exibidas e suas chaves no dict fluxo_mensal
+    COLUNAS = [
+        ('Construção',       'construcao'),
+        ('Projetos',         'projetos'),
+        ('Índice',           'indice'),
+        ('Marketing',        'marketing'),
+        ('Corretagem',       'corretagem'),
+        ('Impostos',         'impostos'),
+        ('Tx. Adm.',         'tx_adm'),
+        ('Assist. Técnica',  'assist_tecnica'),
+        ('Despesas',         'despesas'),
+        ('Terreno',          'terreno'),
+    ]
+
+    def get(self, request, pk):
+        estudo = get_object_or_404(Estudo, pk=pk)
+        calc = CalculadorViabilidade(estudo).calcular()
+        fluxo = calc.fluxo_mensal()
+
+        keys = [k for _, k in self.COLUNAS]
+
+        # Monta linhas: inclui apenas meses com pelo menos um custo > 0
+        rows = []
+        for row in fluxo:
+            valores = [row.get(k, 0.0) for k in keys]
+            total = sum(valores)
+            if total > 0:
+                rows.append({
+                    'mes':       row['mes'],
+                    'referencia': row['referencia'],
+                    'valores':   valores,
+                    'total':     total,
+                })
+
+        # Totais por coluna
+        totais_col = [sum(r['valores'][i] for r in rows) for i in range(len(keys))]
+        total_geral = sum(totais_col)
+
+        return render(request, self.template_name, {
+            'estudo':      estudo,
+            'colunas':     [label for label, _ in self.COLUNAS],
+            'rows':        rows,
+            'totais_col':  totais_col,
+            'total_geral': total_geral,
+        })
+
+
 # ------------------------------------------------------------------
 # Mixin para views que dependem de um Estudo pai
 # ------------------------------------------------------------------

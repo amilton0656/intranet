@@ -9,6 +9,7 @@
   </div>
   <div class="d-flex gap-2">
     <a href="{% url 'viabilidade:estudo_resultado' estudo.pk %}" class="btn btn-success btn-sm"><i class="bi bi-calculator"></i> Resultado</a>
+    <a href="{% url 'viabilidade:estudo_custos' estudo.pk %}" class="btn btn-warning btn-sm text-dark"><i class="bi bi-table"></i> Custos mensais</a>
     <a href="{% url 'viabilidade:estudo_detail' estudo.pk %}" class="btn btn-outline-secondary btn-sm">Voltar</a>
   </div>
 </div>

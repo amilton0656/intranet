@@ -1,0 +1,65 @@
+{% extends "viabilidade/base.html" %}
+{% load viab_fmt %}
+{% block title %}Custos Mensais - {{ estudo }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">Custos Mensais: {{ estudo.planilha }}</h4>
+    <small class="text-muted">{{ estudo.empreendimento }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'viabilidade:estudo_fluxo' estudo.pk %}" class="btn btn-info btn-sm text-white"><i class="bi bi-bar-chart"></i> Fluxo mensal</a>
+    <a href="{% url 'viabilidade:estudo_resultado' estudo.pk %}" class="btn btn-success btn-sm"><i class="bi bi-calculator"></i> Resultado</a>
+    <a href="{% url 'viabilidade:estudo_detail' estudo.pk %}" class="btn btn-outline-secondary btn-sm">Voltar</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive" style="max-height:75vh;overflow:auto;">
+    <table class="table table-sm table-bordered mb-0" style="font-size:.78rem;white-space:nowrap;">
+      <thead class="sticky-top" style="top:0;z-index:2;">
+        <!-- linha de cabeçalho -->
+        <tr style="background:#1a3a5c;color:#fff;">
+          <th class="text-center" style="min-width:40px">Mês</th>
+          <th class="text-center" style="min-width:68px">Ref.</th>
+          {% for col in colunas %}
+          <th class="text-end" style="min-width:105px">{{ col }}</th>
+          {% endfor %}
+          <th class="text-end" style="min-width:115px;background:#0a2040">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr {% cycle '' 'style="background:#f5f8fc"' %}>
+          <td class="text-center num fw-semibold" style="color:#555">{{ row.mes }}</td>
+          <td class="text-center num" style="color:#666">{{ row.referencia }}</td>
+          {% for v in row.valores %}
+          <td class="text-end num {% if v %}text-danger{% else %}text-muted{% endif %}">
+            {% if v %}{{ v|br0 }}{% else %}-{% endif %}
+          </td>
+          {% endfor %}
+          <td class="text-end num fw-bold" style="color:#1a3a5c">{{ row.total|br0 }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{{ colunas|length|add:3 }}" class="text-center text-muted py-4">
+            Sem custos calculados. Verifique as configurações do estudo.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      {% if rows %}
+      <tfoot class="sticky-bottom" style="bottom:0;z-index:2;">
+        <tr style="background:#2d5986;color:#fff;font-weight:700;">
+          <td class="text-center" colspan="2">Totais</td>
+          {% for t in totais_col %}
+          <td class="text-end num">{{ t|br0 }}</td>
+          {% endfor %}
+          <td class="text-end num" style="background:#1a3a5c">{{ total_geral|br0 }}</td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}
