@@ -24,7 +24,7 @@ except ImportError:
 
 PASTA_ORIGEM = Path(r"G:\Drives compartilhados\Tabelas de Vendas - Corretor")
 INTRANET_URL = "https://apicota.com.br"   # sem barra no final
-USUARIO      = "amilton"                  # altere se necessário
+USUARIO      = ""   # deixe vazio para perguntar na execução
 
 # ── Regex que detecta qualquer mês/ano no final do nome ───────────────────────
 
@@ -47,7 +47,7 @@ def strip_mes(nome_arquivo: str) -> str:
 
 # ── Upload ─────────────────────────────────────────────────────────────────────
 
-def login(session: "requests.Session", senha: str) -> bool:
+def login(session: "requests.Session", usuario: str, senha: str) -> bool:
     login_url = f"{INTRANET_URL}/accounts/login/"
     r = session.get(login_url, timeout=15)
     r.raise_for_status()
@@ -55,7 +55,7 @@ def login(session: "requests.Session", senha: str) -> bool:
     csrf = session.cookies.get("csrftoken", "")
     r = session.post(
         login_url,
-        data={"username": USUARIO, "password": senha, "csrfmiddlewaretoken": csrf, "next": "/"},
+        data={"username": usuario, "password": senha, "csrfmiddlewaretoken": csrf, "next": "/"},
         headers={"Referer": login_url, "X-CSRFToken": csrf},
         timeout=15,
         allow_redirects=True,
@@ -113,12 +113,13 @@ def main():
         print("Cancelado.")
         return
 
-    senha = getpass.getpass(f"\nSenha do usuário '{USUARIO}': ")
+    usuario_login = USUARIO or input("\nUsuário: ").strip()
+    senha = getpass.getpass(f"Senha de '{usuario_login}': ")
 
     session = requests.Session()
 
     print("\nFazendo login...")
-    if not login(session, senha):
+    if not login(session, usuario_login, senha):
         sys.exit("Login falhou. Verifique usuário e senha.")
     print("Login OK.\n")
 
