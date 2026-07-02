@@ -248,85 +248,23 @@
     </div>
   </div>
 
-  <!-- ── Descontos ──────────────────────────────────────────────────────────── -->
-  <div class="d-none d-md-block mb-3">
-    <div class="chart-card">
-      <div class="chart-title"><i class="bi bi-scissors me-1"></i>Descontos</div>
-      <div style="overflow-x:auto;">
+  <!-- ── Descontos + Resumo por Situação ─────────────────────────────────── -->
+  <div class="row g-3 mb-3">
+    <div class="col-lg-4">
+      <div class="chart-card h-100">
+        <div class="chart-title"><i class="bi bi-scissors me-1"></i>Descontos</div>
         <table class="table top-table mb-0">
-          <thead>
-            <tr>
-              <th class="text-end">Valor Tabela</th>
-              <th class="text-end">Valor Contrato</th>
-              <th class="text-end">Desconto Corrigido pelo CUB</th>
-              <th class="text-end">% Desconto Médio</th>
-              <th class="text-end">Descontos em CUBs</th>
-            </tr>
-          </thead>
           <tbody>
-            <tr style="font-weight:700;">
-              <td class="text-end">{{ vgv_vendida_fmt }}</td>
-              <td class="text-end">{{ total_fluxo_fmt }}</td>
-              <td class="text-end">{{ desconto_val }}</td>
-              <td class="text-end">{{ desconto_pct }}</td>
-              <td class="text-end">{{ desconto_cubs }}</td>
-            </tr>
+            <tr><td class="text-muted" style="width:60%">Valor Tabela</td><td class="fw-bold text-end">{{ vgv_vendida_fmt }}</td></tr>
+            <tr><td class="text-muted">Valor Contrato</td><td class="fw-bold text-end">{{ total_fluxo_fmt }}</td></tr>
+            <tr><td class="text-muted">Desc. Corrigido pelo CUB</td><td class="fw-bold text-end">{{ desconto_val }}</td></tr>
+            <tr><td class="text-muted">% Desconto Médio</td><td class="fw-bold text-end">{{ desconto_pct }}</td></tr>
+            <tr><td class="text-muted">Descontos em CUBs</td><td class="fw-bold text-end">{{ desconto_cubs }}</td></tr>
           </tbody>
         </table>
       </div>
     </div>
-  </div>
-  <div class="d-md-none mb-3">
-    <div class="chart-card">
-      <div class="chart-title"><i class="bi bi-scissors me-1"></i>Descontos</div>
-      <table class="table top-table mb-0">
-        <tbody>
-          <tr><td class="text-muted" style="width:55%">Valor Tabela</td><td class="fw-bold text-end">{{ vgv_vendida_fmt }}</td></tr>
-          <tr><td class="text-muted">Valor Contrato</td><td class="fw-bold text-end">{{ total_fluxo_fmt }}</td></tr>
-          <tr><td class="text-muted">Desc. Corrigido pelo CUB</td><td class="fw-bold text-end">{{ desconto_val }}</td></tr>
-          <tr><td class="text-muted">% Desconto Médio</td><td class="fw-bold text-end">{{ desconto_pct }}</td></tr>
-          <tr><td class="text-muted">Descontos em CUBs</td><td class="fw-bold text-end">{{ desconto_cubs }}</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ── Resumo por Situação (Com / Sem permutas) ────────────────────────── -->
-  <div class="row g-3 mb-3">
-    <div class="col-lg-6">
-      <div class="chart-card h-100">
-        <div class="chart-title"><i class="bi bi-table me-1"></i>Resumo por Situação (Com permutas)</div>
-        <div style="overflow-x: auto;">
-          <table class="table top-table mb-0">
-            <thead>
-              <tr>
-                <th>Situação</th>
-                <th class="text-end">Valor Tabela</th>
-                <th class="text-end">% Valor</th>
-                <th class="text-end">Área Priv.</th>
-                <th class="text-end">% Área</th>
-                <th class="text-end">Unid.</th>
-                <th class="text-end">% Unid.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for r in resumo_sit %}
-              <tr {% if r.is_total %}style="font-weight:700; background:#f0f2f5;"{% endif %}>
-                <td>{{ r.situacao }}</td>
-                <td class="text-end">{{ r.vt_fmt }}</td>
-                <td class="text-end text-muted">{{ r.pct_vt }}</td>
-                <td class="text-end">{{ r.ap_fmt }}</td>
-                <td class="text-end text-muted">{{ r.pct_ap }}</td>
-                <td class="text-end">{{ r.n }}</td>
-                <td class="text-end text-muted">{{ r.pct_n }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-6">
+    <div class="col-lg-8">
       <div class="chart-card h-100">
         <div class="chart-title"><i class="bi bi-table me-1"></i>Resumo por Situação (Sem permutas)</div>
         <div style="overflow-x: auto;">
@@ -343,14 +281,14 @@
               </tr>
             </thead>
             <tbody>
-              {% for r in resumo_sit_liquido %}
-              <tr {% if r.is_total %}style="font-weight:700; background:#f0f2f5;"{% endif %}>
-                <td>{{ r.situacao }}</td>
-                <td class="text-end">{{ r.vt_fmt }}</td>
+              {% for r in resumo_sit %}
+              <tr {% if r.is_total %}style="font-weight:700; background:#f0f2f5;"{% elif r.is_permuta %}style="background:#fffbe6; border-top:1px dashed #ccc; border-bottom:1px dashed #ccc; font-style:italic;"{% endif %}>
+                <td>{{ r.situacao }}{% if r.is_permuta %} <span class="badge text-bg-warning ms-1" style="font-size:.65rem;font-style:normal;">informativo</span>{% endif %}</td>
+                <td class="text-end {% if r.is_permuta %}text-muted{% endif %}">{{ r.vt_fmt }}</td>
                 <td class="text-end text-muted">{{ r.pct_vt }}</td>
-                <td class="text-end">{{ r.ap_fmt }}</td>
+                <td class="text-end {% if r.is_permuta %}text-muted{% endif %}">{{ r.ap_fmt }}</td>
                 <td class="text-end text-muted">{{ r.pct_ap }}</td>
-                <td class="text-end">{{ r.n }}</td>
+                <td class="text-end {% if r.is_permuta %}text-muted{% endif %}">{{ r.n }}</td>
                 <td class="text-end text-muted">{{ r.pct_n }}</td>
               </tr>
               {% endfor %}

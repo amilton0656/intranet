@@ -424,21 +424,24 @@ def _compute_resumos_tabela():
     resumo_sit = []
     for s in all_sits:
         resumo_sit.append({
-            'situacao': s,
-            'vt_fmt':   _fmt_brl(sit_vt[s]),
-            'pct_vt':   f"{sit_vt[s]/total_vt*100:.2f}%",
-            'ap_fmt':   _fmt_m2(sit_ap[s]),
-            'pct_ap':   f"{sit_ap[s]/total_ap*100:.2f}%",
-            'n':        sit_n[s],
-            'pct_n':    f"{sit_n[s]/total_n*100:.2f}%",
+            'situacao':    s,
+            'vt_fmt':      _fmt_brl(sit_vt[s]),
+            'pct_vt':      f"{sit_vt[s]/total_vt*100:.2f}%",
+            'ap_fmt':      _fmt_m2(sit_ap[s]),
+            'pct_ap':      f"{sit_ap[s]/total_ap*100:.2f}%",
+            'n':           sit_n[s],
+            'pct_n':       f"{sit_n[s]/total_n*100:.2f}%",
+            'is_permuta':  s == 'Permuta',
         })
+    # Total exclui Permuta — a linha é exibida apenas como informativa
+    _sem_perm = [s for s in sit_vt if s != 'Permuta']
     resumo_sit.append({
-        'situacao': 'Total Geral',
-        'vt_fmt':   _fmt_brl(sum(sit_vt.values())),
+        'situacao': 'Total Geral Líquido',
+        'vt_fmt':   _fmt_brl(sum(sit_vt[s] for s in _sem_perm)),
         'pct_vt':   '100,00%',
-        'ap_fmt':   _fmt_m2(sum(sit_ap.values())),
+        'ap_fmt':   _fmt_m2(sum(sit_ap[s] for s in _sem_perm)),
         'pct_ap':   '100,00%',
-        'n':        total_n,
+        'n':        sum(sit_n[s] for s in _sem_perm),
         'pct_n':    '100,00%',
         'is_total': True,
     })
@@ -2336,7 +2339,7 @@ def _build_dashboard_pdf():
     story.append(desc_table)
     story.append(Spacer(1, 6))
 
-    story.append(Paragraph('Resumo por Situação (Com permutas)', sec_s))
+    story.append(Paragraph('Resumo por Situação (Sem permutas)', sec_s))
     sit_header = [[
         th('SITUAÇÃO'), th('VALOR TABELA'), th('% VALOR'),
         th('ÁREA PRIV.'), th('% ÁREA'), th('UNIDADES'), th('% UNID.'),
@@ -2346,22 +2349,31 @@ def _build_dashboard_pdf():
          tdr(r['ap_fmt']),  tdr(r['pct_ap']), tdr(str(r['n'])), tdr(r['pct_n'])]
         for r in resumo_sit
     ]
-    story.append(tbl(sit_header + sit_rows,
-                     [2.7*cm, 3.5*cm, 1.8*cm, 3*cm, 1.8*cm, 1.98*cm, 1.8*cm], total_last=True))
-    story.append(Spacer(1, 6))
-
-    story.append(Paragraph('Resumo por Situação (Sem permutas)', sec_s))
-    liq_header = [[
-        th('SITUAÇÃO'), th('VALOR TABELA'), th('% VALOR'),
-        th('ÁREA PRIV.'), th('% ÁREA'), th('UNIDADES'), th('% UNID.'),
-    ]]
-    liq_rows = [
-        [td(r['situacao']), tdr(r['vt_fmt']), tdr(r['pct_vt']),
-         tdr(r['ap_fmt']),  tdr(r['pct_ap']), tdr(str(r['n'])), tdr(r['pct_n'])]
-        for r in resumo_sit_liquido
+    sit_tbl = Table(sit_header + sit_rows,
+                    colWidths=[2.7*cm, 3.5*cm, 1.8*cm, 3*cm, 1.8*cm, 1.98*cm, 1.8*cm],
+                    repeatRows=1)
+    sit_cmds = [
+        ('BACKGROUND',    (0, 0), (-1, 0), NAVY),
+        ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, LIGHT]),
+        ('GRID',          (0, 0), (-1, -1), 0.4, BORDER),
+        ('TOPPADDING',    (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+        ('BACKGROUND',    (0, -1), (-1, -1), TOTAL_BG),
+        ('FONTNAME',      (0, -1), (-1, -1), 'Helvetica-Bold'),
     ]
-    story.append(tbl(liq_header + liq_rows,
-                     [2.7*cm, 3.5*cm, 1.8*cm, 3*cm, 1.8*cm, 1.98*cm, 1.8*cm], total_last=True))
+    perm_idx = next((i for i, r in enumerate(resumo_sit) if r.get('is_permuta')), None)
+    if perm_idx is not None:
+        row = perm_idx + 1  # +1 pelo cabeçalho
+        sit_cmds += [
+            ('BACKGROUND', (0, row), (-1, row), colors.HexColor('#fffbe6')),
+            ('FONTNAME',   (0, row), (-1, row), 'Helvetica-Oblique'),
+            ('LINEABOVE',  (0, row), (-1, row), 0.5, colors.HexColor('#cccc00')),
+            ('LINEBELOW',  (0, row), (-1, row), 0.5, colors.HexColor('#cccc00')),
+        ]
+    sit_tbl.setStyle(TableStyle(sit_cmds))
+    story.append(sit_tbl)
     story.append(PageBreak())
 
     # -- Resumo por Tipo (oculto) --
