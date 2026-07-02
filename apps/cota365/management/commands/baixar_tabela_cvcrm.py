@@ -50,8 +50,8 @@ class Command(BaseCommand):
     help = 'Baixa tabela.csv da Tabela de Preços do CV CRM.'
 
     def add_arguments(self, parser):
-        parser.add_argument('--idtabela', type=int, default=69,
-                            help='ID da tabela no CV CRM (padrão: 69)')
+        parser.add_argument('--idtabela', type=int, default=None,
+                            help='ID da tabela no CV CRM (padrão: pergunta interativamente)')
         parser.add_argument('--output', type=str, default=DESTINO_PADRAO,
                             help=f'Caminho de destino (padrão: {DESTINO_PADRAO})')
         parser.add_argument('--chrome-path', type=str, default=None)
@@ -61,7 +61,17 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         from playwright.sync_api import sync_playwright
 
-        idtabela    = options['idtabela']
+        idtabela = options['idtabela']
+        if idtabela is None:
+            import os
+            env_val = os.environ.get('CVCRM_IDTABELA', '').strip()
+            if env_val:
+                idtabela = int(env_val)
+            else:
+                raw = input('ID da tabela no CV CRM (padrão 69): ').strip()
+                idtabela = int(raw) if raw else 69
+        self.stdout.write(f'Usando idtabela={idtabela}')
+
         output_path = Path(options['output'])
         port        = options['debug_port']
         chrome_path = options['chrome_path'] or find_chrome()
