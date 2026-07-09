@@ -120,11 +120,12 @@ USEFUL_LINKS = [
     {"name": "CV", "url": "https://cota.cvcrm.com.br/"},
     {"name": "Fastbuilt", "url": "https://app.fastbuilt.com.br/dashboard/"},
     {"name": "Prevision", "url": "https://app.prevision.com.br/login"},
-    {"name": "Hinc", "url": "https://www.hinc.com.br/"},
-    {"name": "Hinc-beta", "url": "https://beta.hinc.com.br/"},
     {"name": "WhatsApp", "url": "https://web.whatsapp.com/"},
     {"name": "Gemini", "url": "https://gemini.google.com/app"},
+    {"name": "NotebookLM", "url": "https://notebooklm.google.com/"},
     {"name": "ChatGPT", "url": "https://chat.openai.com/auth/login"},
+    {"name": "Claude", "url": "https://chat.chatbotapp.ai/"},
+    {"name": "DeepSeek", "url": "https://chat.deepseek.com/"},
 ]
 
 GERENCIAL_LINKS = [
