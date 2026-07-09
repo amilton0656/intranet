@@ -91,6 +91,20 @@
                 
 
 
+                {% if show_gerencial_menu or 'grupo_tabelas_vendas' in menu_permitido %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle me-4" href="#" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        Tabelas de Vendas
+                    </a>
+                    <ul class="dropdown-menu">
+                        {% for link in empreendimento_links %}
+                        <li><a class="dropdown-item" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                {% endif %}
+
                 {% if menu_principal.comercial %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle me-4" href="#" role="button"
@@ -108,20 +122,6 @@
                             </a>
                         </li>
                         {% endfor %}
-                        {% endfor %}
-                    </ul>
-                </li>
-                {% endif %}
-
-                {% if show_gerencial_menu or 'grupo_tabelas_vendas' in menu_permitido %}
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle me-4" href="#" role="button"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                        Tabelas de Vendas
-                    </a>
-                    <ul class="dropdown-menu">
-                        {% for link in empreendimento_links %}
-                        <li><a class="dropdown-item" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.name }}</a></li>
                         {% endfor %}
                     </ul>
                 </li>
