@@ -902,6 +902,7 @@ def _import_vendas(file_obj, nome, sha256=''):
     get_espacos = _col('Espaços complementares', 'Espacos complementares')
     get_valor   = _col('Valor do contrato', 'Valor Contrato', 'VALOR DO CONTRATO')
     get_data    = _col('Data de Venda', 'Data Venda', 'DATA DE VENDA', 'DATA VENDA')
+    get_obs     = _col('Observação Pós Venda', 'Observacao Pos Venda', 'OBS POS VENDA', 'Observação Pos Venda')
     for row in csv.DictReader(f, delimiter=';'):
         reserva_raw = row.get('Reserva', '')
         if not reserva_raw.strip():
@@ -931,6 +932,7 @@ def _import_vendas(file_obj, nome, sha256=''):
             espacos         = get_espacos(row).strip(),
             valor_contrato  = _parse_float(get_valor(row).replace('R$', '')),
             data_venda      = data_venda,
+            obs_pos_venda   = get_obs(row).strip(),
         ))
     if not objs:
         raise ValueError('Nenhuma reserva válida encontrada.')
@@ -2970,6 +2972,8 @@ def comparativo_valores(request):
         **r,
         'vtm_fmt':            _fmt_brl(r['vtm']) if r['vtm'] else None,
         'valor_contrato_fmt': _fmt_brl(r['valor_contrato']),
+        'corret_val_fmt':     _fmt_brl(r['corret_val']) if r['corret_val'] is not None else None,
+        'corret_pct_fmt':     f'{r["corret_pct"]:.1f}%'.replace('.', ',') if r['corret_pct'] is not None else None,
         'desconto_fmt':       _fmt_brl(r['desconto']),
         'pct_mes_fmt':        _pct_fmt(r['pct_mes']),
         'pct_mes_neg':        r['pct_mes'] is not None and r['pct_mes'] < 0,
@@ -3014,6 +3018,8 @@ def comparativo_valores(request):
             ('data_venda',     'DATA VENDA'),
             ('vtm',            'TAB. MÊS VENDA'),
             ('valor_contrato', 'VALOR CONTRATO'),
+            ('corret_val',     'CORRET-COTA'),
+            ('corret_pct',     '% CORRET.'),
             ('desconto',       'DESCONTO'),
             ('pct_mes',        'Δ%'),
             ('qtd_cubs',       'QTD CUBs'),
@@ -3033,6 +3039,13 @@ def _get_descontos_rows():
         for d in IndiceData.objects.filter(indice_id=1)
     }
 
+    def _parse_pct_obs(obs):
+        """Extrai o percentual numérico de strings como '5', '3%', '2,5%', '3.0%'."""
+        if not obs:
+            return None
+        m = re.search(r'(\d+[.,]?\d*)\s*%?', obs.strip())
+        return float(m.group(1).replace(',', '.')) if m else None
+
     rows = []
     tot_contrato = tot_tab_mes = 0.0
     tot_tab_mes_all = tot_contrato_all = 0.0
@@ -3043,7 +3056,12 @@ def _get_descontos_rows():
         tot_contrato_all += vc
         if vtm:
             tot_tab_mes_all += vtm
-        desconto = (vtm - vc) if vtm else None
+
+        is_cota       = v.imobiliaria.upper().startswith('COTA')
+        corret_pct    = _parse_pct_obs(v.obs_pos_venda) if is_cota else None
+        corret_val    = round(vc * corret_pct / 100, 2) if corret_pct is not None else None
+
+        desconto = (vtm - vc - (corret_val or 0)) if vtm else None
         if not desconto:
             continue
         pct_mes  = desconto / vtm * 100 if (vtm and vtm > 0) else None
@@ -3057,6 +3075,8 @@ def _get_descontos_rows():
             'comp_mes':           comp_mes.strftime('%m/%Y') if comp_mes else '—',
             'vtm':                vtm,
             'valor_contrato':     vc,
+            'corret_pct':         corret_pct,
+            'corret_val':         corret_val,
             'desconto':           desconto,
             'pct_mes':            pct_mes,
             'qtd_cubs':           qtd_cubs,
@@ -3105,14 +3125,18 @@ def _export_descontos_pdf(rows, tot_tab_mes, tot_contrato, tot_desconto, tot_cub
             ParagraphStyle('sub', parent=styles['Normal'], fontSize=9, spaceAfter=12)),
     ]
 
-    header = ['RESERVA', 'UNIDADE', 'CLIENTE', 'DATA VENDA', 'TAB. MÊS', 'VALOR CONTRATO', 'DESCONTO', 'Δ%', 'QTD CUBs']
+    BLUE = colors.HexColor('#0d6efd')
+
+    header = ['RESERVA', 'UNIDADE', 'CLIENTE', 'DATA VENDA', 'TAB. MÊS', 'VALOR CONTRATO', 'CORRET-COTA', '% CORRET.', 'DESCONTO', 'Δ%', 'QTD CUBs']
     data = [header]
     for r in rows:
         pct_str = ''
         if r['pct_mes'] is not None:
             sinal = '+' if r['pct_mes'] > 0 else ''
             pct_str = f"{sinal}{r['pct_mes']:.2f}%".replace('.', ',')
-        cubs_str = f"{r['qtd_cubs']:.2f}".replace('.', ',') if r['qtd_cubs'] is not None else '—'
+        cubs_str  = f"{r['qtd_cubs']:.2f}".replace('.', ',') if r['qtd_cubs'] is not None else '—'
+        corret_str = _fmt_brl(r['corret_val']) if r['corret_val'] is not None else '—'
+        corret_pct_str = f"{r['corret_pct']:.1f}%".replace('.', ',') if r['corret_pct'] is not None else '—'
         data.append([
             f"#{r['numero']}",
             r['unidade'],
@@ -3120,45 +3144,54 @@ def _export_descontos_pdf(rows, tot_tab_mes, tot_contrato, tot_desconto, tot_cub
             r['data_venda'],
             _fmt_brl(r['vtm']) if r['vtm'] else '—',
             _fmt_brl(r['valor_contrato']),
+            corret_str,
+            corret_pct_str,
             _fmt_brl(r['desconto']),
             pct_str,
             cubs_str,
         ])
-    tot_cubs_str = f'{tot_cubs:.2f}'.replace('.', ',')
-    tot_cubs_brl = _fmt_brl(tot_cubs * cub_atual) if cub_atual else '—'
-    cubs_brl_val = tot_cubs * cub_atual if cub_atual else None
+    tot_cubs_str  = f'{tot_cubs:.2f}'.replace('.', ',')
+    tot_cubs_brl  = _fmt_brl(tot_cubs * cub_atual) if cub_atual else '—'
+    cubs_brl_val  = tot_cubs * cub_atual if cub_atual else None
+    tot_corret    = sum(r['corret_val'] for r in rows if r['corret_val'] is not None)
     if cubs_brl_val and tot_tab_mes:
         pct_val = cubs_brl_val / tot_tab_mes * 100
         sinal = '+' if pct_val > 0 else ''
         tot_pct_cubs_str = f'{sinal}{pct_val:.2f}%'.replace('.', ',')
     else:
         tot_pct_cubs_str = ''
-    data.append(['', '', '', '', _fmt_brl(tot_tab_mes), _fmt_brl(tot_contrato), _fmt_brl(tot_desconto), tot_pct_cubs_str, f'{tot_cubs_str}\n{tot_cubs_brl}'])
+    data.append(['', '', '', '', _fmt_brl(tot_tab_mes), _fmt_brl(tot_contrato),
+                 _fmt_brl(tot_corret) if tot_corret else '—', '',
+                 _fmt_brl(tot_desconto), tot_pct_cubs_str, f'{tot_cubs_str}\n{tot_cubs_brl}'])
 
-    col_widths = [1.6*cm, 2.2*cm, 5.8*cm, 2.4*cm, 3.0*cm, 3.2*cm, 3.2*cm, 1.6*cm, 2.0*cm]
+    col_widths = [1.4*cm, 1.8*cm, 5.0*cm, 2.2*cm, 2.8*cm, 3.0*cm, 2.5*cm, 1.6*cm, 2.8*cm, 1.4*cm, 1.8*cm]
     t = Table(data, colWidths=col_widths, repeatRows=1)
 
     num_rows = len(data)
     styles_ts = [
-        ('BACKGROUND',    (0, 0),  (-1, 0),       NAVY),
-        ('TEXTCOLOR',     (0, 0),  (-1, 0),       colors.white),
-        ('FONTNAME',      (0, 0),  (-1, 0),       'Helvetica-Bold'),
-        ('FONTSIZE',      (0, 0),  (-1, -1),      7),
-        ('ALIGN',         (0, 0),  (-1, -1),      'CENTER'),
+        ('BACKGROUND',    (0, 0),  (-1, 0),         NAVY),
+        ('TEXTCOLOR',     (0, 0),  (-1, 0),         colors.white),
+        ('FONTNAME',      (0, 0),  (-1, 0),         'Helvetica-Bold'),
+        ('FONTSIZE',      (0, 0),  (-1, -1),        7),
+        ('ALIGN',         (0, 0),  (-1, -1),        'CENTER'),
         ('ALIGN',         (2, 1),  (2, num_rows-2), 'LEFT'),
-        ('ALIGN',         (4, 1),  (-1, -1),      'RIGHT'),
-        ('ROWBACKGROUNDS',(0, 1),  (-1, num_rows-2), [colors.white, GRAY1]),
-        ('BACKGROUND',    (0, -1), (-1, -1),      TOTAL),
-        ('FONTNAME',      (0, -1), (-1, -1),      'Helvetica-Bold'),
-        ('GRID',          (0, 0),  (-1, -1),      0.5, GRID),
-        ('TOPPADDING',    (0, 0),  (-1, -1),      3),
-        ('BOTTOMPADDING', (0, 0),  (-1, -1),      3),
+        ('ALIGN',         (4, 1),  (-1, -1),        'RIGHT'),
+        ('ROWBACKGROUNDS',(0, 1),  (-1, num_rows-2),[colors.white, GRAY1]),
+        ('BACKGROUND',    (0, -1), (-1, -1),        TOTAL),
+        ('FONTNAME',      (0, -1), (-1, -1),        'Helvetica-Bold'),
+        ('GRID',          (0, 0),  (-1, -1),        0.5, GRID),
+        ('TOPPADDING',    (0, 0),  (-1, -1),        3),
+        ('BOTTOMPADDING', (0, 0),  (-1, -1),        3),
     ]
-    # colorir descontos positivos em verde, negativos em vermelho
+    # corretagem em azul (colunas 6 e 7)
+    for i, r in enumerate(rows, 1):
+        if r['corret_val'] is not None:
+            styles_ts.append(('TEXTCOLOR', (6, i), (7, i), BLUE))
+    # colorir descontos positivos em verde, negativos em vermelho (colunas 8 e 9)
     for i, r in enumerate(rows, 1):
         cor = RED if (r['desconto'] or 0) < 0 else GREEN
-        styles_ts.append(('TEXTCOLOR', (6, i), (6, i), cor))
-        styles_ts.append(('TEXTCOLOR', (7, i), (7, i), cor))
+        styles_ts.append(('TEXTCOLOR', (8, i), (8, i), cor))
+        styles_ts.append(('TEXTCOLOR', (9, i), (9, i), cor))
 
     t.setStyle(TableStyle(styles_ts))
     story.append(t)

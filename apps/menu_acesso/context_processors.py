@@ -48,7 +48,7 @@ def menu_acesso(request):
         if item.app == 'intranet' and item.navbar == 'principal':
             if item.grupo == 'admin':
                 menu_principal.setdefault('admin', []).append(entry)
-            elif item.grupo in ('gerencial', 'financeiro'):
+            elif item.grupo in ('gerencial', 'financeiro', 'comercial'):
                 # Agrupado por subgrupo para exibir divisórias no dropdown
                 menu_principal.setdefault(item.grupo, {}) \
                               .setdefault(item.subgrupo or 'geral', []) \

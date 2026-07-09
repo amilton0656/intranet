@@ -91,6 +91,28 @@
                 
 
 
+                {% if menu_principal.comercial %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle me-4" href="#" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        Comercial
+                    </a>
+                    <ul class="dropdown-menu">
+                        {% for subgrupo, itens in menu_principal.comercial.items %}
+                        {% if not forloop.first %}<li><hr class="dropdown-divider"></li>{% endif %}
+                        {% for item in itens %}
+                        <li>
+                            <a class="dropdown-item" href="{{ item.url }}">
+                                {% if item.icon %}<i class="bi {{ item.icon }} me-2"></i>{% endif %}
+                                {{ item.label }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                        {% endfor %}
+                    </ul>
+                </li>
+                {% endif %}
+
                 {% if show_gerencial_menu %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle me-4" href="#" role="button"

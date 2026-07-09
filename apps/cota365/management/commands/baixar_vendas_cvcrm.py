@@ -267,6 +267,32 @@ class Command(BaseCommand):
         self.stdout.write(f'  Colunas marcadas: {marcadas}')
         page.wait_for_timeout(300)
 
+        # Marca "Observação Pós Venda" pelo texto do label (ID pode variar)
+        self.stdout.write('Marcando "Observação Pós Venda"...')
+        obs_marcada = page.evaluate('''() => {
+            const labels = Array.from(document.querySelectorAll('label'));
+            for (const lbl of labels) {
+                if (/observa[çc][aã]o.+p[oó]s.+venda/i.test(lbl.textContent)) {
+                    const cb = lbl.querySelector('input[type="checkbox"]')
+                        || (lbl.htmlFor && document.getElementById(lbl.htmlFor));
+                    if (cb && !cb.checked) {
+                        cb.click();
+                        return lbl.textContent.trim();
+                    } else if (cb && cb.checked) {
+                        return lbl.textContent.trim() + ' (já marcada)';
+                    }
+                }
+            }
+            return null;
+        }''')
+        if obs_marcada:
+            self.stdout.write(f'  ✓ {obs_marcada}')
+        else:
+            self.stdout.write(self.style.WARNING(
+                '  "Observação Pós Venda" não encontrada no formulário — verifique o nome exato.'
+            ))
+        page.wait_for_timeout(300)
+
     def _preencher_data_por_label(self, page, label_txt, valor):
         """Encontra input pelo texto do label adjacente."""
         label = page.locator(f'label', has_text=label_txt).first
