@@ -414,34 +414,46 @@ def _compute_resumos_tabela():
             tip_vnd_ap[tip] += ap
             tip_vnd_n[tip]  += 1
 
-    total_vt = sum(sit_vt.values()) or 1
-    total_ap = sum(sit_ap.values()) or 1
-    total_n  = sum(sit_n.values())  or 1
+    # Total exclui Permuta — a linha é exibida apenas como informativa
+    _sem_perm = [s for s in sit_vt if s != 'Permuta']
+    _soma_vt_sem_perm = sum(sit_vt[s] for s in _sem_perm)
+    _soma_ap_sem_perm = sum(sit_ap[s] for s in _sem_perm)
+    _soma_n_sem_perm  = sum(sit_n[s]  for s in _sem_perm)
+    total_vt_sem_perm = _soma_vt_sem_perm or 1
+    total_ap_sem_perm = _soma_ap_sem_perm or 1
+    total_n_sem_perm  = _soma_n_sem_perm  or 1
+
+    # A linha Permuta é informativa e usa o total COM permuta como base do %
+    total_vt_com_perm = sum(sit_vt.values()) or 1
+    total_ap_com_perm = sum(sit_ap.values()) or 1
+    total_n_com_perm  = sum(sit_n.values())  or 1
 
     SIT_ORDER = ['Disponível', 'Reservada', 'Bloqueada', 'Vendida', 'Permuta', 'QA']
     all_sits = sorted(sit_n.keys(), key=lambda s: SIT_ORDER.index(s) if s in SIT_ORDER else 99)
 
     resumo_sit = []
     for s in all_sits:
+        is_perm = s == 'Permuta'
+        _tot_vt = total_vt_com_perm if is_perm else total_vt_sem_perm
+        _tot_ap = total_ap_com_perm if is_perm else total_ap_sem_perm
+        _tot_n  = total_n_com_perm  if is_perm else total_n_sem_perm
         resumo_sit.append({
             'situacao':    s,
             'vt_fmt':      _fmt_brl(sit_vt[s]),
-            'pct_vt':      f"{sit_vt[s]/total_vt*100:.2f}%",
+            'pct_vt':      f"{sit_vt[s]/_tot_vt*100:.2f}%",
             'ap_fmt':      _fmt_m2(sit_ap[s]),
-            'pct_ap':      f"{sit_ap[s]/total_ap*100:.2f}%",
+            'pct_ap':      f"{sit_ap[s]/_tot_ap*100:.2f}%",
             'n':           sit_n[s],
-            'pct_n':       f"{sit_n[s]/total_n*100:.2f}%",
-            'is_permuta':  s == 'Permuta',
+            'pct_n':       f"{sit_n[s]/_tot_n*100:.2f}%",
+            'is_permuta':  is_perm,
         })
-    # Total exclui Permuta — a linha é exibida apenas como informativa
-    _sem_perm = [s for s in sit_vt if s != 'Permuta']
     resumo_sit.append({
         'situacao': 'Total Geral Líquido',
-        'vt_fmt':   _fmt_brl(sum(sit_vt[s] for s in _sem_perm)),
+        'vt_fmt':   _fmt_brl(_soma_vt_sem_perm),
         'pct_vt':   '100,00%',
-        'ap_fmt':   _fmt_m2(sum(sit_ap[s] for s in _sem_perm)),
+        'ap_fmt':   _fmt_m2(_soma_ap_sem_perm),
         'pct_ap':   '100,00%',
-        'n':        sum(sit_n[s] for s in _sem_perm),
+        'n':        _soma_n_sem_perm,
         'pct_n':    '100,00%',
         'is_total': True,
     })
