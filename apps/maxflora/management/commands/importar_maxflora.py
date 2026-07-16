@@ -45,13 +45,14 @@ def _to_date(v):
 
 
 def _find_xlsx():
-    """Procura o arquivo Excel da MaxFlora na raiz do projeto."""
-    for p in sorted(Path(settings.BASE_DIR).glob('MaxFlora*.xlsx'), reverse=True):
-        return str(p)
-    raise CommandError(
-        'Arquivo MaxFlora*.xlsx não encontrado em BASE_DIR. '
-        'Use --arquivo=/caminho/completo/arquivo.xlsx'
-    )
+    """Procura o arquivo Excel da MaxFlora mais recente na raiz do projeto."""
+    candidatos = list(Path(settings.BASE_DIR).glob('MaxFlora*.xlsx'))
+    if not candidatos:
+        raise CommandError(
+            'Arquivo MaxFlora*.xlsx não encontrado em BASE_DIR. '
+            'Use --arquivo=/caminho/completo/arquivo.xlsx'
+        )
+    return str(max(candidatos, key=lambda p: p.stat().st_mtime))
 
 
 class Command(BaseCommand):
