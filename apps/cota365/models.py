@@ -126,6 +126,7 @@ class Parcela(models.Model):
     titulo          = models.CharField(max_length=20)
     parcela         = models.CharField(max_length=30, blank=True)
     tipo            = models.CharField(max_length=10, blank=True)
+    unidade         = models.CharField(max_length=50, blank=True, default='', db_index=True)
     vencimento      = models.DateField(null=True, blank=True, db_index=True)
     data_pagamento  = models.DateField(null=True, blank=True, db_index=True)
     valor           = models.FloatField(default=0)

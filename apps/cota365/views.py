@@ -1279,6 +1279,7 @@ def _import_a_receber(file_obj, nome, sha256=''):
             titulo=titulo,
             parcela=(row.get('nuParcelaApresentacao') or '').strip(),
             tipo=(row.get('cdTipoCondicao') or '').strip(),
+            unidade=(row.get('nuUnidadePrincipal') or '').strip(),
             vencimento=vencimento.date() if vencimento else None,
             data_pagamento=None,
             valor=v,
@@ -1320,6 +1321,7 @@ def _import_recebidas(file_obj, nome, sha256=''):
             titulo=titulo,
             parcela=(row.get('NumeroDaParcela') or '').strip(),
             tipo=(row.get('CodigoDoTipoDeCondicao') or '').strip(),
+            unidade=(row.get('NumeroDaUnidade') or '').strip(),
             vencimento=vencimento.date() if vencimento else None,
             data_pagamento=data_pagamento.date() if data_pagamento else None,
             valor=_require_float(row.get('ValorLiquido') or '', 'ValorLiquido', linha, erros),
@@ -2929,22 +2931,43 @@ def vendas(request):
     fluxo_by_id = {r['id']: r for r in fluxo_rows}
     vinculos    = _load_vinculos()
 
+    pago_by_unidade = {
+        r['unidade']: r['s'] or 0
+        for r in Parcela.objects.filter(data_pagamento__isnull=False).exclude(unidade='')
+                          .values('unidade').annotate(s=Sum('valor'))
+    }
+    saldo_by_unidade = {
+        r['unidade']: r['s'] or 0
+        for r in Parcela.objects.filter(data_pagamento__isnull=True).exclude(unidade='')
+                          .values('unidade').annotate(s=Sum('valor'))
+    }
+
     contracts = []
     total_geral = 0.0
+    total_pago_geral = 0.0
+    total_saldo_geral = 0.0
     for v in vendas_rows:
         f    = fluxo_by_id.get(v['numero'], {})
         valor = f.get('vgv', 0) or f.get('pv', 0)
         vinc  = vinculos.get(v['unidade'], {})
+        pago  = pago_by_unidade.get(v['unidade'], 0.0)
+        saldo = saldo_by_unidade.get(v['unidade'], 0.0)
         contracts.append({
-            'numero':    f"#{v['numero']}",
-            'cliente':   v['cliente'],
-            'unidade':   v['unidade'],
-            'valor':     valor,
-            'valor_fmt': _fmt_brl(valor),
-            'garagens':  vinc.get('garagens', ''),
-            'hb':        vinc.get('hb', ''),
+            'numero':     f"#{v['numero']}",
+            'cliente':    v['cliente'],
+            'unidade':    v['unidade'],
+            'valor':      valor,
+            'valor_fmt':  _fmt_brl(valor),
+            'pago':       pago,
+            'pago_fmt':   _fmt_brl(pago),
+            'saldo':      saldo,
+            'saldo_fmt':  _fmt_brl(saldo),
+            'garagens':   vinc.get('garagens', ''),
+            'hb':         vinc.get('hb', ''),
         })
         total_geral += valor
+        total_pago_geral += pago
+        total_saldo_geral += saldo
 
     _SORT_KEYS = {
         'numero':   lambda x: int(x['numero'].lstrip('#')) if x['numero'].lstrip('#').isdigit() else 0,
@@ -2955,8 +2978,10 @@ def vendas(request):
     }
     contracts.sort(key=_SORT_KEYS.get(sort, _SORT_KEYS['cliente']), reverse=(sort_dir == 'desc'))
     context = {
-        'contracts':   contracts,
-        'total_geral': _fmt_brl(total_geral),
+        'contracts':         contracts,
+        'total_geral':       _fmt_brl(total_geral),
+        'total_pago_geral':  _fmt_brl(total_pago_geral),
+        'total_saldo_geral': _fmt_brl(total_saldo_geral),
         'n_contratos': len(contracts),
         'sort':        sort,
         'sort_dir':    sort_dir,
@@ -3604,13 +3629,28 @@ def export_vendas(request):
     fluxo_by_id = {r['id']: r for r in fluxo_rows}
     vinculos    = _load_vinculos()
 
+    pago_by_unidade = {
+        r['unidade']: r['s'] or 0
+        for r in Parcela.objects.filter(data_pagamento__isnull=False).exclude(unidade='')
+                          .values('unidade').annotate(s=Sum('valor'))
+    }
+    saldo_by_unidade = {
+        r['unidade']: r['s'] or 0
+        for r in Parcela.objects.filter(data_pagamento__isnull=True).exclude(unidade='')
+                          .values('unidade').annotate(s=Sum('valor'))
+    }
+
     contracts = []
     total_geral = 0.0
+    total_pago_geral = 0.0
+    total_saldo_geral = 0.0
     for v in vendas_rows:
         f = fluxo_by_id.get(v['numero'], {})
         valor = f.get('vgv', 0) or f.get('pv', 0)
         status = 'VENDIDO' if 'Vend' in v['situacao'] else v['situacao'].upper()
         vinc = vinculos.get(v['unidade'], {})
+        pago  = pago_by_unidade.get(v['unidade'], 0.0)
+        saldo = saldo_by_unidade.get(v['unidade'], 0.0)
         contracts.append({
             'numero':        f"#{v['numero']}",
             'cliente':       v['cliente'],
@@ -3618,15 +3658,19 @@ def export_vendas(request):
             'unidade':       v['unidade'],
             'status':        status,
             'valor':         valor,
+            'pago':          pago,
+            'saldo':         saldo,
             'garagens':      vinc.get('garagens', ''),
             'hb':            vinc.get('hb', ''),
         })
         total_geral += valor
+        total_pago_geral += pago
+        total_saldo_geral += saldo
     contracts.sort(key=lambda x: x['cliente'].lower())
 
     if fmt == 'pdf':
-        return _export_vendas_pdf(contracts, total_geral)
-    return _export_vendas_xlsx(contracts, total_geral)
+        return _export_vendas_pdf(contracts, total_geral, total_pago_geral, total_saldo_geral)
+    return _export_vendas_xlsx(contracts, total_geral, total_pago_geral, total_saldo_geral)
 
 
 def export_fluxo(request):
@@ -3827,23 +3871,24 @@ def _export_unidades_pdf(headers, rows, price_cols):
     return resp
 
 
-def _export_vendas_xlsx(contracts, total_geral):
+def _export_vendas_xlsx(contracts, total_geral, total_pago_geral=0.0, total_saldo_geral=0.0):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = 'Unidades Vendidas'
 
-    ws.merge_cells('A1:H1')
+    ws.merge_cells('A1:J1')
     ws['A1'] = 'Cota 365 — Unidades Vendidas'
     ws['A1'].font = Font(bold=True, size=14)
     ws['A1'].alignment = Alignment(horizontal='center')
 
-    ws.merge_cells('A2:H2')
+    ws.merge_cells('A2:J2')
     ws['A2'] = f'Total de Contratos: {len(contracts)}    |    Total Geral: {_fmt_brl(total_geral)}'
     ws['A2'].alignment = Alignment(horizontal='center')
     ws['A2'].font = Font(bold=True)
 
-    headers = ['Nº', 'CLIENTE', 'EMPREENDIMENTO', 'UNIDADE', 'GARAGENS', 'HB', 'STATUS', 'TOTAL CONTRATO']
-    widths  = [8, 38, 16, 12, 14, 10, 12, 22]
+    headers = ['Nº', 'CLIENTE', 'EMPREENDIMENTO', 'UNIDADE', 'GARAGENS', 'HB', 'STATUS',
+               'TOTAL CONTRATO', 'TOTAL PAGO', 'SALDO']
+    widths  = [8, 38, 16, 12, 14, 10, 12, 22, 22, 22]
     for col, (h, w) in enumerate(zip(headers, widths), 1):
         cell = ws.cell(row=4, column=col, value=h)
         cell.fill = _HEADER_FILL
@@ -3856,12 +3901,13 @@ def _export_vendas_xlsx(contracts, total_geral):
         row = 5 + i
         fill = _ALT_FILL if i % 2 == 0 else PatternFill()
         data = [c['numero'], c['cliente'], c['empreendimento'], c['unidade'],
-                c['garagens'], c['hb'], c['status'], c['valor']]
+                c['garagens'], c['hb'], c['status'], c['valor'], c['pago'], c['saldo']]
         for col, val in enumerate(data, 1):
             cell = ws.cell(row=row, column=col, value=_xlsx_val(val))
             cell.border = _thin_border()
-            if col not in (7, 8): cell.fill = fill
-            if col == 8:
+            if col not in (7, 8, 9, 10): cell.fill = fill
+            if col in (8, 9, 10):
+                cell.fill = fill
                 cell.number_format = '"R$ "#,##0.00'
                 cell.alignment = Alignment(horizontal='right')
             if col == 7:
@@ -3873,10 +3919,12 @@ def _export_vendas_xlsx(contracts, total_geral):
     ws.cell(row=total_row, column=7, value='TOTAL GERAL').font = _BOLD
     ws.cell(row=total_row, column=7).fill = _TOTAL_FILL
     ws.cell(row=total_row, column=7).alignment = Alignment(horizontal='center')
-    ws.cell(row=total_row, column=8, value=total_geral).number_format = '"R$ "#,##0.00'
-    ws.cell(row=total_row, column=8).font = _BOLD
-    ws.cell(row=total_row, column=8).fill = _TOTAL_FILL
-    ws.cell(row=total_row, column=8).alignment = Alignment(horizontal='right')
+    for col, val in ((8, total_geral), (9, total_pago_geral), (10, total_saldo_geral)):
+        cell = ws.cell(row=total_row, column=col, value=val)
+        cell.number_format = '"R$ "#,##0.00'
+        cell.font = _BOLD
+        cell.fill = _TOTAL_FILL
+        cell.alignment = Alignment(horizontal='right')
 
     buf = io.BytesIO()
     wb.save(buf)
@@ -3998,7 +4046,7 @@ def _export_fluxo_xlsx(rows, totals, total_geral):
     return resp
 
 
-def _export_vendas_pdf(contracts, total_geral):
+def _export_vendas_pdf(contracts, total_geral, total_pago_geral=0.0, total_saldo_geral=0.0):
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=landscape(A4),
                             leftMargin=1.5*cm, rightMargin=1.5*cm,
@@ -4011,14 +4059,18 @@ def _export_vendas_pdf(contracts, total_geral):
                   ParagraphStyle('sub', parent=styles['Normal'], fontSize=10, spaceAfter=12)),
     ]
 
-    header = ['Nº', 'CLIENTE', 'EMPREENDIMENTO', 'UNIDADE', 'GARAGENS', 'HB', 'STATUS', 'TOTAL CONTRATO']
+    header = ['Nº', 'CLIENTE', 'EMPREENDIMENTO', 'UNIDADE', 'GARAGENS', 'HB', 'STATUS',
+               'TOTAL CONTRATO', 'TOTAL PAGO', 'SALDO']
     data = [header]
     for c in contracts:
         data.append([c['numero'], c['cliente'], c['empreendimento'],
-                     c['unidade'], c['garagens'], c['hb'], c['status'], _fmt_brl(c['valor'])])
-    data.append(['', '', '', '', '', '', 'TOTAL GERAL', _fmt_brl(total_geral)])
+                     c['unidade'], c['garagens'], c['hb'], c['status'],
+                     _fmt_brl(c['valor']), _fmt_brl(c['pago']), _fmt_brl(c['saldo'])])
+    data.append(['', '', '', '', '', '', 'TOTAL GERAL',
+                 _fmt_brl(total_geral), _fmt_brl(total_pago_geral), _fmt_brl(total_saldo_geral)])
 
-    t = Table(data, colWidths=[1.2*cm, 7*cm, 3.5*cm, 2.5*cm, 2.5*cm, 1.8*cm, 2.2*cm, 3.8*cm], repeatRows=1)
+    t = Table(data, colWidths=[1.2*cm, 5.5*cm, 3*cm, 2*cm, 2*cm, 1.5*cm, 2*cm, 3*cm, 3*cm, 3*cm],
+              repeatRows=1)
     t.setStyle(TableStyle([
         ('BACKGROUND',    (0, 0), (-1, 0), colors.HexColor('#1a1a2e')),
         ('TEXTCOLOR',     (0, 0), (-1, 0), colors.white),
@@ -4026,7 +4078,7 @@ def _export_vendas_pdf(contracts, total_geral):
         ('FONTSIZE',      (0, 0), (-1, 0), 8),
         ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
         ('ALIGN',         (1, 1), (1, -2),  'LEFT'),
-        ('ALIGN',         (7, 1), (7, -1),  'RIGHT'),
+        ('ALIGN',         (7, 1), (9, -1),  'RIGHT'),
         ('FONTSIZE',      (0, 1), (-1, -1), 7),
         ('ROWBACKGROUNDS',(0, 1), (-1, -2), [colors.white, colors.HexColor('#f8f9fa')]),
         ('BACKGROUND',    (0, -1), (-1, -1), colors.HexColor('#e9ecef')),

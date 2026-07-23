@@ -73,6 +73,8 @@
             </th>
             {% endfor %}
             <th class="text-end">TOTAL CONTRATO</th>
+            <th class="text-end">TOTAL PAGO</th>
+            <th class="text-end">SALDO</th>
           </tr>
         </thead>
         <tbody>
@@ -84,15 +86,19 @@
             <td>{{ c.garagens }}</td>
             <td>{{ c.hb }}</td>
             <td class="amount">{{ c.valor_fmt }}</td>
+            <td class="amount">{{ c.pago_fmt }}</td>
+            <td class="amount">{{ c.saldo_fmt }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="6" class="text-center text-muted py-4">Nenhum contrato encontrado.</td></tr>
+          <tr><td colspan="8" class="text-center text-muted py-4">Nenhum contrato encontrado.</td></tr>
           {% endfor %}
         </tbody>
         <tfoot>
           <tr>
             <td colspan="5" class="text-end fw-bold">TOTAL GERAL</td>
             <td class="amount fw-bold">{{ total_geral }}</td>
+            <td class="amount fw-bold">{{ total_pago_geral }}</td>
+            <td class="amount fw-bold">{{ total_saldo_geral }}</td>
           </tr>
         </tfoot>
       </table>
