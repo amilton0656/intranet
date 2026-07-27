@@ -741,7 +741,7 @@ def _verificar_piso_preco(objs, competencia):
     from django.conf import settings
 
     TIPOS_MONITORADOS = ['Studio', '2D']
-    EMAIL_DESTINO = 'amilton@cota.com.br'
+    EMAILS_DESTINO = ['amilton@cota.com.br', 'marketing@cota.com.br', 'fabio@cota.com.br']
 
     permutas = set(Permuta.objects.values_list('unidade', flat=True))
 
@@ -805,7 +805,7 @@ def _verificar_piso_preco(objs, competencia):
                 subject=f'Cota 365 — Piso de preço subiu ({comp_fmt})',
                 message=corpo,
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[EMAIL_DESTINO],
+                recipient_list=EMAILS_DESTINO,
                 fail_silently=True,
             )
         except Exception:
