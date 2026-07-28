@@ -3047,8 +3047,8 @@ def acessos_clientes(request):
     ]
 
     _SORT_KEYS = {
-        'cliente':     lambda x: x['cliente'].lower(),
-        'data_acesso': lambda x: x['data_acesso'],
+        'cliente':     lambda x: (x['cliente'].lower(), x['data_acesso']),
+        'data_acesso': lambda x: (x['data_acesso'], x['cliente'].lower()),
     }
     acessos.sort(key=_SORT_KEYS.get(sort, _SORT_KEYS['data_acesso']), reverse=(sort_dir == 'desc'))
 
