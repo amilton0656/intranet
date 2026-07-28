@@ -5,10 +5,11 @@ O login é feito uma única vez no primeiro comando. Os demais
 reconectam ao mesmo Chrome via CDP (porta 9222) sem nova autenticação.
 
 Ordem de execução:
-  1. baixar_tabela_cvcrm    → tabela.csv
-  2. baixar_vendas_cvcrm    → vendas.csv
-  3. baixar_fluxo_cvcrm     → fluxo.csv
-  4. baixar_comissoes_cvcrm → comissoes.csv
+  1. baixar_tabela_cvcrm     → tabela.csv
+  2. baixar_vendas_cvcrm     → vendas.csv
+  3. baixar_fluxo_cvcrm      → fluxo.csv
+  4. baixar_comissoes_cvcrm  → comissoes.csv
+  5. baixar_log_acesso_cvcrm → acessos.csv
 
 Uso:
     python manage.py baixar_tudo_cvcrm
@@ -19,10 +20,11 @@ from django.core.management.base import BaseCommand
 
 
 COMANDOS = [
-    ('baixar_tabela_cvcrm',    'tabela.csv'),
-    ('baixar_vendas_cvcrm',    'vendas.csv'),
-    ('baixar_fluxo_cvcrm',     'fluxo.csv'),
-    ('baixar_comissoes_cvcrm', 'comissoes.csv'),
+    ('baixar_tabela_cvcrm',     'tabela.csv'),
+    ('baixar_vendas_cvcrm',     'vendas.csv'),
+    ('baixar_fluxo_cvcrm',      'fluxo.csv'),
+    ('baixar_comissoes_cvcrm',  'comissoes.csv'),
+    ('baixar_log_acesso_cvcrm', 'acessos.csv'),
 ]
 
 

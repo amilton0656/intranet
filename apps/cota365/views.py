@@ -14,6 +14,7 @@ from django.conf import settings
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, FileResponse, Http404, JsonResponse
 from django.contrib import messages
+from django.utils import timezone
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import F, Sum, Count, Q
@@ -33,7 +34,7 @@ from reportlab.lib.units import cm
 from .models import (
     ImportLog, Tabela, Permuta, Vinculo, Venda,
     Unidade, FluxoContrato, FluxoParcela, Comissao, SerieContrato, Parcela, ComissaoObs,
-    MinimoTabela,
+    MinimoTabela, AcessoCliente,
 )
 from apps.indices.models import IndiceData
 
@@ -1339,6 +1340,44 @@ def _import_recebidas(file_obj, nome, sha256=''):
     return len(objs), {'Total': _fmt_brl(sum(o.valor for o in objs))}
 
 
+@transaction.atomic
+def _import_acessos(file_obj, nome, sha256=''):
+    f = _open_csv(file_obj)
+    _validar_colunas(csv.DictReader(f, delimiter=';').fieldnames, [
+        ('Usuário', 'Usuario'),
+        ('Data de cadastro',),
+    ], nome)
+    f.seek(0)
+
+    clientes = {v.cliente.strip().upper(): v.cliente for v in Venda.objects.exclude(cliente='')}
+
+    objs = []
+    for row in csv.DictReader(f, delimiter=';'):
+        usuario = (row.get('Usuário') or row.get('Usuario') or '').strip()
+        if not usuario:
+            continue
+        cliente = clientes.get(usuario.upper())
+        if not cliente:
+            continue
+        data_str = (row.get('Data de cadastro') or '').strip()
+        if not data_str:
+            continue
+        try:
+            data_acesso = datetime.strptime(data_str, '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            continue
+        data_acesso = timezone.make_aware(data_acesso)
+        objs.append(AcessoCliente(cliente=cliente, data_acesso=data_acesso))
+
+    if not objs:
+        raise ValueError('Nenhum acesso de cliente encontrado no arquivo (nenhum "Usuário" bateu com um cliente de Vendas).')
+
+    AcessoCliente.objects.all().delete()
+    AcessoCliente.objects.bulk_create(objs)
+    ImportLog.objects.create(tipo='acessos', total_registros=len(objs), nome_arquivo=nome, sha256=sha256)
+    return len(objs), {'Total': str(len(objs))}
+
+
 _IMPORTERS = {
     'tabela':     _import_tabela,
     'permutas':   _import_permutas,
@@ -1350,6 +1389,7 @@ _IMPORTERS = {
     'series':     _import_series,
     'a_receber':  _import_a_receber,
     'recebidas':  _import_recebidas,
+    'acessos':    _import_acessos,
 }
 
 _LABELS = {
@@ -1363,6 +1403,7 @@ _LABELS = {
     'series':     'Séries de Contratos',
     'a_receber':  'Parcelas a Receber',
     'recebidas':  'Parcelas Recebidas',
+    'acessos':    'Log de Acessos',
 }
 
 
@@ -2994,6 +3035,36 @@ def vendas(request):
         ],
     }
     return render(request, 'cota365/vendas.html', context)
+
+
+def acessos_clientes(request):
+    sort     = request.GET.get('sort', 'data_acesso')
+    sort_dir = request.GET.get('dir', 'desc')
+
+    acessos = [
+        {'cliente': a.cliente, 'data_acesso': a.data_acesso}
+        for a in AcessoCliente.objects.all()
+    ]
+
+    _SORT_KEYS = {
+        'cliente':     lambda x: x['cliente'].lower(),
+        'data_acesso': lambda x: x['data_acesso'],
+    }
+    acessos.sort(key=_SORT_KEYS.get(sort, _SORT_KEYS['data_acesso']), reverse=(sort_dir == 'desc'))
+
+    for a in acessos:
+        a['data_acesso_fmt'] = timezone.localtime(a['data_acesso']).strftime('%d/%m/%Y %H:%M')
+
+    return render(request, 'cota365/acessos.html', {
+        'acessos':   acessos,
+        'n_acessos': len(acessos),
+        'sort':      sort,
+        'sort_dir':  sort_dir,
+        'colums': [
+            ('cliente',     'CLIENTE'),
+            ('data_acesso', 'DATA DO ACESSO'),
+        ],
+    })
 
 
 def comparativo_valores(request):

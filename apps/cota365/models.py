@@ -190,3 +190,16 @@ class MinimoTabela(models.Model):
 
     def __str__(self):
         return f'{self.tipo} — {self.competencia:%m/%Y} — {self.unidade}'
+
+
+class AcessoCliente(models.Model):
+    cliente     = models.CharField(max_length=255, db_index=True)
+    data_acesso = models.DateTimeField(db_index=True)
+
+    class Meta:
+        ordering = ['-data_acesso']
+        verbose_name = 'Acesso do Cliente'
+        verbose_name_plural = 'Acessos dos Clientes'
+
+    def __str__(self):
+        return f'{self.cliente} — {self.data_acesso:%d/%m/%Y %H:%M}'
