@@ -27,7 +27,7 @@ from openpyxl.utils import get_column_letter
 
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, KeepTogether
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 
@@ -368,6 +368,54 @@ def _build_monthly_tipo_breakdown():
 
 
 # ---------------------------------------------------------------------------
+# Correção monetária pelo CUB Residencial (indice_id=1)
+# ---------------------------------------------------------------------------
+
+def _load_cub_residencial():
+    """Retorna (cub_map, cub_atual): cub_map = {data (1º dia do mês): valor},
+    cub_atual = valor do índice mais recente disponível."""
+    cub_map = {d.data: float(d.valor) for d in IndiceData.objects.filter(indice_id=1)}
+    cub_atual_obj = IndiceData.objects.filter(indice_id=1).order_by('-data').first()
+    cub_atual = float(cub_atual_obj.valor) if cub_atual_obj else None
+    return cub_map, cub_atual
+
+
+def _corrigir_valor_cub(valor, data_pagamento, cub_map, cub_atual):
+    """Corrige um valor recebido do mês de data_pagamento até o CUB mais atual.
+    Sem CUB cadastrado no mês do pagamento (ou sem cub_atual), retorna o valor original."""
+    if not cub_atual:
+        return valor
+    cub_na_data = cub_map.get(data_pagamento.replace(day=1))
+    if not cub_na_data:
+        return valor
+    return valor * (cub_atual / cub_na_data)
+
+
+def _calc_recebido_corrigido_por_unidade(cub_map, cub_atual):
+    """Retorna (total_corrigido, {unidade: valor_corrigido}) de todas as parcelas
+    já recebidas, cada uma corrigida do mês do pagamento até o CUB atual."""
+    por_unidade = defaultdict(float)
+    total = 0.0
+    for p in (Parcela.objects.filter(data_pagamento__isnull=False)
+              .only('valor', 'data_pagamento', 'unidade')):
+        v = _corrigir_valor_cub(p.valor, p.data_pagamento, cub_map, cub_atual)
+        total += v
+        if p.unidade:
+            por_unidade[p.unidade] += v
+    return total, por_unidade
+
+
+def _calc_pendente_por_unidade():
+    """Retorna {unidade: valor_pendente} de parcelas ainda não pagas
+    (a receber + permutas pendentes), sem correção pelo CUB."""
+    por_unidade = defaultdict(float)
+    for p in (Parcela.objects.filter(data_pagamento__isnull=True)
+              .exclude(unidade='').only('valor', 'unidade')):
+        por_unidade[p.unidade] += p.valor
+    return por_unidade
+
+
+# ---------------------------------------------------------------------------
 # Resumos — ORM
 # ---------------------------------------------------------------------------
 
@@ -411,9 +459,32 @@ def _compute_resumos_tabela():
         entry = unidade_tip_map.get(v.unidade)
         if entry:
             tip, ap = entry
-            tip_vnd_vt[tip] += v.valor_contrato
             tip_vnd_ap[tip] += ap
             tip_vnd_n[tip]  += 1
+
+    # Total recebido corrigido pelo CUB — usado em Indicadores Gerais, Fluxo de
+    # Caixa e Resumo por Tipo de Parcela
+    cub_map, cub_atual = _load_cub_residencial()
+    total_recebido_corrigido, recebido_corrigido_por_unidade = \
+        _calc_recebido_corrigido_por_unidade(cub_map, cub_atual)
+    pendente_por_unidade = _calc_pendente_por_unidade()
+
+    # "Vendido" (valor) = recebido corrigido + a receber + permutas pendentes,
+    # por unidade, agrupado pela tipologia (Parcela.unidade -> unidade_tip_map)
+    combinado_por_unidade = defaultdict(float)
+    for unidade, valor in recebido_corrigido_por_unidade.items():
+        combinado_por_unidade[unidade] += valor
+    for unidade, valor in pendente_por_unidade.items():
+        combinado_por_unidade[unidade] += valor
+
+    outros_vnd_vt = 0.0
+    for unidade, valor in combinado_por_unidade.items():
+        entry = unidade_tip_map.get(unidade)
+        if entry:
+            tip, _ap = entry
+            tip_vnd_vt[tip] += valor
+        else:
+            outros_vnd_vt += valor
 
     # Total exclui Permuta — a linha é exibida apenas como informativa
     _sem_perm = [s for s in sit_vt if s != 'Permuta']
@@ -571,10 +642,12 @@ def _compute_resumos_tabela():
     })
 
     # ── Agrupa vendidas por grupo de tipologia ────────────────────────────────
+    # (união de tip_vnd_n e tip_vnd_vt: uma tipologia pode ter recebido/pendente
+    # corrigido sem constar em tip_vnd_n, ou vice-versa)
     vnd_grp_vt = defaultdict(float)
     vnd_grp_ap = defaultdict(float)
     vnd_grp_n  = defaultdict(int)
-    for t in tip_vnd_n:
+    for t in set(tip_vnd_n) | set(tip_vnd_vt):
         g = _grupo(t)
         vnd_grp_vt[g] += tip_vnd_vt[t]
         vnd_grp_ap[g] += tip_vnd_ap[t]
@@ -604,11 +677,20 @@ def _compute_resumos_tabela():
             'est_n':  est_n,  'est_ap': est_ap,  'est_vt': est_vt,
             'perm_n': grp_perm.get(g, 0),
         })
+    if outros_vnd_vt:
+        resumo_tip_total.append({
+            'tipo':   'Outros',
+            'tot_n':  0, 'tot_ap': 0.0, 'tot_vt': 0.0,
+            'vnd_n':  0, 'vnd_ap': 0.0, 'vnd_vt': outros_vnd_vt, 'pct': 0.0,
+            'est_n':  0, 'est_ap': 0.0, 'est_vt': 0.0,
+            'perm_n': 0,
+        })
+
     _real_tot_ap  = sum(grp_ap.values())
     _real_tot_vt  = sum(grp_vt.values())
     _real_vnd_n   = sum(vnd_grp_n.values())
     _real_vnd_ap  = sum(vnd_grp_ap.values())
-    _real_vnd_vt  = sum(vnd_grp_vt.values())
+    _real_vnd_vt  = sum(vnd_grp_vt.values()) + outros_vnd_vt
     _real_est_ap  = sum(est_grp_ap.values())
     _real_est_vt  = sum(est_grp_vt.values())
     _real_est_n   = sum(est_grp_n.values())
@@ -635,6 +717,7 @@ def _compute_resumos_tabela():
         sit_vt.get('Disponível', 0.0),
         sit_vt.get('Reservada',  0.0),
         sit_vt.get('Vendida',    0.0),
+        total_recebido_corrigido,
     )
 
 
@@ -1994,11 +2077,12 @@ def dashboard(request):
     # ── KPIs de contrato via Venda + Tabela ───────────────────────────────────
     resumo_sit, resumo_sit_liquido, resumo_tip, resumo_tip_estoque, resumo_tip_total, \
         preco_medio_tipo, preco_medio_estoque, \
-        vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada, vgv_vendida = _compute_resumos_tabela()
+        vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada, vgv_vendida, \
+        total_recebido_corrigido = _compute_resumos_tabela()
     area_priv, area_priv_acess, total_priv, area_comum, area_total = _compute_areas()
 
     n_contratos   = Venda.objects.count()
-    total_vendido = total_fluxo
+    total_vendido = total_recebido_corrigido + total_a_receber + total_permutas
     ticket_medio  = total_vendido / n_contratos if n_contratos else 0
     vgv_liquido   = vgv_tabela - vgv_permuta
 
@@ -2088,6 +2172,7 @@ def dashboard(request):
         {'tipo': 'Financiamento',                 'total_fmt': _fmt_brl(_fi_p),               'pct': _pf(_fi_p),               'bold': True},
         {'tipo': 'Total',                         'total_fmt': _fmt_brl(_grand_p),            'pct': '100,00%',                'bold': True, 'is_total': True},
         {'tipo': 'Recebido',                      'total_fmt': _fmt_brl(_rec_p),              'pct': _pf(_rec_p),              'muted': True},
+        {'tipo': 'Recebido (corrigido)',           'total_fmt': _fmt_brl(total_recebido_corrigido), 'pct': _pf(total_recebido_corrigido), 'muted': True},
         {'tipo': 'A receber',                     'total_fmt': _fmt_brl(_pend_p),             'pct': _pf(_pend_p),             'muted': True},
         {'tipo': 'Permuta (Serviços/Materiais)',   'total_fmt': _fmt_brl(_perm_p),             'pct': _pf(_perm_p),             'muted': True},
         {'tipo': 'Total a receber',               'total_fmt': _fmt_brl(_pend_p + _perm_p),  'pct': _pf(_pend_p + _perm_p),  'bold': True},
@@ -2125,6 +2210,8 @@ def dashboard(request):
         'receita_por_ano':      receita_por_ano,
         'total_fluxo_fmt':      _fmt_brl(total_fluxo),
         'total_recebido_fmt':   _fmt_brl(total_recebido),
+        'total_recebido_corrigido_fmt': _fmt_brl(total_recebido_corrigido),
+        'total_vendido_corrigido_fmt':  _fmt_brl(total_vendido),
         'total_a_receber_fmt':  _fmt_brl(total_a_receber),
         'total_permutas_fmt':   _fmt_brl(total_permutas),
         'fluxo_mensal_rows':    fluxo_mensal_rows,
@@ -2261,11 +2348,13 @@ def _build_dashboard_pdf():
     # ── KPIs via Venda + Tabela ───────────────────────────────────────────────
     resumo_sit, resumo_sit_liquido, resumo_tip, resumo_tip_estoque, resumo_tip_total, \
         preco_medio_tipo, preco_medio_estoque, \
-        vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada, vgv_vendida = _compute_resumos_tabela()
+        vgv_tabela, vgv_permuta, vgv_disponivel, vgv_reservada, vgv_vendida, \
+        total_recebido_corrigido = _compute_resumos_tabela()
     area_priv, area_priv_acess, total_priv, area_comum, area_total = _compute_areas()
 
     n_contratos   = Venda.objects.count()
     total_vendido = vgv_vendida
+    total_vendido_corrigido = total_recebido_corrigido + total_a_receber + total_permutas_pend
     ticket_medio  = total_vendido / n_contratos if n_contratos else 0
 
     buf = io.BytesIO()
@@ -2348,7 +2437,7 @@ def _build_dashboard_pdf():
     kpi_table = Table([
         [th('VGV TOTAL'), th('VGV LÍQUIDO'), th('CONTRATOS'), th('TICKET MÉDIO'), th('VENDIDO')],
         [tdrb(_fmt_brl(vgv_tabela)), tdrb(_fmt_brl(vgv_liquido)),
-         tdrb(str(n_contratos)),     tdrb(_fmt_brl(ticket_medio)), tdrb(_fmt_brl(total_fluxo))],
+         tdrb(str(n_contratos)),     tdrb(_fmt_brl(ticket_medio)), tdrb(_fmt_brl(total_vendido_corrigido))],
         [tdrb(_fmt_brl(total_real_a)), tdrb(_fmt_brl(total_real_b)),
          _lbl('—'), _lbl('—'), _lbl('—')],
     ], colWidths=[W/5]*5)
@@ -2365,10 +2454,15 @@ def _build_dashboard_pdf():
     ]))
     story.append(kpi_table)
 
-    legend_style = ps('LEG', fontSize=7, textColor=colors.HexColor('#6c757d'), spaceBefore=3, spaceAfter=6)
+    legend_style       = ps('LEG',  fontSize=7, textColor=colors.HexColor('#6c757d'), spaceBefore=3, spaceAfter=0)
+    legend_style_last  = ps('LEG2', fontSize=7, textColor=colors.HexColor('#6c757d'), spaceBefore=1, spaceAfter=6)
     story.append(Paragraph(
         '<b>Linha 1:</b> valores de tabela de vendas  |  <b>Linha 2:</b> valores reais de vendas (contratos)',
         legend_style,
+    ))
+    story.append(Paragraph(
+        '<b>VALOR VENDIDO</b> considera os valores recebidos corrigidos pelo CUB Residencial',
+        legend_style_last,
     ))
     story.append(Spacer(1, 4))
 
@@ -2644,15 +2738,42 @@ def _build_dashboard_pdf():
             tdr(_fmt_brl(total)),
             tdr(_fmt_brl(acumulado)),
         ])
-    fm_rows.append([
-        tdb('TOTAL'),
-        tdrb(_fmt_brl(total_rec_acc)),
-        tdrb(_fmt_brl(total_pend_acc)),
-        tdrb(_fmt_brl(total_perm_acc)),
-        tdrb(_fmt_brl(total_fluxo)),
-        tdrb(''),
-    ])
-    story.append(tbl(fm_header + fm_rows, [1.5*cm, 3.08*cm, 3.08*cm, 3.08*cm, 3.08*cm, 3.08*cm], total_last=True))
+    fm_col_widths = [1.5*cm, 3.08*cm, 3.08*cm, 3.08*cm, 3.08*cm, 3.08*cm]
+    story.append(tbl(fm_header + fm_rows, fm_col_widths))
+
+    # Linhas de total numa tabela separada, envolvida em KeepTogether: garante
+    # que "TOTAL" e "TOTAL (CUB)" nunca fiquem separadas por quebra de página
+    fm_totals_rows = [
+        [
+            tdb('TOTAL'),
+            tdrb(_fmt_brl(total_rec_acc)),
+            tdrb(_fmt_brl(total_pend_acc)),
+            tdrb(_fmt_brl(total_perm_acc)),
+            tdrb(_fmt_brl(total_fluxo)),
+            tdrb(''),
+        ],
+        [
+            tdb('TOTAL (CUB)'),
+            tdrb(_fmt_brl(total_recebido_corrigido)),
+            tdrb(_fmt_brl(total_pend_acc)),
+            tdrb(_fmt_brl(total_perm_acc)),
+            tdrb(_fmt_brl(total_vendido_corrigido)),
+            tdrb(''),
+        ],
+    ]
+    fm_totals_table = Table(fm_totals_rows, colWidths=fm_col_widths)
+    fm_totals_table.setStyle(TableStyle([
+        ('GRID',          (0, 0), (-1, -1), 0.4, BORDER),
+        ('TOPPADDING',    (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+        ('BACKGROUND', (0, 0), (-1, 0), TOTAL_BG),
+        ('FONTNAME',   (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#dbe4ff')),
+        ('FONTNAME',   (0, 1), (-1, 1), 'Helvetica-Bold'),
+    ]))
+    story.append(KeepTogether([fm_totals_table]))
 
     # ── Resumo por Tipo (igual ao Fluxo Mensal) ───────────────────────────────
     if total_fluxo:
@@ -2697,6 +2818,7 @@ def _build_dashboard_pdf():
         sum_data.append(list(sr('Financiamento', fi_total,       bold=True)))
         sum_data.append(list(sr('Total',         total_fluxo,    bold=True)))
         sum_data.append(list(sr('Recebido',      total_recebido)))
+        sum_data.append(list(sr('Recebido (corrigido)', total_recebido_corrigido)))
         sum_data.append(list(sr('A receber',     total_a_receber)))
         sum_data.append(list(sr('Permuta (Serviços/Materiais)', total_permutas_pend)))
         sum_data.append(list(sr('Total a receber', total_a_receber + total_permutas_pend, bold=True)))
