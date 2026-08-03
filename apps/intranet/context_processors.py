@@ -3,13 +3,15 @@ from django.urls import reverse
 
 _MEDIA = settings.MEDIA_URL
 
+# Desabilitados a pedido do usuário (2026-08-03) — mantidos aqui comentados
+# para facilitar reativação futura, se necessário.
 COTA365_TABELAS = [
-    {"name": "Cota 365 - Tabela Curta (Todas Tipologias) - bancária",
-        "url": f"{_MEDIA}downloads/COTA 365 - Curta Todas - bancária.pdf"},
-    {"name": "Cota 365 - Tabela Longa (2 Dorm) - bancária",
-        "url": f"{_MEDIA}downloads/COTA 365 - Longa StudioLojas - bancária.pdf"},
-    {"name": "Cota 365 - Tabela Longa (Studio e Lojas) - bancária",
-        "url": f"{_MEDIA}downloads/COTA 365 - Longa 2Dorm - bancária.pdf"},
+    # {"name": "Cota 365 - Tabela Curta (Todas Tipologias) - bancária",
+    #     "url": f"{_MEDIA}downloads/COTA 365 - Curta Todas - bancária.pdf"},
+    # {"name": "Cota 365 - Tabela Longa (2 Dorm) - bancária",
+    #     "url": f"{_MEDIA}downloads/COTA 365 - Longa 2Dorm - bancária.pdf"},
+    # {"name": "Cota 365 - Tabela Longa (Studio e Lojas) - bancária",
+    #     "url": f"{_MEDIA}downloads/COTA 365 - Longa StudioLojas - bancária.pdf"},
 ]
 
 EMPREENDEDIMENTO_LINKS = [
@@ -18,8 +20,8 @@ EMPREENDEDIMENTO_LINKS = [
     *COTA365_TABELAS,
     {"name": "Green Village Residence - bancária",
         "url": f"{_MEDIA}downloads/GREEN VILLAGE RESIDENCE - bancária.pdf"},
-    {"name": "Imóveis de Terceiros - Bombinhas",
-        "url": f"{_MEDIA}downloads/IMOVEIS DE TERCEIROS - BOMBINHAS - bancária.pdf"},
+    # {"name": "Imóveis de Terceiros - Bombinhas",
+    #     "url": f"{_MEDIA}downloads/IMOVEIS DE TERCEIROS - BOMBINHAS - bancária.pdf"},
     {"name": "Imóveis de Terceiros - Grande Florianópolis",
         "url": f"{_MEDIA}downloads/IMÓVEIS DE TERCEIROS - GRANDE FLORIANÓPOLIS - bancária.pdf"},
     {"name": "Max & Flora - Locação",
