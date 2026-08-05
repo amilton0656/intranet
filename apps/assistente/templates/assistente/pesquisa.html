@@ -35,6 +35,14 @@
 
   <form method="post" id="form-pergunta">
     {% csrf_token %}
+    <div class="mb-2">
+      <label for="modelo" class="form-label small text-muted mb-1">Modelo</label>
+      <select name="modelo" id="modelo" class="form-select form-select-sm" style="max-width: 260px;">
+        {% for valor, label in modelos_disponiveis %}
+        <option value="{{ valor }}" {% if valor == modelo %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
     <div class="input-group mb-3">
       <input type="text" name="pergunta" class="form-control" autofocus
              placeholder="Ex: quantas unidades do Bliss ainda estão disponíveis?"

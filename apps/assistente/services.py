@@ -304,18 +304,27 @@ TOOLS = [
 ]
 
 
+MODELOS_DISPONIVEIS = {
+    'claude-sonnet-5': 'Sonnet 5 (mais preciso)',
+    'claude-haiku-4-5': 'Haiku 4.5 (mais barato)',
+}
+MODELO_PADRAO = 'claude-haiku-4-5'
+
+
 class AssistenteError(Exception):
     """Erro de domínio ao consultar o assistente de pesquisa."""
 
 
-def perguntar(pergunta: str) -> str:
+def perguntar(pergunta: str, modelo: str = MODELO_PADRAO) -> str:
     pergunta = (pergunta or '').strip()
     if not pergunta:
         raise AssistenteError('Informe uma pergunta.')
+    if modelo not in MODELOS_DISPONIVEIS:
+        modelo = MODELO_PADRAO
 
     client = anthropic.Anthropic()
     runner = client.beta.messages.tool_runner(
-        model='claude-sonnet-5',
+        model=modelo,
         max_tokens=4096,
         system=SYSTEM_PROMPT,
         tools=TOOLS,
