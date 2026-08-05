@@ -8,16 +8,17 @@ from anthropic import beta_tool
 from django.db.models import Count, Sum
 
 from apps.bliss.models import Bliss
-from apps.cota365.models import Parcela, Unidade as UnidadeCota365, Venda
+from apps.cota365.models import Parcela, Permuta, Unidade as UnidadeCota365, Venda
 from apps.incorporadora.models import Unidade as UnidadeIncorporadora
 from apps.pessoas.models import Pessoa
 
 SYSTEM_PROMPT = (
     "Você é um assistente de pesquisa da intranet de uma incorporadora. Você tem acesso a "
-    "ferramentas de busca sobre: vendas e parcelas do Cota 365, unidades do empreendimento "
-    "Bliss Living, unidades de empreendimentos cadastrados na Incorporadora, cadastro de "
-    "pessoas (clientes, corretores, imobiliárias, fornecedores) e resumo agregado de áreas do "
-    "Cota 365. Use exclusivamente os dados retornados pelas ferramentas — nunca invente "
+    "ferramentas de busca sobre: vendas, parcelas, permutas e unidades (dados técnicos) do "
+    "Cota 365, unidades do empreendimento Bliss Living, unidades de empreendimentos cadastrados na "
+    "Incorporadora, cadastro de pessoas (clientes, corretores, imobiliárias, fornecedores) e "
+    "resumo agregado de áreas do Cota 365. Use exclusivamente os dados retornados pelas "
+    "ferramentas — nunca invente "
     "números, clientes, valores ou situações. Para perguntas sobre totais, somas ou contagens "
     "gerais, prefira uma ferramenta de resumo/agregação em vez de somar manualmente uma lista "
     "de resultados, pois listas têm limite de linhas e podem estar incompletas. Se a pergunta "
@@ -66,6 +67,65 @@ def buscar_vendas_cota365(
         }
         for v in qs
     ]
+    return json.dumps(resultado, ensure_ascii=False)
+
+
+@beta_tool
+def buscar_unidades_cota365(
+    unidade: str = "",
+    tipo: str = "",
+    limite: int = 20,
+) -> str:
+    """Busca unidades cadastradas no Cota 365 (dados técnicos: tipo, áreas, fração ideal).
+    Não inclui cliente, valor ou status de venda — para isso use buscar_vendas_cota365.
+    Retorna uma lista em JSON.
+
+    Args:
+        unidade: Filtra por número da unidade (busca parcial).
+        tipo: Filtra por tipo da unidade (busca parcial, ex: "apartamento", "garagem").
+        limite: Número máximo de resultados (padrão 20, máximo 100).
+    """
+    qs = UnidadeCota365.objects.all()
+    if unidade:
+        qs = qs.filter(unidade__icontains=unidade)
+    if tipo:
+        qs = qs.filter(tipo__icontains=tipo)
+    qs = qs.order_by('unidade')[:max(1, min(limite, 100))]
+    resultado = [
+        {
+            'unidade': u.unidade,
+            'tipo': u.tipo,
+            'complemento_tipo': u.complemento_tipo,
+            'area_privativa': u.area_privativa,
+            'area_priv_acessoria': u.area_priv_acessoria,
+            'area_comum': u.area_comum,
+            'area_total': u.area_privativa + u.area_priv_acessoria + u.area_comum,
+            'fracao_ideal': u.fracao_ideal,
+        }
+        for u in qs
+    ]
+    return json.dumps(resultado, ensure_ascii=False)
+
+
+@beta_tool
+def buscar_permutas_cota365(unidade: str = "", limite: int = 50) -> str:
+    """Lista unidades do Cota 365 marcadas como permuta (unidade dada em compensação ao
+    proprietário original do terreno, sem venda em dinheiro). O total retornado é exato
+    (contado direto no banco), mesmo que a lista de unidades venha limitada. Retorna JSON.
+
+    Args:
+        unidade: Filtra por número da unidade (busca parcial). Vazio lista todas.
+        limite: Número máximo de unidades detalhadas na lista (padrão 50, máximo 100).
+    """
+    qs = Permuta.objects.all()
+    if unidade:
+        qs = qs.filter(unidade__icontains=unidade)
+    total = qs.count()
+    unidades = list(qs.order_by('unidade').values_list('unidade', flat=True)[:max(1, min(limite, 100))])
+    resultado = {
+        'total_unidades_permuta': total,
+        'unidades': unidades,
+    }
     return json.dumps(resultado, ensure_ascii=False)
 
 
@@ -296,6 +356,8 @@ def resumo_areas_cota365(tipo: str = "") -> str:
 
 TOOLS = [
     buscar_vendas_cota365,
+    buscar_unidades_cota365,
+    buscar_permutas_cota365,
     buscar_unidades_bliss,
     buscar_parcelas_cota365,
     buscar_unidades_incorporadora,
