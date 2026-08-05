@@ -1,3 +1,4 @@
+anthropic==0.120.2
 arabic-reshaper==3.0.0
 asgiref==3.9.2
 asn1crypto==1.5.1

@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'apps.ajr_padrao',
     'apps.menu_acesso',
     'apps.viabilidade',
+    'apps.assistente',
 ]
 
 MIDDLEWARE = [
