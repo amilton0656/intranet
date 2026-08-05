@@ -1,11 +1,16 @@
 import os
+from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Group
+from django.contrib.sessions.models import Session
 from django.contrib import messages
 from django.db.models import Count, Min, Max
 from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
 from uteis import Uteis
+
+ONLINE_THRESHOLD_MINUTES = 5
 
 
 def _fmt_blocos(nomes):
@@ -255,4 +260,45 @@ def usuario_edit(request, pk):
         'usuario': usuario,
         'grupos_disponiveis': GRUPOS_DISPONIVEIS,
         'grupos_atuais': grupos_atuais,
+    })
+
+
+@login_required
+def sessoes_ativas(request):
+    if not _apenas_admin(request):
+        messages.error(request, 'Acesso restrito ao grupo Admin.')
+        return redirect('intranet_home')
+
+    agora = timezone.now()
+    limite_online = agora - timedelta(minutes=ONLINE_THRESHOLD_MINUTES)
+    cookie_age = timedelta(seconds=settings.SESSION_COOKIE_AGE)
+
+    por_usuario = {}
+    for sessao in Session.objects.filter(expire_date__gte=agora):
+        dados = sessao.get_decoded()
+        user_id = dados.get('_auth_user_id')
+        if not user_id:
+            continue
+        ultima_atividade = sessao.expire_date - cookie_age
+        atual = por_usuario.get(user_id)
+        if atual is None or ultima_atividade > atual['ultima_atividade']:
+            por_usuario[user_id] = {'ultima_atividade': ultima_atividade, 'sessoes': 0}
+        por_usuario[user_id]['sessoes'] += 1
+
+    usuarios = User.objects.filter(pk__in=por_usuario.keys())
+    linhas = []
+    for usuario in usuarios:
+        info = por_usuario[str(usuario.pk)] if str(usuario.pk) in por_usuario else por_usuario[usuario.pk]
+        linhas.append({
+            'usuario': usuario,
+            'ultima_atividade': info['ultima_atividade'],
+            'sessoes': info['sessoes'],
+            'online': info['ultima_atividade'] >= limite_online,
+        })
+    linhas.sort(key=lambda x: x['ultima_atividade'], reverse=True)
+
+    return render(request, 'intranet/sessoes_ativas.html', {
+        'linhas': linhas,
+        'online_threshold': ONLINE_THRESHOLD_MINUTES,
+        'agora': agora,
     })

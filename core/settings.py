@@ -154,6 +154,8 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'intranet_home'
 LOGOUT_REDIRECT_URL = 'login'
 
+SESSION_SAVE_EVERY_REQUEST = True
+
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.getenv("EMAIL_HOST")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
