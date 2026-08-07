@@ -124,7 +124,7 @@ USEFUL_LINKS = [
     {"name": "Prevision", "url": "https://app.prevision.com.br/login"},
     {"name": "WhatsApp", "url": "https://web.whatsapp.com/"},
     {"name": "Gemini", "url": "https://gemini.google.com/app"},
-    {"name": "NotebookLM", "url": "https://notebooklm.google.com/"},
+    {"name": "Gemini Notebook", "url": "https://notebook.google.com/"},
     {"name": "ChatGPT", "url": "https://chat.openai.com/auth/login"},
     {"name": "Claude", "url": "https://chat.chatbotapp.ai/"},
     {"name": "DeepSeek", "url": "https://chat.deepseek.com/"},
