@@ -144,7 +144,10 @@ class Command(BaseCommand):
                     self.stdout.write(f'  Nova aba: {nova_aba.url}')
                     with nova_aba.expect_download(timeout=120000) as dl_info:
                         nova_aba.get_by_text(
-                            _re.compile(r'clique aqui para baixar|baixar arquivo', _re.IGNORECASE)
+                            _re.compile(
+                                r'clique aqui para baixar|baixar arquivo|baixar relat[óo]rio',
+                                _re.IGNORECASE,
+                            )
                         ).first.click(timeout=10000)
                     download = dl_info.value
                     download.save_as(str(output_path))

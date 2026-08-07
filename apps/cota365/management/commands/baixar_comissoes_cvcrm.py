@@ -168,7 +168,7 @@ class Command(BaseCommand):
             import re as _re
             self.stdout.write(f'Aguardando geração (até {options["timeout_geracao"]}s)...')
             dl_pattern = _re.compile(
-                r'clique aqui para (baixar|salvar)|baixar arquivo csv',
+                r'clique aqui para (baixar|salvar)|baixar arquivo csv|baixar relat[óo]rio|baixar o arquivo',
                 _re.IGNORECASE,
             )
             deadline = time.time() + options['timeout_geracao']

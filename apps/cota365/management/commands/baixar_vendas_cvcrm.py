@@ -155,9 +155,15 @@ class Command(BaseCommand):
                         'Verifique o formulário no Chrome.'
                     )
 
-            # ── Aguarda "CLIQUE AQUI PARA BAIXAR O ARQUIVO GERADO" ────────────
+            # ── Aguarda o botão de download do relatório gerado ───────────────
+            # A CV CRM já usou vários textos para esse botão ("CLIQUE AQUI PARA
+            # BAIXAR O ARQUIVO GERADO", "baixar arquivo csv", "Baixar relatório")
+            # — o padrão cobre as variações conhecidas em vez de um texto exato.
             self.stdout.write(f'Aguardando geração (até {options["timeout_geracao"]}s)...')
-            dl_pattern = _re.compile(r'clique aqui para baixar|baixar arquivo csv', _re.IGNORECASE)
+            dl_pattern = _re.compile(
+                r'clique aqui para baixar|baixar arquivo csv|baixar relat[óo]rio|baixar o arquivo',
+                _re.IGNORECASE,
+            )
             deadline = time.time() + options['timeout_geracao']
             btn_download = None
 
