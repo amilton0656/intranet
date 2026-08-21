@@ -145,6 +145,12 @@ class Command(BaseCommand):
                         'da tabela certa e clique em "PDF Unidades disponíveis". '
                         'O download será capturado assim que você clicar.'
                     ))
+                    if achou_linha:
+                        # Achou a linha e clicou em algo, mas o clique final não
+                        # revelou o link — provavelmente o menu abriu e fechou, ou
+                        # abriu em outra linha. Dump pra diagnosticar sem precisar
+                        # de outra rodada manual da próxima vez.
+                        self._diagnosticar_menu_pdf(page)
                     input('  Pressione ENTER só depois de clicar (o script já está esperando o download)... ')
 
             download = dl_info.value
@@ -191,6 +197,28 @@ class Command(BaseCommand):
             loc.first.click(timeout=5000)
             self.stdout.write('  Cliquei em "Abrir mais informações".')
             page.wait_for_timeout(800)
+        except Exception:
+            pass
+
+    def _diagnosticar_menu_pdf(self, page):
+        """Ajuda a debugar quando a linha/kebab foram clicados mas o link
+        "PDF Unidades disponíveis" não ficou visível a tempo — lista quantos
+        links desse tipo existem no DOM e o estado (visível/oculto) de cada
+        um, pra saber se o menu certo abriu, o errado, ou nenhum."""
+        try:
+            links = page.get_by_text(_re.compile(r'pdf\s+unidades\s+dispon[íi]veis', _re.IGNORECASE))
+            n = links.count()
+            self.stdout.write(f'  Diagnóstico: {n} link(s) "PDF Unidades disponíveis" no DOM.')
+            for i in range(min(n, 10)):
+                try:
+                    visivel = links.nth(i).is_visible(timeout=500)
+                except Exception:
+                    visivel = '?'
+                try:
+                    href = links.nth(i).get_attribute('href', timeout=500) or ''
+                except Exception:
+                    href = ''
+                self.stdout.write(f'    [{i}] visível={visivel}  href=...{href[-60:]}')
         except Exception:
             pass
 
