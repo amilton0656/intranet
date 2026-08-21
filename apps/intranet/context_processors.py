@@ -3,15 +3,15 @@ from django.urls import reverse
 
 _MEDIA = settings.MEDIA_URL
 
-# Desabilitados a pedido do usuário (2026-08-03) — mantidos aqui comentados
-# para facilitar reativação futura, se necessário.
+# Reativados em 2026-08-21 — tabelas baixadas via
+# baixar_tabela_disponibilidade_cvcrm + sincronizar_tabelas.py.
 COTA365_TABELAS = [
-    # {"name": "Cota 365 - Tabela Curta (Todas Tipologias) - bancária",
-    #     "url": f"{_MEDIA}downloads/COTA 365 - Curta Todas - bancária.pdf"},
-    # {"name": "Cota 365 - Tabela Longa (2 Dorm) - bancária",
-    #     "url": f"{_MEDIA}downloads/COTA 365 - Longa 2Dorm - bancária.pdf"},
-    # {"name": "Cota 365 - Tabela Longa (Studio e Lojas) - bancária",
-    #     "url": f"{_MEDIA}downloads/COTA 365 - Longa StudioLojas - bancária.pdf"},
+    {"name": "Cota 365 - Tabela Curta",
+        "url": f"{_MEDIA}downloads/COTA 365 - Tabela Curta.pdf"},
+    {"name": "Cota 365 - Tabela Longa - 2D",
+        "url": f"{_MEDIA}downloads/COTA 365 - Tabela Longa - 2D.pdf"},
+    {"name": "Cota 365 - Tabela Longa - Studios e Lojas",
+        "url": f"{_MEDIA}downloads/COTA 365 - Tabela Longa - Studios e Lojas.pdf"},
 ]
 
 EMPREENDEDIMENTO_LINKS = [
