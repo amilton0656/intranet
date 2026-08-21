@@ -7,15 +7,16 @@ _MEDIA = settings.MEDIA_URL
 # baixar_tabela_disponibilidade_cvcrm + sincronizar_tabelas.py.
 # "Permutas" é baixada manualmente (sem automação), mas sobe pra VPS pelo
 # mesmo sincronizar_tabelas.py — basta o arquivo estar na pasta com esse nome.
+# Ordem não é alfabética de propósito: "Permutas" fica por último a pedido do usuário.
 COTA365_TABELAS = [
-    {"name": "Cota 365 - Permutas",
-        "url": f"{_MEDIA}downloads/COTA 365 - Permutas.pdf"},
     {"name": "Cota 365 - Tabela Curta",
         "url": f"{_MEDIA}downloads/COTA 365 - Tabela Curta.pdf"},
     {"name": "Cota 365 - Tabela Longa - 2D",
         "url": f"{_MEDIA}downloads/COTA 365 - Tabela Longa - 2D.pdf"},
     {"name": "Cota 365 - Tabela Longa - Studios e Lojas",
         "url": f"{_MEDIA}downloads/COTA 365 - Tabela Longa - Studios e Lojas.pdf"},
+    {"name": "Cota 365 - Permutas",
+        "url": f"{_MEDIA}downloads/COTA 365 - Permutas.pdf"},
 ]
 
 EMPREENDEDIMENTO_LINKS = [
