@@ -170,16 +170,49 @@ class Command(BaseCommand):
         loc.first.click(timeout=5000)
 
     def _abrir_mais_informacoes(self, page):
-        """Clica em "Abrir mais informações" se existir na página (em algumas
-        telas isso é necessário pra revelar a seção "Tabelas de preço
-        disponíveis"). Não falha se não encontrar — a seção pode já vir
-        expandida (ex: no Bliss, que tem só uma tabela)."""
+        """Clica em "Abrir mais informações" se existir e ainda estiver
+        fechado (necessário em algumas telas pra revelar a seção "Tabelas de
+        preço disponíveis"). É um toggle: o texto vira "Fechar mais
+        Informações" depois de clicado. Se já estiver expandido — comum
+        quando o mesmo Chrome/aba é reaproveitado entre downloads, como no
+        baixar_tudo_tabelas_cvcrm, que roda as 3 tabelas do Cota 365 na mesma
+        URL — NÃO clica de novo, senão fecharia a seção sem querer."""
+        try:
+            fechar_loc = page.get_by_text(_re.compile(r'fechar\s+mais\s+informa[çc][õo]es', _re.IGNORECASE))
+            fechar_loc.first.wait_for(state='visible', timeout=2000)
+            self.stdout.write('  "Mais informações" já estava expandido — não cliquei de novo.')
+            return
+        except Exception:
+            pass
+
         try:
             loc = page.get_by_text(_re.compile(r'abrir\s+mais\s+informa[çc][õo]es', _re.IGNORECASE))
             loc.first.wait_for(state='visible', timeout=5000)
             loc.first.click(timeout=5000)
             self.stdout.write('  Cliquei em "Abrir mais informações".')
             page.wait_for_timeout(800)
+        except Exception:
+            pass
+
+    def _diagnosticar_tabelas_visiveis(self, page):
+        """Ajuda a corrigir --nome-tabela sem precisar de outra rodada de
+        tentativa-e-erro: lista os textos com "Tabela" visíveis na página."""
+        try:
+            candidatos = page.get_by_text(_re.compile(r'tabela', _re.IGNORECASE))
+            n = min(candidatos.count(), 12)
+            if n == 0:
+                self.stdout.write('  (nenhum texto com "Tabela" encontrado na página)')
+                return
+            self.stdout.write('  Textos com "Tabela" visíveis na página (compare com --nome-tabela):')
+            vistos = set()
+            for i in range(n):
+                try:
+                    texto = candidatos.nth(i).inner_text(timeout=1000).strip().replace('\n', ' ')
+                except Exception:
+                    continue
+                if texto and texto not in vistos:
+                    vistos.add(texto)
+                    self.stdout.write(f'    - "{texto[:150]}"')
         except Exception:
             pass
 
@@ -223,6 +256,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(
                 '  Não encontrei a linha da tabela automaticamente.'
             ))
+            self._diagnosticar_tabelas_visiveis(page)
             return False
 
         # Seletores conhecidos de botão de menu (⋮), tentados em containers
@@ -261,7 +295,10 @@ class Command(BaseCommand):
             # Estratégia genérica: clica no ÚLTIMO elemento clicável da linha
             # (padrão comum: nome / data / ... / botão de opções no final).
             try:
-                clicaveis = container.locator('button, a, [role="button"]')
+                clicaveis = container.locator(
+                    'button, a, [role="button"], [onclick], i[class*="fa-"], '
+                    'i[class*="icon"], span[class*="icon"], svg'
+                )
                 n = clicaveis.count()
                 if n > 0:
                     ultimo = clicaveis.nth(n - 1)
@@ -274,6 +311,14 @@ class Command(BaseCommand):
         self.stdout.write(self.style.WARNING(
             '  Não encontrei automaticamente o botão de opções (⋮) da tabela.'
         ))
+        try:
+            html_linha = linha_loc.first.locator(
+                'xpath=' + '/'.join(['..'] * 3)
+            ).inner_html(timeout=1000)
+            self.stdout.write('  HTML ao redor da linha (pra ajustar os seletores depois):')
+            self.stdout.write(f'    {html_linha[:1000]}')
+        except Exception:
+            pass
         return False
 
     # ── Infra Chrome CDP ──────────────────────────────────────────────────────
