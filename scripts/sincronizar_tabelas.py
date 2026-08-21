@@ -15,6 +15,11 @@ import sys
 import getpass
 from pathlib import Path
 
+# Console do Windows usa cp1252 por padrão e não sabe imprimir "→" — força UTF-8
+# pra evitar UnicodeEncodeError ao rodar via `python scripts/sincronizar_tabelas.py`.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 try:
     import requests
 except ImportError:
@@ -22,7 +27,7 @@ except ImportError:
 
 # ── Configurações ──────────────────────────────────────────────────────────────
 
-PASTA_ORIGEM = Path(r"G:\Drives compartilhados\Tabelas de Vendas - Corretor")
+PASTA_ORIGEM = Path(r"G:\Meu Drive\_intranet\tabelas")
 INTRANET_URL = "https://apicota.com.br"   # sem barra no final
 USUARIO      = ""   # deixe vazio para perguntar na execução
 
@@ -83,6 +88,16 @@ def enviar_pdf(session: "requests.Session", caminho: Path, nome_destino: str) ->
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Sincroniza tabelas de vendas PDF para a intranet.")
+    parser.add_argument(
+        "--arquivo", type=str, default=None,
+        help='Filtra por trecho do nome do arquivo (ex: --arquivo "BLISS"). '
+             'Sem isso, processa todos os PDFs da pasta.',
+    )
+    args = parser.parse_args()
+
     print("=" * 60)
     print("  Sincronizador de Tabelas de Vendas — Intranet")
     print("=" * 60)
@@ -92,8 +107,11 @@ def main():
         sys.exit(f"\nPasta não encontrada:\n  {PASTA_ORIGEM}\n\nVerifique se o Google Drive está sincronizado.")
 
     pdfs = sorted(PASTA_ORIGEM.glob("*.pdf"))
+    if args.arquivo:
+        pdfs = [p for p in pdfs if args.arquivo.lower() in p.name.lower()]
     if not pdfs:
-        sys.exit(f"\nNenhum PDF encontrado em:\n  {PASTA_ORIGEM}")
+        alvo = f' com "{args.arquivo}" no nome' if args.arquivo else ''
+        sys.exit(f"\nNenhum PDF encontrado{alvo} em:\n  {PASTA_ORIGEM}")
 
     print(f"\nPasta: {PASTA_ORIGEM}")
     print(f"Arquivos encontrados: {len(pdfs)}\n")
