@@ -82,6 +82,7 @@ NEWS_LINKS_SECONDARY = [
 ]
 
 BANK_LINKS = [
+    {"name": "ASA", "url": "https://www.asa.com.br"},
     {"name": "Banco do Brasil", "url": "https://www.bb.com.br"},
     {"name": "Brasil - Office", "url": 'file:///C:/BancoBrasil/officeIE/index.html'},
     {"name": "Bradesco", "url": "https://www.bradesco.com.br"},
