@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'apps.menu_acesso',
     'apps.viabilidade',
     'apps.assistente',
+    'apps.faturamento',
 ]
 
 MIDDLEWARE = [

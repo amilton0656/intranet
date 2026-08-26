@@ -1461,6 +1461,19 @@ def _import_acessos(file_obj, nome, sha256=''):
     return len(objs), {'Total': str(len(objs))}
 
 
+def _import_faturamento(file_obj, nome, sha256=''):
+    from apps.faturamento.importer import parse_csv, salvar_importacao
+
+    linhas = parse_csv(file_obj)
+    if not linhas:
+        raise ValueError('Nenhum recebimento válido encontrado no arquivo.')
+
+    salvar_importacao(nome, linhas)
+    total_liquido = sum(l['valor_liquido'] for l in linhas)
+    ImportLog.objects.create(tipo='faturamento', total_registros=len(linhas), nome_arquivo=nome, sha256=sha256)
+    return len(linhas), {'Total líquido': _fmt_brl(total_liquido)}
+
+
 _IMPORTERS = {
     'tabela':     _import_tabela,
     'permutas':   _import_permutas,
@@ -1473,6 +1486,7 @@ _IMPORTERS = {
     'a_receber':  _import_a_receber,
     'recebidas':  _import_recebidas,
     'acessos':    _import_acessos,
+    'faturamento': _import_faturamento,
 }
 
 _LABELS = {
@@ -1487,6 +1501,7 @@ _LABELS = {
     'a_receber':  'Parcelas a Receber',
     'recebidas':  'Parcelas Recebidas',
     'acessos':    'Log de Acessos',
+    'faturamento': 'Faturamento (Incorporação/Locações)',
 }
 
 

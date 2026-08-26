@@ -1,0 +1,301 @@
+{% load static fat_filters %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faturamento — Resumo</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="{% static 'intranet/css/navbar.css' %}">
+  <style>
+    :root {
+      --fat-navy:  #1a1a2e;
+      --fat-blue:  #0d6efd;
+      --fat-blue2: #3d8bfd;
+      --fat-green: #198754;
+      --fat-light: #f4f7fb;
+    }
+    body { background: #eef1f6; font-family: 'Segoe UI', sans-serif; font-size: .88rem; }
+
+    #fat-navbar {
+      background: #A7A3AB !important;
+      padding: 0.6rem 1.5rem;
+    }
+    #fat-navbar .navbar-brand {
+      color: #282828 !important;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .fat-header {
+      background: #fff; border-bottom: 3px solid var(--fat-navy);
+      padding: 1rem 1.5rem .8rem;
+    }
+    .fat-header h1 {
+      font-size: 1.15rem; font-weight: 800; color: var(--fat-navy); margin: 0 0 2px;
+      letter-spacing: .02em; text-transform: uppercase;
+    }
+    .fat-header p { font-size: .78rem; color: #6c757d; margin: 0; }
+
+    .fat-cards { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1.25rem 1.5rem; }
+    .fat-card {
+      background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,.06);
+      padding: 1rem 1.4rem; flex: 1; min-width: 200px; border-top: 4px solid var(--fat-blue);
+    }
+    .fat-card.card-locacao { border-top-color: var(--fat-green); }
+    .fat-card.card-total { border-top-color: var(--fat-navy); background: var(--fat-navy); }
+    .fat-card.card-total .fat-card-label,
+    .fat-card.card-total .fat-card-value { color: #fff; }
+    .fat-card-label {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+      color: #6c757d; margin-bottom: 4px;
+    }
+    .fat-card-value { font-size: 1.5rem; font-weight: 800; color: var(--fat-navy); }
+
+    .fat-section { margin: 0 1.5rem 1.5rem; }
+    .fat-section-title {
+      font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+      color: #6c757d; margin-bottom: .6rem;
+    }
+    .fat-table-wrap {
+      background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,.06); overflow: hidden;
+    }
+    .fat-table { font-size: .85rem; margin: 0; }
+    .fat-table thead th {
+      background: var(--fat-navy); color: #fff; font-size: .72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em; padding: .6rem .9rem; border: none;
+      white-space: nowrap;
+    }
+    .fat-table tbody td { padding: .55rem .9rem; border-bottom: 1px solid #eef1f6; vertical-align: middle; }
+    .fat-table tbody tr:last-child td { border-bottom: none; }
+    .fat-table tfoot td {
+      background: var(--fat-light); font-weight: 700; padding: .6rem .9rem;
+      border-top: 2px solid #dee2e6;
+    }
+    .fat-table td.num, .fat-table th.num { text-align: right; }
+    .fat-empty { padding: 3rem 1.5rem; text-align: center; color: #6c757d; }
+
+    .fat-filter-bar {
+      background: #fff; margin: 0 1.5rem 1.5rem; border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06); padding: .85rem 1.25rem;
+      display: flex; gap: .9rem; align-items: end; flex-wrap: wrap;
+    }
+    .fat-filter-field { display: flex; flex-direction: column; gap: .25rem; }
+    .fat-filter-field label {
+      font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+      color: #6c757d;
+    }
+    .fat-filter-field select, .fat-filter-field input[type=date] {
+      font-size: .82rem; padding: .35rem .6rem; border: 1px solid #dee2e6; border-radius: 6px;
+      min-width: 170px;
+    }
+    .fat-filter-actions { display: flex; gap: .5rem; }
+    .btn-fat-filter {
+      background: var(--fat-navy); border: none; color: #fff; font-size: .82rem;
+      font-weight: 700; padding: .4rem 1rem; border-radius: 6px;
+    }
+    .btn-fat-clear {
+      font-size: .82rem; color: #6c757d; padding: .4rem .6rem; text-decoration: none;
+    }
+    .btn-fat-clear:hover { color: #495057; }
+
+    .fat-two-col { display: flex; gap: 1.5rem; margin: 0 1.5rem 1.5rem; }
+    .fat-two-col .fat-section { flex: 1; margin: 0; }
+    @media (max-width: 900px) { .fat-two-col { flex-direction: column; } }
+  </style>
+</head>
+<body>
+
+{% include 'intranet/intranet_navbar.html' %}
+
+<nav id="fat-navbar" class="navbar navbar-expand-lg">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{% url 'faturamento:resumo' %}">
+      <i class="bi bi-cash-coin me-2"></i>Faturamento
+    </a>
+  </div>
+</nav>
+
+<div class="fat-header d-flex justify-content-between align-items-start flex-wrap">
+  <div>
+    <h1>Resumo de Faturamento</h1>
+    <p>Recebimentos consolidados por Incorporação e Locações — valores líquidos (Sienge)</p>
+  </div>
+  <div class="pt-1 d-flex flex-column align-items-end gap-2">
+    {% if resumo %}
+    <a href="{% url 'faturamento:pdf' %}?{{ request.GET.urlencode }}" class="btn btn-outline-danger btn-sm" target="_blank">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+    </a>
+    {% endif %}
+    {% if importacao %}
+    <div class="text-end" style="font-size:.75rem; color:#6c757d;">
+      Última importação: <strong>{{ importacao.arquivo }}</strong> em
+      {{ importacao.importado_em|date:"d/m/Y H:i" }} ({{ importacao.total_linhas }} linhas)
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} m-3 mb-0" role="alert">{{ message }}</div>
+{% endfor %}
+
+{% if resumo %}
+<form class="fat-filter-bar" method="get">
+  <div class="fat-filter-field">
+    <label for="f-empresa">Empresa</label>
+    <select id="f-empresa" name="empresa" onchange="this.form.submit()">
+      <option value="">Todas</option>
+      {% for emp in opcoes.empresas %}
+      <option value="{{ emp.codigo_empresa }}" {% if filtros.empresa == emp.codigo_empresa %}selected{% endif %}>
+        {{ emp.nome_empresa }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="fat-filter-field">
+    <label for="f-empreendimento">Empreendimento</label>
+    <select id="f-empreendimento" name="empreendimento" onchange="this.form.submit()">
+      <option value="">Todos</option>
+      {% for emp in opcoes.empreendimentos %}
+      <option value="{{ emp.codigo_centro_custo }}" {% if filtros.empreendimento == emp.codigo_centro_custo %}selected{% endif %}>
+        {{ emp.nome_centro_custo }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="fat-filter-field">
+    <label for="f-data-inicio">Período — de</label>
+    <input type="date" id="f-data-inicio" name="data_inicio" value="{{ filtros.data_inicio }}">
+  </div>
+  <div class="fat-filter-field">
+    <label for="f-data-fim">Período — até</label>
+    <input type="date" id="f-data-fim" name="data_fim" value="{{ filtros.data_fim }}">
+  </div>
+  <div class="fat-filter-actions">
+    <button type="submit" class="btn-fat-filter">Filtrar</button>
+    <a href="{% url 'faturamento:resumo' %}" class="btn-fat-clear">Limpar filtros</a>
+  </div>
+</form>
+{% endif %}
+
+{% if not resumo %}
+<div class="fat-empty">
+  <i class="bi bi-inbox" style="font-size:2rem;"></i>
+  <p class="mt-2">
+    Nenhum arquivo importado ainda. Importe o CSV em
+    <a href="{% url 'cota365:importar' %}">Cota 365 → Importar</a>.
+  </p>
+</div>
+{% else %}
+
+<div class="fat-cards">
+  <div class="fat-card">
+    <div class="fat-card-label">Incorporação</div>
+    <div class="fat-card-value">{{ resumo.total_incorporacao|brl }}</div>
+  </div>
+  <div class="fat-card card-locacao">
+    <div class="fat-card-label">Locações</div>
+    <div class="fat-card-value">{{ resumo.total_locacao|brl }}</div>
+  </div>
+  {% if resumo.total_outros %}
+  <div class="fat-card">
+    <div class="fat-card-label">Outros</div>
+    <div class="fat-card-value">{{ resumo.total_outros|brl }}</div>
+  </div>
+  {% endif %}
+  <div class="fat-card card-total">
+    <div class="fat-card-label">Total Geral</div>
+    <div class="fat-card-value">{{ resumo.total_geral|brl }}</div>
+  </div>
+</div>
+
+<div class="fat-section">
+  <div class="fat-section-title">Fluxo Mensal</div>
+  <div class="fat-table-wrap">
+    <table class="fat-table table mb-0">
+      <thead>
+        <tr>
+          <th>Mês</th>
+          <th class="num">Incorporação</th>
+          <th class="num">Locações</th>
+          {% if resumo.total_outros %}<th class="num">Outros</th>{% endif %}
+          <th class="num">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for linha in resumo.fluxo_mensal %}
+        <tr>
+          <td>{{ linha.mes_label }}</td>
+          <td class="num">{{ linha.incorporacao|brl }}</td>
+          <td class="num">{{ linha.locacao|brl }}</td>
+          {% if resumo.total_outros %}<td class="num">{{ linha.outros|brl }}</td>{% endif %}
+          <td class="num"><strong>{{ linha.total|brl }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>Total</td>
+          <td class="num">{{ resumo.total_incorporacao|brl }}</td>
+          <td class="num">{{ resumo.total_locacao|brl }}</td>
+          {% if resumo.total_outros %}<td class="num">{{ resumo.total_outros|brl }}</td>{% endif %}
+          <td class="num">{{ resumo.total_geral|brl }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<div class="fat-two-col">
+  <div class="fat-section">
+    <div class="fat-section-title">Por Empresa</div>
+    <div class="fat-table-wrap">
+      <table class="fat-table table mb-0">
+        <thead>
+          <tr>
+            <th>Empresa</th>
+            <th class="num">Total Recebido</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for linha in resumo.por_empresa %}
+          <tr>
+            <td>{{ linha.nome_empresa }}</td>
+            <td class="num">{{ linha.total|brl }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="fat-section">
+    <div class="fat-section-title">Por Empreendimento</div>
+    <div class="fat-table-wrap">
+      <table class="fat-table table mb-0">
+        <thead>
+          <tr>
+            <th>Empreendimento</th>
+            <th class="num">Total Recebido</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for linha in resumo.por_empreendimento %}
+          <tr>
+            <td>{{ linha.nome_centro_custo }}</td>
+            <td class="num">{{ linha.total|brl }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -149,6 +149,7 @@
                 {% elif arq.tipo == 'vinculo' %}<i class="bi bi-link-45deg text-info fs-4"></i>
                 {% elif arq.tipo == 'permutas' %}<i class="bi bi-arrow-left-right text-purple fs-4"></i>
                 {% elif arq.tipo == 'comissoes' %}<i class="bi bi-percent text-danger fs-4"></i>
+                {% elif arq.tipo == 'faturamento' %}<i class="bi bi-cash-coin text-success fs-4"></i>
                 {% endif %}
               </span>
               <div>
@@ -215,6 +216,14 @@
             </div>
           </div>
           {% endif %}
+
+          {% if arq.tipo == 'faturamento' and arq.ultimo %}
+          <div class="mt-2">
+            <a href="{% url 'faturamento:resumo' %}" class="btn btn-outline-success btn-sm">
+              <i class="bi bi-bar-chart-line me-1"></i>Ver Resumo de Faturamento
+            </a>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -263,6 +272,10 @@
       <div class="col-md-4">
         <div class="fw-semibold text-primary mb-1">permutas.csv</div>
         <code>Uma unidade por linha (sem cabeçalho)</code>
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold text-primary mb-1">faturamento.csv</div>
+        <code>CodigoDaEmpresa; NomeDaEmpresa; CodigoDoCentroDeCusto; NomeDoCentroDeCusto; CodigoDoPlanoFinanceiro; NomeDoPlanoFinanceiro; DataDaBaixa; ValorDaBaixa; ValorLiquido</code>
       </div>
     </div>
   </div>

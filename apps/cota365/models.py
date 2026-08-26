@@ -10,6 +10,7 @@ class ImportLog(models.Model):
         ('vinculo',  'Vínculos'),
         ('permutas', 'Permutas'),
         ('series',   'Séries de Contratos'),
+        ('faturamento', 'Faturamento'),
     ]
     tipo             = models.CharField(max_length=20, choices=TIPOS, db_index=True)
     importado_em     = models.DateTimeField(auto_now_add=True)
