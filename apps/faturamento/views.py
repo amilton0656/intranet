@@ -101,11 +101,16 @@ def _build_resumo(qs):
           .order_by('-total')
     )
 
-    por_empreendimento = list(
-        qs.values('nome_centro_custo')
+    por_empreendimento_raw = list(
+        qs.values('nome_centro_custo', 'categoria')
           .annotate(total=Sum('valor_liquido'))
           .order_by('-total')
     )
+    por_empreendimento = {
+        Recebimento.INCORPORACAO: [r for r in por_empreendimento_raw if r['categoria'] == Recebimento.INCORPORACAO],
+        Recebimento.LOCACAO: [r for r in por_empreendimento_raw if r['categoria'] == Recebimento.LOCACAO],
+        Recebimento.OUTROS: [r for r in por_empreendimento_raw if r['categoria'] == Recebimento.OUTROS],
+    }
 
     return {
         'total_incorporacao': por_categoria[Recebimento.INCORPORACAO],
@@ -114,7 +119,9 @@ def _build_resumo(qs):
         'total_geral': total_geral,
         'fluxo_mensal': fluxo_mensal,
         'por_empresa': por_empresa,
-        'por_empreendimento': por_empreendimento,
+        'por_empreendimento_incorporacao': por_empreendimento[Recebimento.INCORPORACAO],
+        'por_empreendimento_locacao': por_empreendimento[Recebimento.LOCACAO],
+        'por_empreendimento_outros': por_empreendimento[Recebimento.OUTROS],
     }
 
 
@@ -154,7 +161,7 @@ def exportar_pdf(request):
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import cm
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
     importacao = ImportacaoFaturamento.objects.first()
     if not importacao:
@@ -265,7 +272,7 @@ def exportar_pdf(request):
     story.append(fluxo_tbl)
     story.append(Spacer(1, 0.6*cm))
 
-    def tabela_agrupada(titulo, linhas, campo_label):
+    def tabela_agrupada(titulo, linhas, campo_label, subtotal=None):
         elementos = [tabela_titulo(titulo)]
         header = [Paragraph(campo_label, hdr_s), Paragraph('TOTAL RECEBIDO', hdr_s)]
         rows = [header]
@@ -273,6 +280,11 @@ def exportar_pdf(request):
             rows.append([
                 Paragraph(linha.get('nome_empresa') or linha.get('nome_centro_custo') or '', cell_s),
                 Paragraph(_fmt_brl(linha['total']), cell_r),
+            ])
+        if subtotal is not None:
+            rows.append([
+                Paragraph('<b>Subtotal</b>', tot_s),
+                Paragraph(_fmt_brl(subtotal), tot_r),
             ])
         tbl = Table(rows, colWidths=[W*0.65, W*0.35], repeatRows=1)
         cmds = [
@@ -285,13 +297,27 @@ def exportar_pdf(request):
         for i in range(1, len(rows)):
             if i % 2 == 0:
                 cmds.append(('BACKGROUND', (0, i), (-1, i), colors.HexColor('#fafbfc')))
+        if subtotal is not None:
+            cmds.append(('BACKGROUND', (0, -1), (-1, -1), C_LIGHT))
+            cmds.append(('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor('#adb5bd')))
         tbl.setStyle(TableStyle(cmds))
         elementos.append(tbl)
-        return elementos
+        return [KeepTogether(elementos)]
 
     story += tabela_agrupada('POR EMPRESA', resumo_ctx['por_empresa'], 'EMPRESA')
     story.append(Spacer(1, 0.6*cm))
-    story += tabela_agrupada('POR EMPREENDIMENTO', resumo_ctx['por_empreendimento'], 'EMPREENDIMENTO')
+    story += tabela_agrupada('POR EMPREENDIMENTO — INCORPORAÇÃO',
+                              resumo_ctx['por_empreendimento_incorporacao'], 'EMPREENDIMENTO',
+                              subtotal=resumo_ctx['total_incorporacao'])
+    story.append(Spacer(1, 0.6*cm))
+    story += tabela_agrupada('POR EMPREENDIMENTO — LOCAÇÕES',
+                              resumo_ctx['por_empreendimento_locacao'], 'EMPREENDIMENTO',
+                              subtotal=resumo_ctx['total_locacao'])
+    if resumo_ctx['por_empreendimento_outros']:
+        story.append(Spacer(1, 0.6*cm))
+        story += tabela_agrupada('POR EMPREENDIMENTO — OUTROS',
+                                  resumo_ctx['por_empreendimento_outros'], 'EMPREENDIMENTO',
+                                  subtotal=resumo_ctx['total_outros'])
 
     doc.build(story)
     buf.seek(0)

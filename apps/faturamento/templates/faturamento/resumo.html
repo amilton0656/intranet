@@ -74,6 +74,14 @@
       border-top: 2px solid #dee2e6;
     }
     .fat-table td.num, .fat-table th.num { text-align: right; }
+    .fat-group-row td {
+      background: var(--fat-light); font-weight: 700; font-size: .72rem;
+      text-transform: uppercase; letter-spacing: .05em; color: #6c757d;
+      padding: .35rem .9rem;
+    }
+    .fat-subtotal-row td {
+      font-weight: 700; border-top: 1px solid #dee2e6; border-bottom: 2px solid #dee2e6;
+    }
     .fat-empty { padding: 3rem 1.5rem; text-align: center; color: #6c757d; }
 
     .fat-filter-bar {
@@ -282,12 +290,47 @@
           </tr>
         </thead>
         <tbody>
-          {% for linha in resumo.por_empreendimento %}
+          <tr class="fat-group-row"><td colspan="2">Incorporação</td></tr>
+          {% for linha in resumo.por_empreendimento_incorporacao %}
+          <tr>
+            <td>{{ linha.nome_centro_custo }}</td>
+            <td class="num">{{ linha.total|brl }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="2" class="text-muted">Nenhum recebimento</td></tr>
+          {% endfor %}
+          <tr class="fat-subtotal-row">
+            <td>Subtotal</td>
+            <td class="num">{{ resumo.total_incorporacao|brl }}</td>
+          </tr>
+
+          <tr class="fat-group-row"><td colspan="2">Locações</td></tr>
+          {% for linha in resumo.por_empreendimento_locacao %}
+          <tr>
+            <td>{{ linha.nome_centro_custo }}</td>
+            <td class="num">{{ linha.total|brl }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="2" class="text-muted">Nenhum recebimento</td></tr>
+          {% endfor %}
+          <tr class="fat-subtotal-row">
+            <td>Subtotal</td>
+            <td class="num">{{ resumo.total_locacao|brl }}</td>
+          </tr>
+
+          {% if resumo.por_empreendimento_outros %}
+          <tr class="fat-group-row"><td colspan="2">Outros</td></tr>
+          {% for linha in resumo.por_empreendimento_outros %}
           <tr>
             <td>{{ linha.nome_centro_custo }}</td>
             <td class="num">{{ linha.total|brl }}</td>
           </tr>
           {% endfor %}
+          <tr class="fat-subtotal-row">
+            <td>Subtotal Outros</td>
+            <td class="num">{{ resumo.total_outros|brl }}</td>
+          </tr>
+          {% endif %}
         </tbody>
       </table>
     </div>
