@@ -2037,18 +2037,31 @@ def dashboard(request):
     monthly_rec  = {}
     monthly_pend = {}
     monthly_perm = {}
+
+    # Recebido: agrupado pela data em que o dinheiro efetivamente entrou
+    # (data_pagamento), não pelo vencimento da parcela. Agrupar por vencimento
+    # jogava uma parcela paga numa data bem diferente do vencimento (ex.: PE
+    # com vencimento em 2030) para o mês errado do fluxo — ver
+    # project_permutas_bugs (Bug 2, 2026-07-07).
     for r in (Parcela.objects
-              .filter(vencimento__isnull=False)
+              .filter(data_pagamento__isnull=False)
+              .annotate(ano=ExtractYear('data_pagamento'), mes=ExtractMonth('data_pagamento'))
+              .values('ano', 'mes')
+              .annotate(rec=Sum('valor'))
+              .order_by('ano', 'mes')):
+        monthly_rec[(r['ano'], r['mes'])] = r['rec'] or 0.0
+
+    # A receber / permutas pendentes: continuam agrupados por vencimento.
+    for r in (Parcela.objects
+              .filter(vencimento__isnull=False, data_pagamento__isnull=True)
               .annotate(ano=ExtractYear('vencimento'), mes=ExtractMonth('vencimento'))
               .values('ano', 'mes')
               .annotate(
-                  rec=Sum('valor', filter=Q(data_pagamento__isnull=False)),
-                  pend=Sum('valor', filter=Q(data_pagamento__isnull=True) & ~Q(tipo='PE')),
-                  perm=Sum('valor', filter=Q(data_pagamento__isnull=True) & Q(tipo='PE')),
+                  pend=Sum('valor', filter=~Q(tipo='PE')),
+                  perm=Sum('valor', filter=Q(tipo='PE')),
               )
               .order_by('ano', 'mes')):
         key = (r['ano'], r['mes'])
-        monthly_rec[key]  = r['rec']  or 0.0
         monthly_pend[key] = r['pend'] or 0.0
         monthly_perm[key] = r['perm'] or 0.0
 
@@ -2079,7 +2092,7 @@ def dashboard(request):
     ano_totals = defaultdict(float)
     for key in all_keys:
         yr, mo = key
-        ano_totals[str(yr)] += monthly_rec[key] + monthly_pend[key]
+        ano_totals[str(yr)] += monthly_rec.get(key, 0.0) + monthly_pend.get(key, 0.0)
     receita_por_ano = [
         {
             'ano':       ano,
