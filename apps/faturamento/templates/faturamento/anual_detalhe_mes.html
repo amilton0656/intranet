@@ -1,0 +1,128 @@
+{% extends 'faturamento/base.html' %}
+{% load fat_filters %}
+{% block title %}Faturamento — {{ nome_empresa|default:"Grupo Cota" }} — {{ mes_label }}{% endblock %}
+
+{% block content %}
+
+<div class="fat-header d-flex justify-content-between align-items-start flex-wrap">
+  <div>
+    <div class="fat-breadcrumb">
+      <a href="{% url 'faturamento:anual_resumo' %}">Análise Anual</a>
+      {% if codigo_empresa %}
+      <span class="sep">/</span>
+      <a href="{% url 'faturamento:anual_empresa' codigo_empresa %}">{{ nome_empresa }}</a>
+      {% endif %}
+      <span class="sep">/</span> {{ mes_label }}
+    </div>
+    <h1>{% if nome_empresa %}{{ nome_empresa }} — {% endif %}{{ mes_label }}</h1>
+    <p>
+      {% if codigo_empresa %}O que compõe os valores desse mês.
+      {% else %}O que compõe os valores desse mês, todas as empresas.{% endif %}
+    </p>
+  </div>
+</div>
+
+<div class="fat-cards">
+  <div class="fat-card card-vendas">
+    <div class="fat-card-label">Vendas</div>
+    <div class="fat-card-value">{{ total_vendas|brl }}</div>
+  </div>
+  <div class="fat-card">
+    <div class="fat-card-label">Incorporação</div>
+    <div class="fat-card-value">{{ total_incorporacao|brl }}</div>
+  </div>
+  <div class="fat-card card-locacao">
+    <div class="fat-card-label">Locações</div>
+    <div class="fat-card-value">{{ total_locacao|brl }}</div>
+  </div>
+</div>
+
+<div class="fat-section">
+  <div class="fat-section-title">Vendas — contratos vendidos em {{ mes_label }}</div>
+  <div class="fat-table-wrap">
+    <table class="fat-table table mb-0">
+      <thead>
+        <tr>
+          {% if not codigo_empresa %}<th>Empresa</th>{% endif %}
+          <th>Título</th>
+          <th>Cliente</th>
+          <th class="num">Valor Total do Contrato</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in vendas %}
+        <tr>
+          {% if not codigo_empresa %}<td>{{ c.nome_empresa }}</td>{% endif %}
+          <td>{{ c.numero_titulo }}</td>
+          <td>{{ c.nome_cliente }}</td>
+          <td class="num">{{ c.valor_total|brl }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="{% if codigo_empresa %}3{% else %}4{% endif %}" class="text-muted">Nenhum contrato vendido nesse mês.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="fat-section">
+  <div class="fat-section-title">Incorporação — recebimentos de {{ mes_label }}</div>
+  <div class="fat-table-wrap">
+    <table class="fat-table table mb-0">
+      <thead>
+        <tr>
+          {% if not codigo_empresa %}<th>Empresa</th>{% endif %}
+          <th>Data</th>
+          <th>Cliente</th>
+          <th>Empreendimento</th>
+          <th class="num">Valor Líquido</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in incorporacao %}
+        <tr>
+          {% if not codigo_empresa %}<td>{{ r.nome_empresa }}</td>{% endif %}
+          <td>{{ r.data_baixa|date:"d/m/Y" }}</td>
+          <td>{{ r.nome_cliente }}</td>
+          <td>{{ r.nome_centro_custo }}</td>
+          <td class="num">{{ r.valor_liquido|brl }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="{% if codigo_empresa %}4{% else %}5{% endif %}" class="text-muted">Nenhum recebimento nesse mês.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="fat-section">
+  <div class="fat-section-title">Locações — recebimentos de {{ mes_label }}</div>
+  <div class="fat-table-wrap">
+    <table class="fat-table table mb-0">
+      <thead>
+        <tr>
+          {% if not codigo_empresa %}<th>Empresa</th>{% endif %}
+          <th>Data</th>
+          <th>Cliente</th>
+          <th>Empreendimento</th>
+          <th class="num">Valor Líquido</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in locacao %}
+        <tr>
+          {% if not codigo_empresa %}<td>{{ r.nome_empresa }}</td>{% endif %}
+          <td>{{ r.data_baixa|date:"d/m/Y" }}</td>
+          <td>{{ r.nome_cliente }}</td>
+          <td>{{ r.nome_centro_custo }}</td>
+          <td class="num">{{ r.valor_liquido|brl }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="{% if codigo_empresa %}4{% else %}5{% endif %}" class="text-muted">Nenhum recebimento nesse mês.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

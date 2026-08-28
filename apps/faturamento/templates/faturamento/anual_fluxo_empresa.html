@@ -1,0 +1,82 @@
+{% extends 'faturamento/base.html' %}
+{% load fat_filters %}
+{% block title %}Faturamento — {{ nome_empresa }}{% endblock %}
+
+{% block content %}
+
+<div class="fat-header d-flex justify-content-between align-items-start flex-wrap">
+  <div>
+    <div class="fat-breadcrumb">
+      <a href="{% url 'faturamento:anual_resumo' %}">Análise Anual</a>
+      <span class="sep">/</span> {{ nome_empresa }}
+    </div>
+    <h1>{{ nome_empresa }}</h1>
+    <p>Fluxo mensal — Vendas (valor total contratado) x Incorporação/Locações (dinheiro recebido). Clique num mês pra ver o detalhe.</p>
+  </div>
+</div>
+
+{% if not linhas %}
+<div class="fat-empty">
+  <i class="bi bi-inbox" style="font-size:2rem;"></i>
+  <p class="mt-2">Nenhum dado encontrado pra essa empresa.</p>
+</div>
+{% else %}
+
+<div class="fat-cards">
+  <div class="fat-card card-vendas">
+    <div class="fat-card-label">Vendas</div>
+    <div class="fat-card-value">{{ totais.vendas|brl }}</div>
+  </div>
+  <div class="fat-card">
+    <div class="fat-card-label">Incorporação</div>
+    <div class="fat-card-value">{{ totais.incorporacao|brl }}</div>
+  </div>
+  <div class="fat-card card-locacao">
+    <div class="fat-card-label">Locações</div>
+    <div class="fat-card-value">{{ totais.locacao|brl }}</div>
+  </div>
+  <div class="fat-card card-total">
+    <div class="fat-card-label">Total Recebido</div>
+    <div class="fat-card-value">{{ totais.total|brl }}</div>
+  </div>
+</div>
+
+<div class="fat-section">
+  <div class="fat-table-wrap">
+    <table class="fat-table table mb-0">
+      <thead>
+        <tr>
+          <th>Mês</th>
+          <th class="num">Vendas</th>
+          <th class="num">Incorporação</th>
+          <th class="num">Locações</th>
+          <th class="num">Total (Incorp. + Locações)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for linha in linhas %}
+        <tr class="fat-row-link"
+            onclick="window.location='{% url 'faturamento:anual_detalhe' codigo_empresa linha.mes.year linha.mes.month %}'">
+          <td>{{ linha.mes_label }}</td>
+          <td class="num">{{ linha.vendas|brl }}</td>
+          <td class="num">{{ linha.incorporacao|brl }}</td>
+          <td class="num">{{ linha.locacao|brl }}</td>
+          <td class="num"><strong>{{ linha.total|brl }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>Total</td>
+          <td class="num">{{ totais.vendas|brl }}</td>
+          <td class="num">{{ totais.incorporacao|brl }}</td>
+          <td class="num">{{ totais.locacao|brl }}</td>
+          <td class="num">{{ totais.total|brl }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}

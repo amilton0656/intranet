@@ -1462,16 +1462,33 @@ def _import_acessos(file_obj, nome, sha256=''):
 
 
 def _import_faturamento(file_obj, nome, sha256=''):
-    from apps.faturamento.importer import parse_csv, salvar_importacao
+    from apps.faturamento.importer import parse_csv, recalcular_contratos, salvar_importacao
 
     linhas = parse_csv(file_obj)
     if not linhas:
         raise ValueError('Nenhum recebimento válido encontrado no arquivo.')
 
     salvar_importacao(nome, linhas)
+    recalcular_contratos()
     total_liquido = sum(l['valor_liquido'] for l in linhas)
     ImportLog.objects.create(tipo='faturamento', total_registros=len(linhas), nome_arquivo=nome, sha256=sha256)
     return len(linhas), {'Total líquido': _fmt_brl(total_liquido)}
+
+
+def _import_faturamento_areceber(file_obj, nome, sha256=''):
+    from apps.faturamento.importer import (
+        parse_areceber_csv, recalcular_contratos, salvar_importacao_areceber,
+    )
+
+    linhas = parse_areceber_csv(file_obj)
+    if not linhas:
+        raise ValueError('Nenhuma parcela pendente válida encontrada no arquivo.')
+
+    salvar_importacao_areceber(nome, linhas)
+    recalcular_contratos()
+    total_pendente = sum(l['valor_original'] for l in linhas)
+    ImportLog.objects.create(tipo='fat_areceber', total_registros=len(linhas), nome_arquivo=nome, sha256=sha256)
+    return len(linhas), {'Total pendente': _fmt_brl(total_pendente)}
 
 
 _IMPORTERS = {
@@ -1487,6 +1504,7 @@ _IMPORTERS = {
     'recebidas':  _import_recebidas,
     'acessos':    _import_acessos,
     'faturamento': _import_faturamento,
+    'fat_areceber': _import_faturamento_areceber,
 }
 
 _LABELS = {
@@ -1502,6 +1520,7 @@ _LABELS = {
     'recebidas':  'Parcelas Recebidas',
     'acessos':    'Log de Acessos',
     'faturamento': 'Faturamento (Incorporação/Locações)',
+    'fat_areceber': 'Faturamento (A Receber)',
 }
 
 

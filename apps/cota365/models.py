@@ -11,6 +11,7 @@ class ImportLog(models.Model):
         ('permutas', 'Permutas'),
         ('series',   'Séries de Contratos'),
         ('faturamento', 'Faturamento'),
+        ('fat_areceber', 'Faturamento (A Receber)'),
     ]
     tipo             = models.CharField(max_length=20, choices=TIPOS, db_index=True)
     importado_em     = models.DateTimeField(auto_now_add=True)

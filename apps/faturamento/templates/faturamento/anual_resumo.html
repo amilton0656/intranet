@@ -1,0 +1,102 @@
+{% extends 'faturamento/base.html' %}
+{% load fat_filters %}
+{% block title %}Faturamento — Análise Anual{% endblock %}
+
+{% block extra_style %}
+.fat-pivot-wrap { overflow-x: auto; }
+.fat-pivot { font-size: .82rem; margin: 0; white-space: nowrap; }
+.fat-pivot th, .fat-pivot td { border: 1px solid #dee2e6; }
+.fat-pivot thead tr:first-child th {
+  background: var(--fat-navy); color: #fff; font-size: .78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em; padding: .55rem .75rem; text-align: center;
+}
+.fat-pivot thead tr:first-child th a { color: #fff; text-decoration: none; }
+.fat-pivot thead tr:first-child th a:hover { text-decoration: underline; }
+.fat-pivot thead tr:last-child th {
+  background: #2a2a45; color: rgba(255,255,255,.85); font-size: .68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em; padding: .35rem .75rem; text-align: center;
+}
+.fat-pivot thead tr:last-child th.col-vendas { color: #e8d090; }
+.fat-pivot thead tr:last-child th.col-total-geral { background: #1a1a2e; }
+.fat-pivot tbody td { padding: .45rem .75rem; text-align: right; }
+.fat-pivot tbody td.col-mes { text-align: left; font-weight: 600; color: var(--fat-navy); }
+.fat-pivot tbody tr:nth-child(even) { background: #fafbfc; }
+.fat-pivot tbody tr.fat-row-link { cursor: pointer; }
+.fat-pivot tbody tr.fat-row-link:hover { background: #eef2fb; }
+.fat-pivot tfoot td {
+  background: var(--fat-light); font-weight: 700; padding: .55rem .75rem; text-align: right;
+  border-top: 2px solid var(--fat-navy);
+}
+.fat-pivot tfoot td.col-mes { text-align: left; }
+{% endblock %}
+
+{% block content %}
+
+<div class="fat-header d-flex justify-content-between align-items-start flex-wrap">
+  <div>
+    <h1>Faturamentos Últimos 12 Meses — Grupo Cota</h1>
+    <p>Vendas (valor total contratado) x Recebimentos (dinheiro que entrou), por empresa. Clique no nome da empresa pra ver o fluxo mensal.</p>
+  </div>
+</div>
+
+{% if not linhas %}
+<div class="fat-empty">
+  <i class="bi bi-inbox" style="font-size:2rem;"></i>
+  <p class="mt-2">
+    Nenhum dado importado ainda. Importe o CSV em
+    <a href="{% url 'cota365:importar' %}">Cota 365 → Importar</a>.
+  </p>
+</div>
+{% else %}
+
+<div class="fat-section">
+  <div class="fat-table-wrap fat-pivot-wrap">
+    <table class="fat-pivot table mb-0">
+      <thead>
+        <tr>
+          <th rowspan="2" style="vertical-align:middle;">Mês</th>
+          {% for codigo, nome in empresas %}
+          <th colspan="2"><a href="{% url 'faturamento:anual_empresa' codigo %}">{{ nome }}</a></th>
+          {% endfor %}
+          <th colspan="2" class="col-total-geral">Total Geral</th>
+        </tr>
+        <tr>
+          {% for codigo, nome in empresas %}
+          <th class="col-vendas">Vendas</th>
+          <th>Recebimentos</th>
+          {% endfor %}
+          <th class="col-vendas col-total-geral">Vendas</th>
+          <th class="col-total-geral">Recebimentos</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for linha in linhas %}
+        <tr class="fat-row-link"
+            onclick="window.location='{% url 'faturamento:anual_detalhe_geral' linha.mes.year linha.mes.month %}'">
+          <td class="col-mes">{{ linha.mes_label }}</td>
+          {% for coluna in linha.colunas %}
+          <td>{{ coluna.vendas|brl }}</td>
+          <td>{{ coluna.recebimentos|brl }}</td>
+          {% endfor %}
+          <td><strong>{{ linha.total_vendas|brl }}</strong></td>
+          <td><strong>{{ linha.total_recebimentos|brl }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td class="col-mes">Total</td>
+          {% for col in rodape %}
+          <td>{{ col.vendas|brl }}</td>
+          <td>{{ col.recebimentos|brl }}</td>
+          {% endfor %}
+          <td>{{ total_geral_vendas|brl }}</td>
+          <td>{{ total_geral_recebimentos|brl }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}

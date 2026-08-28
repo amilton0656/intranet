@@ -1,12 +1,14 @@
 import io
+from collections import defaultdict
 from datetime import datetime
+from decimal import Decimal
 
 from django.db.models import Sum
-from django.db.models.functions import TruncMonth
+from django.db.models.functions import Coalesce, TruncMonth
 from django.http import FileResponse, HttpResponse
 from django.shortcuts import render
 
-from .models import ImportacaoFaturamento, Recebimento
+from .models import Contrato, ImportacaoFaturamento, Recebimento
 
 
 _MESES_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
@@ -64,11 +66,38 @@ def _resolve_filtros(request, importacao):
     return qs, filtros, opcoes
 
 
-def _build_resumo(qs):
+def _vendas_por_mes(filtros):
+    """Vendas (Contrato.valor_total, categoria Incorporação) por mês, com os
+    mesmos filtros da tela — usa mes_venda_manual quando definido, senão
+    mes_venda."""
+    qs = (Contrato.objects
+          .filter(categoria=Recebimento.INCORPORACAO)
+          .annotate(mes_efetivo=Coalesce('mes_venda_manual', 'mes_venda'))
+          .exclude(mes_efetivo__isnull=True))
+    if filtros['empresa']:
+        qs = qs.filter(codigo_empresa=filtros['empresa'])
+    if filtros['empreendimento']:
+        qs = qs.filter(codigo_centro_custo=filtros['empreendimento'])
+    if filtros['data_inicio']:
+        qs = qs.filter(mes_efetivo__gte=filtros['data_inicio'])
+    if filtros['data_fim']:
+        qs = qs.filter(mes_efetivo__lte=filtros['data_fim'])
+
+    por_mes = defaultdict(lambda: Decimal('0'))
+    for row in (qs.annotate(mes=TruncMonth('mes_efetivo'))
+                  .values('mes').annotate(total=Sum('valor_total'))):
+        por_mes[row['mes']] = row['total']
+    return por_mes
+
+
+def _build_resumo(qs, filtros):
     por_categoria = {c: 0 for c, _ in Recebimento.CATEGORIA_CHOICES}
     for row in qs.values('categoria').annotate(total=Sum('valor_liquido')):
         por_categoria[row['categoria']] = row['total']
     total_geral = sum(por_categoria.values())
+
+    vendas_por_mes = _vendas_por_mes(filtros)
+    total_vendas = sum(vendas_por_mes.values())
 
     fluxo_por_mes = {}
     for row in (
@@ -80,6 +109,8 @@ def _build_resumo(qs):
         mes = row['mes']
         fluxo_por_mes.setdefault(mes, {c: 0 for c, _ in Recebimento.CATEGORIA_CHOICES})
         fluxo_por_mes[mes][row['categoria']] = row['total']
+    for mes in vendas_por_mes:
+        fluxo_por_mes.setdefault(mes, {c: 0 for c, _ in Recebimento.CATEGORIA_CHOICES})
 
     fluxo_mensal = []
     for mes, valores in sorted(fluxo_por_mes.items()):
@@ -89,6 +120,7 @@ def _build_resumo(qs):
         fluxo_mensal.append({
             'mes': mes,
             'mes_label': _fmt_mes(mes),
+            'vendas': vendas_por_mes.get(mes, Decimal('0')),
             'incorporacao': incorporacao,
             'locacao': locacao,
             'outros': outros,
@@ -113,6 +145,7 @@ def _build_resumo(qs):
     }
 
     return {
+        'total_vendas': total_vendas,
         'total_incorporacao': por_categoria[Recebimento.INCORPORACAO],
         'total_locacao': por_categoria[Recebimento.LOCACAO],
         'total_outros': por_categoria[Recebimento.OUTROS],
@@ -133,7 +166,7 @@ def resumo(request):
 
     qs, filtros, opcoes = _resolve_filtros(request, importacao)
 
-    contexto['resumo'] = _build_resumo(qs)
+    contexto['resumo'] = _build_resumo(qs, filtros)
     contexto['filtros'] = filtros
     contexto['opcoes'] = opcoes
     return render(request, 'faturamento/resumo.html', contexto)
@@ -168,7 +201,7 @@ def exportar_pdf(request):
         return HttpResponse('Nenhum dado importado.', status=404)
 
     qs, filtros, _ = _resolve_filtros(request, importacao)
-    resumo_ctx = _build_resumo(qs)
+    resumo_ctx = _build_resumo(qs, filtros)
     descricao_filtros = _descricao_filtros(qs, filtros)
 
     C_NAVY = colors.HexColor('#1a1a2e')
@@ -212,20 +245,23 @@ def exportar_pdf(request):
 
     # ── Cards de totais ──────────────────────────────────────────────────────
     cards_data = [[
+        Paragraph('<font color="#6c757d" size="7.5"><b>VENDAS</b></font>', cell_s),
         Paragraph('<font color="#6c757d" size="7.5"><b>INCORPORAÇÃO</b></font>', cell_s),
         Paragraph('<font color="#6c757d" size="7.5"><b>LOCAÇÕES</b></font>', cell_s),
         Paragraph('<font color="#6c757d" size="7.5"><b>TOTAL GERAL</b></font>', cell_s),
     ], [
+        Paragraph(f'<b><font size="13">{_fmt_brl(resumo_ctx["total_vendas"])}</font></b>', cell_s),
         Paragraph(f'<b><font size="13">{_fmt_brl(resumo_ctx["total_incorporacao"])}</font></b>', cell_s),
         Paragraph(f'<b><font size="13">{_fmt_brl(resumo_ctx["total_locacao"])}</font></b>', cell_s),
         Paragraph(f'<b><font size="13">{_fmt_brl(resumo_ctx["total_geral"])}</font></b>', cell_s),
     ]]
-    cards_tbl = Table(cards_data, colWidths=[W/3]*3)
+    cards_tbl = Table(cards_data, colWidths=[W/4]*4)
     cards_tbl.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), C_LIGHT),
-        ('BOX', (0, 0), (0, -1), 1, colors.HexColor('#0d6efd')),
-        ('BOX', (1, 0), (1, -1), 1, C_GREEN),
-        ('BOX', (2, 0), (2, -1), 1, C_NAVY),
+        ('BOX', (0, 0), (0, -1), 1, colors.HexColor('#c8a951')),
+        ('BOX', (1, 0), (1, -1), 1, colors.HexColor('#0d6efd')),
+        ('BOX', (2, 0), (2, -1), 1, C_GREEN),
+        ('BOX', (3, 0), (3, -1), 1, C_NAVY),
         ('TOPPADDING', (0, 0), (-1, -1), 8),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
         ('LEFTPADDING', (0, 0), (-1, -1), 10),
@@ -239,23 +275,25 @@ def exportar_pdf(request):
 
     # ── Fluxo Mensal ─────────────────────────────────────────────────────────
     story.append(tabela_titulo('FLUXO MENSAL'))
-    fluxo_header = [Paragraph('MÊS', hdr_s), Paragraph('INCORPORAÇÃO', hdr_s),
-                     Paragraph('LOCAÇÕES', hdr_s), Paragraph('TOTAL', hdr_s)]
+    fluxo_header = [Paragraph('MÊS', hdr_s), Paragraph('VENDAS', hdr_s),
+                     Paragraph('INCORPORAÇÃO', hdr_s), Paragraph('LOCAÇÕES', hdr_s), Paragraph('TOTAL', hdr_s)]
     fluxo_rows = [fluxo_header]
     for linha in resumo_ctx['fluxo_mensal']:
         fluxo_rows.append([
             Paragraph(linha['mes_label'], cell_s),
+            Paragraph(_fmt_brl(linha['vendas']), cell_r),
             Paragraph(_fmt_brl(linha['incorporacao']), cell_r),
             Paragraph(_fmt_brl(linha['locacao']), cell_r),
             Paragraph(f'<b>{_fmt_brl(linha["total"])}</b>', cell_r),
         ])
     fluxo_rows.append([
         Paragraph('TOTAL', tot_s),
+        Paragraph(_fmt_brl(resumo_ctx['total_vendas']), tot_r),
         Paragraph(_fmt_brl(resumo_ctx['total_incorporacao']), tot_r),
         Paragraph(_fmt_brl(resumo_ctx['total_locacao']), tot_r),
         Paragraph(_fmt_brl(resumo_ctx['total_geral']), tot_r),
     ])
-    fluxo_tbl = Table(fluxo_rows, colWidths=[W*0.22, W*0.26, W*0.26, W*0.26], repeatRows=1)
+    fluxo_tbl = Table(fluxo_rows, colWidths=[W*0.18, W*0.205, W*0.205, W*0.205, W*0.205], repeatRows=1)
     fluxo_cmds = [
         ('BACKGROUND', (0, 0), (-1, 0), C_NAVY),
         ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#dee2e6')),

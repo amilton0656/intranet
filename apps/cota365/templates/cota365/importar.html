@@ -150,6 +150,7 @@
                 {% elif arq.tipo == 'permutas' %}<i class="bi bi-arrow-left-right text-purple fs-4"></i>
                 {% elif arq.tipo == 'comissoes' %}<i class="bi bi-percent text-danger fs-4"></i>
                 {% elif arq.tipo == 'faturamento' %}<i class="bi bi-cash-coin text-success fs-4"></i>
+                {% elif arq.tipo == 'fat_areceber' %}<i class="bi bi-hourglass-split text-warning fs-4"></i>
                 {% endif %}
               </span>
               <div>
@@ -218,9 +219,12 @@
           {% endif %}
 
           {% if arq.tipo == 'faturamento' and arq.ultimo %}
-          <div class="mt-2">
-            <a href="{% url 'faturamento:resumo' %}" class="btn btn-outline-success btn-sm">
-              <i class="bi bi-bar-chart-line me-1"></i>Ver Resumo de Faturamento
+          <div class="mt-2 d-flex gap-2">
+            <a href="{% url 'faturamento:resumo' %}" class="btn btn-outline-warning btn-sm">
+              <i class="bi bi-graph-up me-1"></i>Ver Análise Anual
+            </a>
+            <a href="{% url 'faturamento:detalhado' %}" class="btn btn-outline-success btn-sm">
+              <i class="bi bi-bar-chart-line me-1"></i>Ver Resumo Detalhado
             </a>
           </div>
           {% endif %}
@@ -275,7 +279,11 @@
       </div>
       <div class="col-md-4">
         <div class="fw-semibold text-primary mb-1">faturamento.csv</div>
-        <code>CodigoDaEmpresa; NomeDaEmpresa; CodigoDoCentroDeCusto; NomeDoCentroDeCusto; CodigoDoPlanoFinanceiro; NomeDoPlanoFinanceiro; DataDaBaixa; ValorDaBaixa; ValorLiquido</code>
+        <code>CodigoDaEmpresa; NomeDaEmpresa; CodigoDoCentroDeCusto; NomeDoCentroDeCusto; CodigoDoPlanoFinanceiro; NomeDoPlanoFinanceiro; DataDaBaixa; DataDeEmissao; NumeroDoTitulo; ValorDaBaixa; ValorLiquido</code>
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold text-primary mb-1">fat_areceber.csv</div>
+        <code>cdEmpresa; nmEmpresa; nmCliente; nuDocumento; nuTitulo; nuParcelaApresentacao; cdTipoCondicao; dtVencto; vlOriginal; vlSaldoAtual; nuUnidadePrincipal</code>
       </div>
     </div>
   </div>
