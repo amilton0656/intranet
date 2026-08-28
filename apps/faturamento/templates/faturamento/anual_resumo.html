@@ -96,6 +96,63 @@
       </tfoot>
     </table>
   </div>
+
+  <div class="fat-cards-mobile">
+    {% for linha in linhas %}
+    <div class="fat-mobile-card is-clickable"
+         onclick="window.location='{% url 'faturamento:anual_detalhe_geral' linha.mes.year linha.mes.month %}'">
+      <div class="fat-mobile-card-header">{{ linha.mes_label }}</div>
+      <div class="fat-mobile-card-body">
+        {% for coluna in linha.colunas %}
+        <div class="fat-mobile-group-title">{{ coluna.nome_empresa }}</div>
+        <div class="fat-mobile-card-row">
+          <span class="fat-mobile-card-lbl">Vendas</span>
+          <span class="fat-mobile-card-val">{{ coluna.vendas|brl }}</span>
+        </div>
+        <div class="fat-mobile-card-row">
+          <span class="fat-mobile-card-lbl">Recebimentos</span>
+          <span class="fat-mobile-card-val">{{ coluna.recebimentos|brl }}</span>
+        </div>
+        {% endfor %}
+        <div class="fat-mobile-group-title">Total Geral</div>
+        <div class="fat-mobile-card-row is-total">
+          <span class="fat-mobile-card-lbl">Vendas</span>
+          <span class="fat-mobile-card-val">{{ linha.total_vendas|brl }}</span>
+        </div>
+        <div class="fat-mobile-card-row is-total">
+          <span class="fat-mobile-card-lbl">Recebimentos</span>
+          <span class="fat-mobile-card-val">{{ linha.total_recebimentos|brl }}</span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="fat-mobile-card">
+      <div class="fat-mobile-card-header">Total (12 meses)</div>
+      <div class="fat-mobile-card-body">
+        {% for col in rodape %}
+        <div class="fat-mobile-group-title">{{ col.nome_empresa }}</div>
+        <div class="fat-mobile-card-row">
+          <span class="fat-mobile-card-lbl">Vendas</span>
+          <span class="fat-mobile-card-val">{{ col.vendas|brl }}</span>
+        </div>
+        <div class="fat-mobile-card-row">
+          <span class="fat-mobile-card-lbl">Recebimentos</span>
+          <span class="fat-mobile-card-val">{{ col.recebimentos|brl }}</span>
+        </div>
+        {% endfor %}
+        <div class="fat-mobile-group-title">Total Geral</div>
+        <div class="fat-mobile-card-row is-total">
+          <span class="fat-mobile-card-lbl">Vendas</span>
+          <span class="fat-mobile-card-val">{{ total_geral_vendas|brl }}</span>
+        </div>
+        <div class="fat-mobile-card-row is-total">
+          <span class="fat-mobile-card-lbl">Recebimentos</span>
+          <span class="fat-mobile-card-val">{{ total_geral_recebimentos|brl }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 {% endif %}

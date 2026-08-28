@@ -140,6 +140,66 @@
       </tfoot>
     </table>
   </div>
+
+  <div class="fat-cards-mobile">
+    {% for linha in resumo.fluxo_mensal %}
+    <div class="fat-mobile-card">
+      <div class="fat-mobile-card-header">{{ linha.mes_label }}</div>
+      <div class="fat-mobile-card-body">
+        <div class="fat-mobile-card-row">
+          <span class="fat-mobile-card-lbl">Vendas</span>
+          <span class="fat-mobile-card-val">{{ linha.vendas|brl }}</span>
+        </div>
+        <div class="fat-mobile-card-row">
+          <span class="fat-mobile-card-lbl">Incorporação</span>
+          <span class="fat-mobile-card-val">{{ linha.incorporacao|brl }}</span>
+        </div>
+        <div class="fat-mobile-card-row">
+          <span class="fat-mobile-card-lbl">Locações</span>
+          <span class="fat-mobile-card-val">{{ linha.locacao|brl }}</span>
+        </div>
+        {% if resumo.total_outros %}
+        <div class="fat-mobile-card-row">
+          <span class="fat-mobile-card-lbl">Outros</span>
+          <span class="fat-mobile-card-val">{{ linha.outros|brl }}</span>
+        </div>
+        {% endif %}
+        <div class="fat-mobile-card-row is-total">
+          <span class="fat-mobile-card-lbl">Total</span>
+          <span class="fat-mobile-card-val">{{ linha.total|brl }}</span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="fat-mobile-card">
+      <div class="fat-mobile-card-header">Total</div>
+      <div class="fat-mobile-card-body">
+        <div class="fat-mobile-card-row">
+          <span class="fat-mobile-card-lbl">Vendas</span>
+          <span class="fat-mobile-card-val">{{ resumo.total_vendas|brl }}</span>
+        </div>
+        <div class="fat-mobile-card-row">
+          <span class="fat-mobile-card-lbl">Incorporação</span>
+          <span class="fat-mobile-card-val">{{ resumo.total_incorporacao|brl }}</span>
+        </div>
+        <div class="fat-mobile-card-row">
+          <span class="fat-mobile-card-lbl">Locações</span>
+          <span class="fat-mobile-card-val">{{ resumo.total_locacao|brl }}</span>
+        </div>
+        {% if resumo.total_outros %}
+        <div class="fat-mobile-card-row">
+          <span class="fat-mobile-card-lbl">Outros</span>
+          <span class="fat-mobile-card-val">{{ resumo.total_outros|brl }}</span>
+        </div>
+        {% endif %}
+        <div class="fat-mobile-card-row is-total">
+          <span class="fat-mobile-card-lbl">Total Geral</span>
+          <span class="fat-mobile-card-val">{{ resumo.total_geral|brl }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="fat-two-col">
@@ -162,6 +222,20 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
+
+    <div class="fat-cards-mobile">
+      {% for linha in resumo.por_empresa %}
+      <div class="fat-mobile-card">
+        <div class="fat-mobile-card-header">{{ linha.nome_empresa }}</div>
+        <div class="fat-mobile-card-body">
+          <div class="fat-mobile-card-row is-total">
+            <span class="fat-mobile-card-lbl">Total Recebido</span>
+            <span class="fat-mobile-card-val">{{ linha.total|brl }}</span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
     </div>
   </div>
 
@@ -219,6 +293,80 @@
           {% endif %}
         </tbody>
       </table>
+    </div>
+
+    <div class="fat-cards-mobile">
+      <div class="fat-mobile-group-title">Incorporação</div>
+      {% for linha in resumo.por_empreendimento_incorporacao %}
+      <div class="fat-mobile-card">
+        <div class="fat-mobile-card-header">{{ linha.nome_centro_custo }}</div>
+        <div class="fat-mobile-card-body">
+          <div class="fat-mobile-card-row is-total">
+            <span class="fat-mobile-card-lbl">Total</span>
+            <span class="fat-mobile-card-val">{{ linha.total|brl }}</span>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <p class="text-muted small">Nenhum recebimento.</p>
+      {% endfor %}
+      <div class="fat-mobile-card">
+        <div class="fat-mobile-card-header">Subtotal Incorporação</div>
+        <div class="fat-mobile-card-body">
+          <div class="fat-mobile-card-row is-total">
+            <span class="fat-mobile-card-lbl">Total</span>
+            <span class="fat-mobile-card-val">{{ resumo.total_incorporacao|brl }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="fat-mobile-group-title">Locações</div>
+      {% for linha in resumo.por_empreendimento_locacao %}
+      <div class="fat-mobile-card">
+        <div class="fat-mobile-card-header hdr-locacao">{{ linha.nome_centro_custo }}</div>
+        <div class="fat-mobile-card-body">
+          <div class="fat-mobile-card-row is-total">
+            <span class="fat-mobile-card-lbl">Total</span>
+            <span class="fat-mobile-card-val">{{ linha.total|brl }}</span>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <p class="text-muted small">Nenhum recebimento.</p>
+      {% endfor %}
+      <div class="fat-mobile-card">
+        <div class="fat-mobile-card-header hdr-locacao">Subtotal Locações</div>
+        <div class="fat-mobile-card-body">
+          <div class="fat-mobile-card-row is-total">
+            <span class="fat-mobile-card-lbl">Total</span>
+            <span class="fat-mobile-card-val">{{ resumo.total_locacao|brl }}</span>
+          </div>
+        </div>
+      </div>
+
+      {% if resumo.por_empreendimento_outros %}
+      <div class="fat-mobile-group-title">Outros</div>
+      {% for linha in resumo.por_empreendimento_outros %}
+      <div class="fat-mobile-card">
+        <div class="fat-mobile-card-header">{{ linha.nome_centro_custo }}</div>
+        <div class="fat-mobile-card-body">
+          <div class="fat-mobile-card-row is-total">
+            <span class="fat-mobile-card-lbl">Total</span>
+            <span class="fat-mobile-card-val">{{ linha.total|brl }}</span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+      <div class="fat-mobile-card">
+        <div class="fat-mobile-card-header">Subtotal Outros</div>
+        <div class="fat-mobile-card-body">
+          <div class="fat-mobile-card-row is-total">
+            <span class="fat-mobile-card-lbl">Total</span>
+            <span class="fat-mobile-card-val">{{ resumo.total_outros|brl }}</span>
+          </div>
+        </div>
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>

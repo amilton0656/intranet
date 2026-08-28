@@ -70,10 +70,10 @@ def resumo(request):
         colunas = []
         linha_vendas = Decimal('0')
         linha_recebimentos = Decimal('0')
-        for i, codigo in enumerate(codigos):
+        for i, (codigo, nome) in enumerate(empresas):
             v = vendas.get((codigo, mes), Decimal('0'))
             r = recebido.get((codigo, mes), Decimal('0'))
-            colunas.append({'vendas': v, 'recebimentos': r})
+            colunas.append({'codigo_empresa': codigo, 'nome_empresa': nome, 'vendas': v, 'recebimentos': r})
             totais_col[i]['vendas'] += v
             totais_col[i]['recebimentos'] += r
             linha_vendas += v

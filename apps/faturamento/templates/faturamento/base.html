@@ -130,6 +130,44 @@
     .fat-two-col .fat-section { flex: 1; margin: 0; }
     @media (max-width: 900px) { .fat-two-col { flex-direction: column; } }
 
+    /* ── Cards mobile (fallback de tabelas largas em telas pequenas) ── */
+    .fat-cards-mobile { display: none; }
+    .fat-mobile-card {
+      background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      margin-bottom: .75rem; overflow: hidden;
+    }
+    .fat-mobile-card-header {
+      background: var(--fat-navy); color: #fff; font-weight: 700; font-size: .82rem;
+      padding: .55rem .9rem;
+    }
+    .fat-mobile-card-header.hdr-vendas { background: #c8a951; color: #1a1a2e; }
+    .fat-mobile-card-header.hdr-locacao { background: var(--fat-green); }
+    .fat-mobile-card-body { padding: .3rem .9rem; }
+    .fat-mobile-card-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: .4rem 0; border-bottom: 1px solid #f0f2f5; font-size: .84rem; gap: .75rem;
+    }
+    .fat-mobile-card-row:last-child { border-bottom: none; }
+    .fat-mobile-card-row.is-total { font-weight: 700; }
+    .fat-mobile-card-lbl { color: #6c757d; font-size: .74rem; text-transform: uppercase; letter-spacing: .03em; }
+    .fat-mobile-card-val { font-weight: 600; text-align: right; white-space: nowrap; }
+    .fat-mobile-group-title {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+      color: #6c757d; margin: .8rem 0 .3rem;
+    }
+    .fat-mobile-group-title:first-child { margin-top: 0; }
+    .fat-mobile-card.is-clickable { cursor: pointer; }
+    .fat-mobile-card.is-clickable:active { background: #f4f7fb; }
+
+    @media (max-width: 768px) {
+      .fat-table-wrap { display: none; }
+      .fat-cards-mobile { display: block; }
+      .fat-filter-bar { flex-direction: column; align-items: stretch; }
+      .fat-filter-field select, .fat-filter-field input[type=date] { width: 100%; min-width: 0; }
+      .fat-filter-actions { justify-content: space-between; }
+      .fat-section, .fat-filter-bar, .fat-two-col { margin-left: 1rem; margin-right: 1rem; }
+    }
+
     {% block extra_style %}{% endblock %}
   </style>
 </head>
