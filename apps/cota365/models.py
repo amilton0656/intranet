@@ -12,6 +12,7 @@ class ImportLog(models.Model):
         ('series',   'Séries de Contratos'),
         ('faturamento', 'Faturamento'),
         ('fat_areceber', 'Faturamento (A Receber)'),
+        ('condicao_pagamento', 'Condição de Pagamento'),
     ]
     tipo             = models.CharField(max_length=20, choices=TIPOS, db_index=True)
     importado_em     = models.DateTimeField(auto_now_add=True)
@@ -192,6 +193,55 @@ class MinimoTabela(models.Model):
 
     def __str__(self):
         return f'{self.tipo} — {self.competencia:%m/%Y} — {self.unidade}'
+
+
+class SerieCondicao(models.Model):
+    TIPO_CHOICES = [
+        ('AT', 'Ato'),
+        ('PM', 'Parcela Mensal'),
+        ('RA', 'Reforço'),
+        ('CH', 'Chaves'),
+        ('FI', 'Financiamento'),
+        ('PE', 'Permuta'),
+        ('OU', 'Outro'),
+    ]
+    PERIODICIDADE_CHOICES = [
+        ('unico',      'Único'),
+        ('mensal',     'Mensal'),
+        ('bimestral',  'Bimestral'),
+        ('trimestral', 'Trimestral'),
+        ('semestral',  'Semestral'),
+        ('anual',      'Anual'),
+    ]
+
+    label                = models.CharField(max_length=100, unique=True)
+    tipo                 = models.CharField(max_length=2, choices=TIPO_CHOICES)
+    periodicidade        = models.CharField(max_length=20, choices=PERIODICIDADE_CHOICES)
+    quantidade           = models.PositiveIntegerField()
+    primeiro_vencimento  = models.DateField()
+    ordem                = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['ordem']
+        verbose_name = 'Série de Condição'
+        verbose_name_plural = 'Séries de Condição'
+
+    def __str__(self):
+        return self.label
+
+
+class ValorCondicaoUnidade(models.Model):
+    serie          = models.ForeignKey(SerieCondicao, on_delete=models.CASCADE, related_name='valores')
+    unidade        = models.CharField(max_length=50, db_index=True)
+    valor_parcela  = models.DecimalField(max_digits=14, decimal_places=2)
+
+    class Meta:
+        unique_together = [('serie', 'unidade')]
+        verbose_name = 'Valor de Condição por Unidade'
+        verbose_name_plural = 'Valores de Condição por Unidade'
+
+    def __str__(self):
+        return f'{self.unidade} — {self.serie.label}'
 
 
 class AcessoCliente(models.Model):

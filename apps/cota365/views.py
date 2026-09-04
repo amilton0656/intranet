@@ -34,7 +34,7 @@ from reportlab.lib.units import cm
 from .models import (
     ImportLog, Tabela, Permuta, Vinculo, Venda,
     Unidade, FluxoContrato, FluxoParcela, Comissao, SerieContrato, Parcela, ComissaoObs,
-    MinimoTabela, AcessoCliente,
+    MinimoTabela, AcessoCliente, SerieCondicao, ValorCondicaoUnidade,
 )
 from apps.indices.models import IndiceData
 
@@ -1491,6 +1491,77 @@ def _import_faturamento_areceber(file_obj, nome, sha256=''):
     return len(linhas), {'Total pendente': _fmt_brl(total_pendente)}
 
 
+_PERIODICIDADE_KEYWORDS = [
+    ('MENSA', 'mensal'),
+    ('BIMESTR', 'bimestral'),
+    ('TRIMESTR', 'trimestral'),
+    ('SEMESTR', 'semestral'),
+    ('ANUA', 'anual'),
+]
+
+
+def _detectar_periodicidade(label, quantidade):
+    label_upper = label.upper()
+    for chave, periodicidade in _PERIODICIDADE_KEYWORDS:
+        if chave in label_upper:
+            return periodicidade
+    return 'unico' if quantidade == 1 else 'mensal'
+
+
+@transaction.atomic
+def _import_condicao_pagamento(file_obj, nome, sha256=''):
+    f = _open_csv(file_obj)
+    reader = csv.DictReader(f, delimiter=';')
+    fieldnames = reader.fieldnames or []
+    get_unidade = _col('UNIDADE')
+
+    series_info = []  # [(fieldname, SerieCondicao)]
+    for ordem, fn in enumerate(fieldnames):
+        if '\n' not in fn:
+            continue
+        label_qtd, data_str = fn.split('\n', 1)
+        m = re.match(r'^(.*?)\s*\((\d+)x\)$', label_qtd.strip())
+        if not m:
+            continue
+        label = m.group(1).strip()
+        quantidade = int(m.group(2))
+        primeiro_vencimento = _parse_date(data_str.strip())
+        if not primeiro_vencimento:
+            raise ValueError(f'Coluna "{label_qtd}": data de vencimento inválida → {data_str!r}')
+        tipo = _get_tipo_serie(label)
+        periodicidade = _detectar_periodicidade(label, quantidade)
+        # Uma única definição de série por label — compartilhada entre todas as
+        # tabelas importadas (a estrutura de parcelas é a mesma em todas elas).
+        serie_obj, _ = SerieCondicao.objects.update_or_create(
+            label=label,
+            defaults=dict(tipo=tipo, periodicidade=periodicidade, quantidade=quantidade,
+                          primeiro_vencimento=primeiro_vencimento.date(), ordem=ordem),
+        )
+        series_info.append((fn, serie_obj))
+
+    if not series_info:
+        raise ValueError('Nenhuma coluna de série de pagamento encontrada (esperado formato "LABEL (Nx)" com data na linha seguinte do cabeçalho).')
+
+    n_unidades = 0
+    for row in reader:
+        unidade = get_unidade(row).strip()
+        if not unidade:
+            continue
+        n_unidades += 1
+        for fn, serie_obj in series_info:
+            valor_str = row.get(fn, '').replace('R$', '').strip()
+            ValorCondicaoUnidade.objects.update_or_create(
+                serie=serie_obj, unidade=unidade,
+                defaults={'valor_parcela': _parse_float(valor_str)},
+            )
+
+    if not n_unidades:
+        raise ValueError('Nenhuma linha de unidade encontrada no arquivo.')
+
+    ImportLog.objects.create(tipo='condicao_pagamento', total_registros=n_unidades, nome_arquivo=nome, sha256=sha256)
+    return n_unidades, {'Séries': len(series_info)}
+
+
 _IMPORTERS = {
     'tabela':     _import_tabela,
     'permutas':   _import_permutas,
@@ -1505,6 +1576,7 @@ _IMPORTERS = {
     'acessos':    _import_acessos,
     'faturamento': _import_faturamento,
     'fat_areceber': _import_faturamento_areceber,
+    'condicao_pagamento': _import_condicao_pagamento,
 }
 
 _LABELS = {
@@ -1521,6 +1593,7 @@ _LABELS = {
     'acessos':    'Log de Acessos',
     'faturamento': 'Faturamento (Incorporação/Locações)',
     'fat_areceber': 'Faturamento (A Receber)',
+    'condicao_pagamento': 'Condição de Pagamento',
 }
 
 
@@ -3521,6 +3594,307 @@ def _export_descontos_pdf(rows, tot_tab_mes, tot_contrato, tot_desconto, tot_cub
 def export_descontos(request):
     rows, tot_tab_mes, tot_contrato, tot_desconto, tot_cubs, cub_atual, tot_tab_mes_all, tot_contrato_all, pct_resumo, latest_comp = _get_descontos_rows()
     return _export_descontos_pdf(rows, tot_tab_mes, tot_contrato, tot_desconto, tot_cubs, cub_atual, tot_tab_mes_all, tot_contrato_all, pct_resumo, latest_comp)
+
+
+_VPL_PASSOS = {'unico': None, 'mensal': 1, 'bimestral': 2, 'trimestral': 3, 'semestral': 6, 'anual': 12}
+
+
+def _vpl_taxa_ano_para_mes(taxa_anual):
+    if not taxa_anual or taxa_anual <= 0:
+        return 0.0
+    return (pow(1 + taxa_anual / 100, 1 / 12) - 1) * 100
+
+
+def _vpl_mes_index(data_base, data):
+    m = (data.year - data_base.year) * 12 + (data.month - data_base.month)
+    return max(0, m)
+
+
+def _vpl_gerar_fluxo(linha, data_base):
+    passo = _VPL_PASSOS.get(linha.get('periodicidade'))
+    try:
+        qtd = int(linha.get('quantidade') or 0)
+    except (TypeError, ValueError):
+        qtd = 0
+    try:
+        valor = float(linha.get('valor_parcela') or 0)
+    except (TypeError, ValueError):
+        valor = 0.0
+    pv = linha.get('primeiro_vencimento')
+    if not pv or qtd <= 0:
+        return []
+    if isinstance(pv, str):
+        pv = _parse_date(pv)
+        pv = pv.date() if pv else None
+    if not pv or not (2000 <= pv.year <= 2100):
+        return []
+    data_atual = pv
+    fluxo = []
+    for _i in range(qtd):
+        if not (2000 <= data_atual.year <= 2100):
+            break
+        fluxo.append((_vpl_mes_index(data_base, data_atual), valor))
+        if passo:
+            data_atual = _add_months(data_atual, passo).date()
+    return fluxo
+
+
+def _vpl_calcular(fluxo, taxa_mensal):
+    total = 0.0
+    for mes, valor in fluxo:
+        try:
+            termo = valor / ((1 + taxa_mensal / 100) ** mes)
+        except OverflowError:
+            continue
+        if termo == termo and abs(termo) != float('inf'):  # descarta NaN/±inf
+            total += termo
+    return total
+
+
+def _vpl_agregar_por_mes(fluxo):
+    mapa = {}
+    for mes, valor in fluxo:
+        mapa[mes] = mapa.get(mes, 0.0) + valor
+    return mapa
+
+
+def vpl_buscar(request):
+    unidade = request.GET.get('unidade', '').strip()
+    if unidade:
+        return redirect('cota365:vpl_simulador', unidade=unidade)
+    unidades = list(
+        ValorCondicaoUnidade.objects.order_by('unidade').values_list('unidade', flat=True).distinct()
+    )
+    return render(request, 'cota365/vpl_buscar.html', {'unidades': unidades})
+
+
+def vpl_simulador(request, unidade):
+    valores = list(
+        ValorCondicaoUnidade.objects.filter(unidade=unidade)
+        .select_related('serie').order_by('serie__ordem')
+    )
+    tabela_series = [
+        {
+            'tipo':                   v.serie.tipo,
+            'tipo_label':             v.serie.get_tipo_display(),
+            'quantidade':             v.serie.quantidade,
+            'valor_parcela':          float(v.valor_parcela),
+            'periodicidade':          v.serie.periodicidade,
+            'periodicidade_label':    v.serie.get_periodicidade_display(),
+            'primeiro_vencimento':    v.serie.primeiro_vencimento.isoformat(),
+            'primeiro_vencimento_br': v.serie.primeiro_vencimento.strftime('%d/%m/%Y'),
+        }
+        for v in valores
+    ]
+    unidade_obj = Unidade.objects.filter(unidade=unidade).first()
+    tabela_ref = Tabela.objects.filter(unidade=unidade).order_by('-competencia').first()
+
+    context = {
+        'unidade':                unidade,
+        'unidade_obj':            unidade_obj,
+        'tabela_ref':             tabela_ref,
+        'tabela_series':          tabela_series,
+        'tabela_series_json':     json.dumps(tabela_series),
+        'tipo_choices':           SerieCondicao.TIPO_CHOICES,
+        'tipo_choices_json':      json.dumps(SerieCondicao.TIPO_CHOICES),
+        'periodicidade_choices':  SerieCondicao.PERIODICIDADE_CHOICES,
+        'periodicidade_choices_json': json.dumps(SerieCondicao.PERIODICIDADE_CHOICES),
+    }
+    return render(request, 'cota365/vpl_simulador.html', context)
+
+
+def vpl_pdf(request, unidade):
+    try:
+        taxa_anual = float((request.POST.get('taxa_anual') or request.GET.get('taxa_anual') or '11').replace(',', '.'))
+    except ValueError:
+        taxa_anual = 11.0
+    try:
+        proposto = json.loads(request.POST.get('proposto_json') or request.GET.get('proposto_json') or '[]')
+    except (ValueError, TypeError):
+        proposto = []
+    mostrar_fluxo_mensal = (request.POST.get('mostrar_fluxo_mensal') or request.GET.get('mostrar_fluxo_mensal') or '') == '1'
+
+    valores = list(
+        ValorCondicaoUnidade.objects.filter(unidade=unidade)
+        .select_related('serie').order_by('serie__ordem')
+    )
+    tabela_series = [
+        {
+            'tipo_label':             v.serie.get_tipo_display(),
+            'quantidade':             v.serie.quantidade,
+            'valor_parcela':          float(v.valor_parcela),
+            'periodicidade':          v.serie.periodicidade,
+            'periodicidade_label':    v.serie.get_periodicidade_display(),
+            'primeiro_vencimento':    v.serie.primeiro_vencimento,
+            'primeiro_vencimento_br': v.serie.primeiro_vencimento.strftime('%d/%m/%Y'),
+        }
+        for v in valores
+    ]
+    unidade_obj = Unidade.objects.filter(unidade=unidade).first()
+    tabela_ref = Tabela.objects.filter(unidade=unidade).order_by('-competencia').first()
+
+    proposto_linhas = []
+    for linha in proposto:
+        pv = _parse_date(linha.get('primeiro_vencimento', ''))
+        proposto_linhas.append({
+            'tipo_label':             dict(SerieCondicao.TIPO_CHOICES).get(linha.get('tipo'), linha.get('tipo', '')),
+            'quantidade':             linha.get('quantidade'),
+            'valor_parcela':          float(linha.get('valor_parcela') or 0),
+            'periodicidade':          linha.get('periodicidade'),
+            'periodicidade_label':    dict(SerieCondicao.PERIODICIDADE_CHOICES).get(linha.get('periodicidade'), linha.get('periodicidade', '')),
+            'primeiro_vencimento':    pv.date() if pv else None,
+            'primeiro_vencimento_br': pv.strftime('%d/%m/%Y') if pv else '—',
+        })
+
+    datas = [s['primeiro_vencimento'] for s in tabela_series if s['primeiro_vencimento']]
+    datas += [l['primeiro_vencimento'] for l in proposto_linhas if l['primeiro_vencimento']]
+    if datas:
+        d0 = min(datas)
+        data_base = date(d0.year, d0.month, 1)
+    else:
+        hoje = date.today()
+        data_base = date(hoje.year, hoje.month, 1)
+
+    taxa_mensal = _vpl_taxa_ano_para_mes(taxa_anual)
+    fluxo_tabela = []
+    for s in tabela_series:
+        fluxo_tabela += _vpl_gerar_fluxo(s, data_base)
+    fluxo_proposto = []
+    for l in proposto_linhas:
+        fluxo_proposto += _vpl_gerar_fluxo(l, data_base)
+
+    nominal_tabela = sum(v for _, v in fluxo_tabela)
+    nominal_proposto = sum(v for _, v in fluxo_proposto)
+    vpl_tabela = _vpl_calcular(fluxo_tabela, taxa_mensal)
+    vpl_proposto = _vpl_calcular(fluxo_proposto, taxa_mensal)
+    diferenca = vpl_proposto - vpl_tabela
+    diferenca_pct = (diferenca / vpl_tabela * 100) if vpl_tabela else 0.0
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4,
+                            leftMargin=2*cm, rightMargin=2*cm,
+                            topMargin=2*cm, bottomMargin=2*cm)
+    W = doc.width
+
+    styles = getSampleStyleSheet()
+    NAVY = colors.HexColor('#1a1a2e')
+    LIGHT = colors.HexColor('#f8f9fa')
+    TOTAL_BG = colors.HexColor('#e9ecef')
+    BORDER = colors.HexColor('#dee2e6')
+    GREEN = colors.HexColor('#198754')
+    RED = colors.HexColor('#dc3545')
+
+    def ps(name, **kw):
+        return ParagraphStyle(name, parent=styles['Normal'], **kw)
+
+    title_s = ps('T', fontSize=16, textColor=NAVY, fontName='Helvetica-Bold', spaceAfter=10)
+    sub_s   = ps('S', fontSize=8, textColor=colors.HexColor('#6c757d'), spaceAfter=14)
+    sec_s   = ps('H', fontSize=9, textColor=NAVY, fontName='Helvetica-Bold', spaceBefore=12, spaceAfter=5)
+    cell_s  = ps('C', fontSize=8, leading=11)
+    cell_r  = ps('CR', fontSize=8, leading=11, alignment=2)
+    cell_b  = ps('CB', fontSize=8, leading=11, fontName='Helvetica-Bold')
+    cell_rb = ps('CRB', fontSize=8, leading=11, fontName='Helvetica-Bold', alignment=2)
+
+    def th(txt):
+        return Paragraph(txt, ps('TH', fontSize=8, fontName='Helvetica-Bold', textColor=colors.white, alignment=1))
+    def td(txt):   return Paragraph(str(txt), cell_s)
+    def tdr(txt):  return Paragraph(str(txt), cell_r)
+    def tdb(txt):  return Paragraph(str(txt), cell_b)
+    def tdrb(txt): return Paragraph(str(txt), cell_rb)
+
+    def tbl(data, col_widths):
+        t = Table(data, colWidths=col_widths, repeatRows=1)
+        t.setStyle(TableStyle([
+            ('BACKGROUND',    (0, 0), (-1, 0), NAVY),
+            ('ROWBACKGROUNDS',(0, 1), (-1, -2), [colors.white, LIGHT]),
+            ('BACKGROUND',    (0, -1), (-1, -1), TOTAL_BG),
+            ('FONTNAME',      (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('GRID',          (0, 0), (-1, -1), 0.4, BORDER),
+            ('TOPPADDING',    (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+        ]))
+        return t
+
+    def bloco_serie(titulo, linhas, nominal, vpl):
+        story = [Paragraph(titulo, sec_s)]
+        header = [th('Tipo'), th('Qtd.'), th('Valor/Parcela'), th('Periodicidade'), th('1º Venc.')]
+        cw = [W*0.28, W*0.10, W*0.22, W*0.22, W*0.18]
+        if linhas:
+            rows = [header]
+            for l in linhas:
+                rows.append([
+                    td(l['tipo_label']), td(f"{l['quantidade']}x"), tdr(_fmt_brl(l['valor_parcela'])),
+                    td(l['periodicidade_label']), td(l['primeiro_vencimento_br']),
+                ])
+            rows.append([tdb('Nominal / VPL'), '', tdrb(_fmt_brl(nominal)), '', tdrb(_fmt_brl(vpl))])
+            story.append(tbl(rows, cw))
+        else:
+            story.append(Paragraph('Nenhuma linha informada.', cell_s))
+        return story
+
+    story = []
+    story.append(Paragraph(f'Simulação de VPL — Unidade {unidade}', title_s))
+    info_bits = []
+    if tabela_ref and tabela_ref.tipologia:
+        info_bits.append(tabela_ref.tipologia)
+    if unidade_obj:
+        area_br = f'{unidade_obj.area_privativa:.2f}'.replace('.', ',')
+        info_bits.append(f'{area_br} m²')
+    taxa_anual_br = f'{taxa_anual:.2f}'.replace('.', ',')
+    taxa_mensal_br = f'{taxa_mensal:.4f}'.replace('.', ',')
+    info_bits.append(f'Taxa: {taxa_anual_br}% a.a. ({taxa_mensal_br}% a.m.)')
+    info_bits.append(f'Data-base: {data_base.strftime("%m/%Y")}')
+    story.append(Paragraph(' | '.join(info_bits) + f'  —  Gerado em {datetime.now().strftime("%d/%m/%Y %H:%M")}', sub_s))
+
+    story += bloco_serie('Tabela (Oficial)', tabela_series, nominal_tabela, vpl_tabela)
+    story += bloco_serie('Proposto (Cliente)', proposto_linhas, nominal_proposto, vpl_proposto)
+
+    if mostrar_fluxo_mensal:
+        story.append(Paragraph('Fluxo Mensal', sec_s))
+        mapa_tabela = _vpl_agregar_por_mes(fluxo_tabela)
+        mapa_proposto = _vpl_agregar_por_mes(fluxo_proposto)
+        meses = sorted(set(mapa_tabela) | set(mapa_proposto))
+        if meses:
+            rows = [[th('Mês'), th('Tabela'), th('Proposto')]]
+            tot_t = tot_p = 0.0
+            for m in meses:
+                label = _add_months(data_base, m).strftime('%m/%Y')
+                vt = mapa_tabela.get(m, 0.0)
+                vp = mapa_proposto.get(m, 0.0)
+                tot_t += vt
+                tot_p += vp
+                rows.append([td(label), tdr(_fmt_brl(vt) if vt else '—'), tdr(_fmt_brl(vp) if vp else '—')])
+            rows.append([tdb('Total'), tdrb(_fmt_brl(tot_t)), tdrb(_fmt_brl(tot_p))])
+            story.append(tbl(rows, [W*0.34, W*0.33, W*0.33]))
+        else:
+            story.append(Paragraph('Nenhuma parcela informada.', cell_s))
+
+    story.append(Paragraph('Comparação', sec_s))
+    diff_color = GREEN if diferenca >= 0 else RED
+    cmp_rows = [
+        [th('VPL Tabela'), th('VPL Proposto'), th('Diferença'), th('Diferença %')],
+        [
+            tdr(_fmt_brl(vpl_tabela)), tdr(_fmt_brl(vpl_proposto)),
+            Paragraph(_fmt_brl(diferenca), ps('D', fontSize=8, leading=11, alignment=2, fontName='Helvetica-Bold', textColor=diff_color)),
+            Paragraph(f'{diferenca_pct:.2f}%'.replace('.', ','), ps('D2', fontSize=8, leading=11, alignment=2, fontName='Helvetica-Bold', textColor=diff_color)),
+        ],
+    ]
+    t = Table(cmp_rows, colWidths=[W/4]*4)
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), NAVY),
+        ('GRID', (0, 0), (-1, -1), 0.4, BORDER),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    story.append(t)
+
+    doc.build(story)
+    buf.seek(0)
+    resp = HttpResponse(buf, content_type='application/pdf')
+    resp['Content-Disposition'] = f'attachment; filename="vpl_unidade_{unidade}.pdf"'
+    return resp
 
 
 def fluxo_mensal(request):

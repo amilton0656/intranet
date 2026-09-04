@@ -151,6 +151,7 @@
                 {% elif arq.tipo == 'comissoes' %}<i class="bi bi-percent text-danger fs-4"></i>
                 {% elif arq.tipo == 'faturamento' %}<i class="bi bi-cash-coin text-success fs-4"></i>
                 {% elif arq.tipo == 'fat_areceber' %}<i class="bi bi-hourglass-split text-warning fs-4"></i>
+                {% elif arq.tipo == 'condicao_pagamento' %}<i class="bi bi-calculator text-info fs-4"></i>
                 {% endif %}
               </span>
               <div>
@@ -228,6 +229,14 @@
             </a>
           </div>
           {% endif %}
+
+          {% if arq.tipo == 'condicao_pagamento' and arq.ultimo %}
+          <div class="mt-2">
+            <a href="{% url 'cota365:vpl_buscar' %}" class="btn btn-outline-info btn-sm">
+              <i class="bi bi-calculator me-1"></i>Simular VPL de uma unidade
+            </a>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -284,6 +293,10 @@
       <div class="col-md-4">
         <div class="fw-semibold text-primary mb-1">fat_areceber.csv</div>
         <code>cdEmpresa; nmEmpresa; nmCliente; nuDocumento; nuTitulo; nuParcelaApresentacao; cdTipoCondicao; dtVencto; vlOriginal; vlSaldoAtual; nuUnidadePrincipal</code>
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold text-primary mb-1">condicao_pagamento.csv</div>
+        <code>UNIDADE; TIPOLOGIA; SITUAÇÃO; ÁREA PRIVATIVA; VALOR TOTAL + uma coluna por série, ex: "ATO (1x)&#10;01/09/2026", "PARCELAS MENSAIS (39x)&#10;10/10/2026"</code>
       </div>
     </div>
   </div>

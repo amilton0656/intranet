@@ -1,0 +1,407 @@
+{% extends 'cota365/base.html' %}
+
+{% block title %}Simular VPL — Unidade {{ unidade }} — Cota 365{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1>Simular VPL — Unidade {{ unidade }}</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'cota365:index' %}" class="text-decoration-none">Início</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'cota365:vpl_buscar' %}" class="text-decoration-none">Simular VPL</a></li>
+        <li class="breadcrumb-item active">Unidade {{ unidade }}</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="d-flex gap-2">
+    <button type="button" id="btnFluxoMensal" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-calendar3 me-1"></i>Ver Fluxo Mensal
+    </button>
+    <button type="button" id="btnExportarPDF" class="btn btn-outline-danger btn-sm">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+    </button>
+  </div>
+</div>
+
+<form id="pdfForm" method="post" target="_blank" action="{% url 'cota365:vpl_pdf' unidade %}" style="display:none;">
+  {% csrf_token %}
+  <input type="hidden" name="taxa_anual">
+  <input type="hidden" name="proposto_json">
+  <input type="hidden" name="mostrar_fluxo_mensal">
+</form>
+
+<div class="main-content">
+
+  <div class="d-flex flex-wrap gap-3 mb-4">
+    {% if tabela_ref %}
+    <div class="summary-card">
+      <div class="label">Tipologia</div>
+      <div class="value" style="font-size:1rem;">{{ tabela_ref.tipologia|default:"—" }}</div>
+    </div>
+    {% endif %}
+    {% if unidade_obj %}
+    <div class="summary-card">
+      <div class="label">Área Privativa</div>
+      <div class="value" style="font-size:1rem;">{{ unidade_obj.area_privativa|floatformat:2 }} m²</div>
+    </div>
+    {% endif %}
+    {% if tabela_ref %}
+    <div class="summary-card">
+      <div class="label">Situação ({{ tabela_ref.competencia|date:"m/Y" }})</div>
+      <div class="value" style="font-size:1rem;">{{ tabela_ref.situacao|default:"—" }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Valor de Tabela</div>
+      <div class="value" style="font-size:1rem;">R$ {{ tabela_ref.valor_total|floatformat:2 }}</div>
+    </div>
+    {% endif %}
+    <div class="summary-card">
+      <div class="label">Taxa de Juros Anual (%)</div>
+      <input type="number" id="taxaAnual" class="form-control form-control-sm" value="11" step="0.01" min="0" style="width:110px;">
+    </div>
+  </div>
+
+  {% if not tabela_series %}
+  <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>Nenhuma tabela de condição de pagamento importada para esta unidade — importe em
+      <a href="{% url 'cota365:importar' %}">Cota 365 → Importar</a>.</span>
+  </div>
+  {% endif %}
+
+  <div class="row g-4">
+    <!-- Painel Tabela (somente leitura) -->
+    <div class="col-lg-6">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h6 class="text-muted text-uppercase fw-semibold mb-0" style="font-size:0.72rem;letter-spacing:.05em;">Tabela (Oficial)</h6>
+      </div>
+      <div class="data-table mb-2">
+        <table class="table mb-0">
+          <thead>
+            <tr>
+              <th>Tipo</th><th>Qtd.</th><th class="text-end">Valor/Parcela</th><th>Periodicidade</th><th>1º Venc.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in tabela_series %}
+            <tr>
+              <td>{{ s.tipo_label }}</td>
+              <td>{{ s.quantidade }}x</td>
+              <td class="text-end amount">{{ s.valor_parcela|floatformat:2 }}</td>
+              <td>{{ s.periodicidade_label }}</td>
+              <td>{{ s.primeiro_vencimento_br }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-3">Sem condição importada para esta unidade.</td></tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr><td colspan="2">Nominal</td><td class="text-end amount" id="tabelaNominal">—</td><td colspan="2"></td></tr>
+            <tr><td colspan="2">VPL</td><td class="text-end amount" id="tabelaVpl">—</td><td colspan="2"></td></tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Painel Proposto (editável) -->
+    <div class="col-lg-6">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h6 class="text-muted text-uppercase fw-semibold mb-0" style="font-size:0.72rem;letter-spacing:.05em;">Proposto (Cliente)</h6>
+        <button type="button" class="btn btn-outline-primary btn-sm py-0" id="btnAddLinha">
+          <i class="bi bi-plus-lg me-1"></i>Adicionar linha
+        </button>
+      </div>
+      <div class="data-table mb-2">
+        <table class="table mb-0">
+          <thead>
+            <tr>
+              <th style="min-width:140px;">Tipo</th>
+              <th style="width:90px;">Qtd.</th>
+              <th class="text-end" style="min-width:120px;">Valor/Parcela</th>
+              <th style="min-width:130px;">Periodicidade</th>
+              <th style="min-width:150px;">1º Venc.</th>
+              <th style="width:40px;"></th>
+            </tr>
+          </thead>
+          <tbody id="proposto-tbody"></tbody>
+          <tfoot>
+            <tr><td colspan="2">Nominal</td><td class="text-end amount" id="propostoNominal">—</td><td colspan="3"></td></tr>
+            <tr><td colspan="2">VPL</td><td class="text-end amount" id="propostoVpl">—</td><td colspan="3"></td></tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fluxo Mensal -->
+  <div id="fluxoMensalSection" class="mb-3" style="display:none;">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <h6 class="text-muted text-uppercase fw-semibold mb-0" style="font-size:0.72rem;letter-spacing:.05em;">Fluxo Mensal</h6>
+    </div>
+    <div class="data-table mb-2">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Mês</th>
+            <th class="text-end">Tabela</th>
+            <th class="text-end">Proposto</th>
+          </tr>
+        </thead>
+        <tbody id="fluxoMensalBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Comparação -->
+  <div class="row g-3 mt-2 mb-3">
+    <div class="col-md-4">
+      <div class="summary-card text-center">
+        <div class="label">VPL Tabela</div>
+        <div class="value" id="cmpTabela" style="font-size:1.25rem;">—</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="summary-card text-center">
+        <div class="label">VPL Proposto</div>
+        <div class="value" id="cmpProposto" style="font-size:1.25rem;">—</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="summary-card text-center">
+        <div class="label">Diferença (Proposto − Tabela)</div>
+        <div class="value" id="cmpDiff" style="font-size:1.25rem;">—</div>
+        <div class="text-muted" style="font-size:0.75rem;" id="cmpDiffPct"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-muted mb-4" style="font-size:0.78rem;">
+    <i class="bi bi-info-circle me-1"></i>Data-base da simulação: <strong id="dataBaseLabel">—</strong>
+    &nbsp;·&nbsp; taxa mensal equivalente: <strong id="taxaMensalLabel">—</strong>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  var TABELA_SERIES = {{ tabela_series_json|safe }};
+  var TIPO_CHOICES = {{ tipo_choices_json|safe }};
+  var PERIODICIDADE_CHOICES = {{ periodicidade_choices_json|safe }};
+  var PASSOS = { unico: null, mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12 };
+
+  function fmtBRL(v) {
+    return (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function taxaAnoParaMes(taxaAnual) {
+    if (!taxaAnual || taxaAnual <= 0) return 0;
+    return (Math.pow(1 + taxaAnual / 100, 1 / 12) - 1) * 100;
+  }
+
+  function dataValida(d) {
+    return d instanceof Date && !isNaN(d.getTime()) && d.getFullYear() >= 2000 && d.getFullYear() <= 2100;
+  }
+
+  function mesIndex(dataBase, data) {
+    var m = (data.getFullYear() - dataBase.getFullYear()) * 12 + (data.getMonth() - dataBase.getMonth());
+    return Math.max(0, m);
+  }
+
+  function gerarFluxo(linha, dataBase) {
+    var passo = PASSOS[linha.periodicidade];
+    var qtd = parseInt(linha.quantidade, 10) || 0;
+    var valor = parseFloat(linha.valor_parcela) || 0;
+    if (!linha.primeiro_vencimento || qtd <= 0) return [];
+    var dataAtual = new Date(linha.primeiro_vencimento + 'T00:00:00');
+    if (!dataValida(dataAtual)) return [];
+    var fluxo = [];
+    for (var i = 0; i < qtd; i++) {
+      if (!dataValida(dataAtual)) break;
+      fluxo.push({ mes: mesIndex(dataBase, dataAtual), valor: valor });
+      if (passo) {
+        dataAtual = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + passo, dataAtual.getDate());
+      }
+    }
+    return fluxo;
+  }
+
+  function calcularVPL(fluxo, taxaMensal) {
+    return fluxo.reduce(function (acc, f) {
+      var termo = f.valor / Math.pow(1 + taxaMensal / 100, f.mes);
+      return Number.isFinite(termo) ? acc + termo : acc;
+    }, 0);
+  }
+
+  function lerLinhasProposto() {
+    var linhas = [];
+    document.querySelectorAll('#proposto-tbody tr').forEach(function (tr) {
+      linhas.push({
+        tipo:                tr.querySelector('.l-tipo').value,
+        quantidade:          tr.querySelector('.l-qtd').value,
+        valor_parcela:       tr.querySelector('.l-valor').value,
+        periodicidade:       tr.querySelector('.l-periodicidade').value,
+        primeiro_vencimento: tr.querySelector('.l-data').value,
+      });
+    });
+    return linhas;
+  }
+
+  function calcularDataBase(linhasProposto) {
+    var datas = [];
+    TABELA_SERIES.forEach(function (s) { if (s.primeiro_vencimento) datas.push(s.primeiro_vencimento); });
+    linhasProposto.forEach(function (l) { if (l.primeiro_vencimento) datas.push(l.primeiro_vencimento); });
+    if (!datas.length) {
+      var hoje = new Date();
+      return new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    }
+    datas.sort();
+    var d = new Date(datas[0] + 'T00:00:00');
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  }
+
+  function recalcular() {
+    var taxaAnual = parseFloat(document.getElementById('taxaAnual').value) || 0;
+    var taxaMensal = taxaAnoParaMes(taxaAnual);
+    var linhasProposto = lerLinhasProposto();
+    var dataBase = calcularDataBase(linhasProposto);
+    marcarDatasInvalidas();
+
+    var fluxoTabela = [];
+    TABELA_SERIES.forEach(function (s) { fluxoTabela = fluxoTabela.concat(gerarFluxo(s, dataBase)); });
+    var fluxoProposto = [];
+    linhasProposto.forEach(function (l) { fluxoProposto = fluxoProposto.concat(gerarFluxo(l, dataBase)); });
+
+    var nominalTabela = fluxoTabela.reduce(function (a, f) { return a + f.valor; }, 0);
+    var nominalProposto = fluxoProposto.reduce(function (a, f) { return a + f.valor; }, 0);
+    var vplTabela = calcularVPL(fluxoTabela, taxaMensal);
+    var vplProposto = calcularVPL(fluxoProposto, taxaMensal);
+
+    document.getElementById('tabelaNominal').textContent = fmtBRL(nominalTabela);
+    document.getElementById('tabelaVpl').textContent = fmtBRL(vplTabela);
+    document.getElementById('propostoNominal').textContent = fmtBRL(nominalProposto);
+    document.getElementById('propostoVpl').textContent = fmtBRL(vplProposto);
+    document.getElementById('cmpTabela').textContent = 'R$ ' + fmtBRL(vplTabela);
+    document.getElementById('cmpProposto').textContent = 'R$ ' + fmtBRL(vplProposto);
+
+    var diff = vplProposto - vplTabela;
+    var diffPct = vplTabela ? (diff / vplTabela * 100) : 0;
+    var diffEl = document.getElementById('cmpDiff');
+    diffEl.textContent = (diff >= 0 ? '+' : '−') + ' R$ ' + fmtBRL(Math.abs(diff));
+    diffEl.style.color = diff >= 0 ? '#198754' : '#dc3545';
+    document.getElementById('cmpDiffPct').textContent =
+      (diffPct >= 0 ? '+' : '−') + Math.abs(diffPct).toFixed(2).replace('.', ',') + '%';
+
+    document.getElementById('dataBaseLabel').textContent =
+      String(dataBase.getMonth() + 1).padStart(2, '0') + '/' + dataBase.getFullYear();
+    document.getElementById('taxaMensalLabel').textContent = taxaMensal.toFixed(4).replace('.', ',') + '%';
+
+    renderFluxoMensal(dataBase, fluxoTabela, fluxoProposto);
+  }
+
+  function agregarPorMes(fluxo) {
+    var mapa = {};
+    fluxo.forEach(function (f) {
+      mapa[f.mes] = (mapa[f.mes] || 0) + f.valor;
+    });
+    return mapa;
+  }
+
+  function renderFluxoMensal(dataBase, fluxoTabela, fluxoProposto) {
+    var mapaTabela = agregarPorMes(fluxoTabela);
+    var mapaProposto = agregarPorMes(fluxoProposto);
+    var meses = Object.keys(mapaTabela).concat(Object.keys(mapaProposto)).map(Number);
+    meses = meses.filter(function (m, i) { return meses.indexOf(m) === i; }).sort(function (a, b) { return a - b; });
+
+    var tbody = document.getElementById('fluxoMensalBody');
+    tbody.innerHTML = '';
+    var totalTabela = 0, totalProposto = 0;
+    meses.forEach(function (m) {
+      var d = new Date(dataBase.getFullYear(), dataBase.getMonth() + m, 1);
+      var label = String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+      var vt = mapaTabela[m] || 0;
+      var vp = mapaProposto[m] || 0;
+      totalTabela += vt;
+      totalProposto += vp;
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + label + '</td>' +
+        '<td class="text-end amount">' + (vt ? fmtBRL(vt) : '—') + '</td>' +
+        '<td class="text-end amount">' + (vp ? fmtBRL(vp) : '—') + '</td>';
+      tbody.appendChild(tr);
+    });
+    if (!meses.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Nenhuma parcela informada.</td></tr>';
+    } else {
+      var trTotal = document.createElement('tr');
+      trTotal.innerHTML =
+        '<td><strong>Total</strong></td>' +
+        '<td class="text-end amount"><strong>' + fmtBRL(totalTabela) + '</strong></td>' +
+        '<td class="text-end amount"><strong>' + fmtBRL(totalProposto) + '</strong></td>';
+      trTotal.style.background = '#f8f9fa';
+      tbody.appendChild(trTotal);
+    }
+  }
+
+  function marcarDatasInvalidas() {
+    document.querySelectorAll('#proposto-tbody .l-data').forEach(function (input) {
+      var v = input.value;
+      var invalida = v && !dataValida(new Date(v + 'T00:00:00'));
+      input.classList.toggle('is-invalid', !!invalida);
+      input.title = invalida ? 'Data fora do intervalo válido (ano entre 2000 e 2100) — esta linha está sendo ignorada no cálculo.' : '';
+    });
+  }
+
+  function optionsHtml(choices, selected) {
+    return choices.map(function (c) {
+      return '<option value="' + c[0] + '"' + (c[0] === selected ? ' selected' : '') + '>' + c[1] + '</option>';
+    }).join('');
+  }
+
+  function addLinha() {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><select class="form-select form-select-sm l-tipo">' + optionsHtml(TIPO_CHOICES, 'PM') + '</select></td>' +
+      '<td><input type="number" class="form-control form-control-sm l-qtd" value="1" min="1" style="min-width:70px;"></td>' +
+      '<td><input type="number" class="form-control form-control-sm l-valor" value="0" step="0.01" min="0"></td>' +
+      '<td><select class="form-select form-select-sm l-periodicidade">' + optionsHtml(PERIODICIDADE_CHOICES, 'mensal') + '</select></td>' +
+      '<td><input type="date" class="form-control form-control-sm l-data" min="2000-01-01" max="2100-12-31"></td>' +
+      '<td><button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 l-remove"><i class="bi bi-trash"></i></button></td>';
+    document.getElementById('proposto-tbody').appendChild(tr);
+    recalcular();
+  }
+
+  document.getElementById('btnFluxoMensal').addEventListener('click', function () {
+    var sec = document.getElementById('fluxoMensalSection');
+    var visivel = sec.style.display !== 'none';
+    sec.style.display = visivel ? 'none' : 'block';
+    this.innerHTML = visivel
+      ? '<i class="bi bi-calendar3 me-1"></i>Ver Fluxo Mensal'
+      : '<i class="bi bi-calendar3 me-1"></i>Ocultar Fluxo Mensal';
+  });
+
+  document.getElementById('btnExportarPDF').addEventListener('click', function () {
+    var form = document.getElementById('pdfForm');
+    var fluxoVisivel = document.getElementById('fluxoMensalSection').style.display !== 'none';
+    form.querySelector('[name=taxa_anual]').value = document.getElementById('taxaAnual').value;
+    form.querySelector('[name=proposto_json]').value = JSON.stringify(lerLinhasProposto());
+    form.querySelector('[name=mostrar_fluxo_mensal]').value = fluxoVisivel ? '1' : '0';
+    form.submit();
+  });
+
+  document.getElementById('btnAddLinha').addEventListener('click', addLinha);
+  document.getElementById('taxaAnual').addEventListener('input', recalcular);
+  document.getElementById('proposto-tbody').addEventListener('input', recalcular);
+  document.getElementById('proposto-tbody').addEventListener('change', recalcular);
+  document.getElementById('proposto-tbody').addEventListener('click', function (e) {
+    var btn = e.target.closest('.l-remove');
+    if (btn) {
+      btn.closest('tr').remove();
+      recalcular();
+    }
+  });
+
+  addLinha();
+}());
+</script>
+{% endblock %}

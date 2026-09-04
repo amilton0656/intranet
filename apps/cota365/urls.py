@@ -33,4 +33,7 @@ urlpatterns = [
     path('descontos/export/', views.export_descontos, name='export_descontos'),
     path('cartorio/', views.cartorio_view, name='cartorio'),
     path('cartorio/pdf/', views.cartorio_pdf, name='cartorio_pdf'),
+    path('vpl/', views.vpl_buscar, name='vpl_buscar'),
+    path('vpl/<str:unidade>/', views.vpl_simulador, name='vpl_simulador'),
+    path('vpl/<str:unidade>/pdf/', views.vpl_pdf, name='vpl_pdf'),
 ]
