@@ -53,7 +53,7 @@ def _parse_mes(s):
 def _build_resumo_anual(request):
     """Monta o contexto do pivô (estágio 1) — reaproveitado pela tela e pelo PDF.
 
-    Sem filtro, mostra os últimos 12 meses (janela rolante a partir de hoje).
+    Sem filtro, mostra o período de janeiro até o mês corrente do ano corrente.
     Com filtro de período, um dos dois lados pode ficar em aberto: só início
     vai até o mês atual, só fim mostra os 12 meses terminando nele.
     """
@@ -77,7 +77,12 @@ def _build_resumo_anual(request):
             meses.append(m)
             m = _proximo_mes(m)
     else:
-        meses = [_mes_menos(mes_atual, i) for i in range(11, -1, -1)]
+        inicio = date(hoje.year, 1, 1)
+        meses = []
+        m = inicio
+        while m <= mes_atual:
+            meses.append(m)
+            m = _proximo_mes(m)
 
     filtros = {
         'data_inicio': request.GET.get('data_inicio', ''),
