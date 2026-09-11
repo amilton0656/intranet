@@ -2,8 +2,6 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 
-from .services import MODELO_PADRAO, MODELOS_DISPONIVEIS, AssistenteError, perguntar
-
 
 def _apenas_admin(request):
     return request.user.is_authenticated and request.user.groups.filter(name='admin').exists()
@@ -11,6 +9,8 @@ def _apenas_admin(request):
 
 @login_required
 def pesquisa(request):
+    from .services import MODELO_PADRAO, MODELOS_DISPONIVEIS, AssistenteError, perguntar
+
     if not _apenas_admin(request):
         messages.error(request, 'Acesso restrito ao grupo Admin.')
         return redirect('intranet_home')

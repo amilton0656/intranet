@@ -21,7 +21,6 @@ from django.template.loader import get_template
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
-from xhtml2pdf import pisa
 
 from .forms import BlissForm
 from .models import Bliss
@@ -106,6 +105,7 @@ def bliss_unidades_full(request):
 # Relatório PDF
 @login_required
 def bliss_unidades_full_pdf(request):
+    from xhtml2pdf import pisa
     registros = Bliss.objects.all()
     template = get_template('bliss/bliss_unidades_full_pdf.html')
     html = template.render({'registros': registros})
@@ -712,6 +712,7 @@ def _build_bliss_resumo_context():
     }
 
 def _render_bliss_resumo_pdf(context):
+    from xhtml2pdf import pisa
     template = get_template('bliss/bliss_resumo_pdf.html')
     html = template.render(context)
     buffer = BytesIO()

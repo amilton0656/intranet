@@ -1,10 +1,10 @@
 from io import BytesIO
 from django.http import HttpResponse
 from django.template.loader import get_template
-from xhtml2pdf import pisa
 
 
 def render_to_pdf(template_src, context, filename='relatorio.pdf'):
+    from xhtml2pdf import pisa
     template = get_template(template_src)
     html = template.render(context)
     buffer = BytesIO()
