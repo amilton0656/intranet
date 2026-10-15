@@ -1531,7 +1531,10 @@ def _import_condicao_pagamento(file_obj, nome, sha256=''):
         tipo = _get_tipo_serie(label)
         periodicidade = _detectar_periodicidade(label, quantidade)
         # Uma única definição de série por label — compartilhada entre todas as
-        # tabelas importadas (a estrutura de parcelas é a mesma em todas elas).
+        # importações. Cada arquivo pode trazer um subconjunto diferente de
+        # séries (ex: um mês sem Reforço/Financiamento); o que importa é que
+        # os VALORES por unidade sejam sempre substituídos por completo
+        # (ver limpeza de séries obsoletas abaixo), nunca só atualizados.
         serie_obj, _ = SerieCondicao.objects.update_or_create(
             label=label,
             defaults=dict(tipo=tipo, periodicidade=periodicidade, quantidade=quantidade,
@@ -1542,8 +1545,18 @@ def _import_condicao_pagamento(file_obj, nome, sha256=''):
     if not series_info:
         raise ValueError('Nenhuma coluna de série de pagamento encontrada (esperado formato "LABEL (Nx)" com data na linha seguinte do cabeçalho).')
 
+    linhas = list(reader)
+    unidades_arquivo = {get_unidade(row).strip() for row in linhas if get_unidade(row).strip()}
+    series_ids = [serie_obj.pk for _fn, serie_obj in series_info]
+
+    # Substitui por completo a condição das unidades deste arquivo: remove
+    # séries que essas unidades tinham antes mas que não vêm mais nele (ex:
+    # Reforço/Financiamento de um import anterior que este arquivo não cita),
+    # pra não ficarem "penduradas" e somadas por engano no VPL.
+    ValorCondicaoUnidade.objects.filter(unidade__in=unidades_arquivo).exclude(serie_id__in=series_ids).delete()
+
     n_unidades = 0
-    for row in reader:
+    for row in linhas:
         unidade = get_unidade(row).strip()
         if not unidade:
             continue
