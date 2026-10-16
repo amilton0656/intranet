@@ -43,7 +43,7 @@
     {% if unidade_obj %}
     <div class="summary-card">
       <div class="label">Área Privativa</div>
-      <div class="value" style="font-size:1rem;">{{ unidade_obj.area_privativa|floatformat:2 }} m²</div>
+      <div class="value" style="font-size:1rem;">{{ area_privativa_fmt }}</div>
     </div>
     {% endif %}
     {% if tabela_ref %}
@@ -53,7 +53,7 @@
     </div>
     <div class="summary-card">
       <div class="label">Valor de Tabela</div>
-      <div class="value" style="font-size:1rem;">R$ {{ tabela_ref.valor_total|floatformat:2 }}</div>
+      <div class="value" style="font-size:1rem;">{{ valor_tabela_fmt }}</div>
     </div>
     {% endif %}
     <div class="summary-card">
@@ -89,7 +89,7 @@
             <tr>
               <td>{{ s.tipo_label }}</td>
               <td>{{ s.quantidade }}x</td>
-              <td class="text-end amount">{{ s.valor_parcela|floatformat:2 }}</td>
+              <td class="text-end amount">{{ s.valor_parcela_fmt }}</td>
               <td>{{ s.periodicidade_label }}</td>
               <td>{{ s.primeiro_vencimento_br }}</td>
             </tr>
@@ -99,7 +99,12 @@
           </tbody>
           <tfoot>
             <tr><td colspan="2">Nominal</td><td class="text-end amount" id="tabelaNominal">—</td><td colspan="2"></td></tr>
-            <tr><td colspan="2">VPL</td><td class="text-end amount" id="tabelaVpl">—</td><td colspan="2"></td></tr>
+            <tr>
+              <td colspan="2">VPL</td>
+              <td class="text-end amount" id="tabelaVpl">—</td>
+              <td class="text-end amount"><small class="text-muted d-block" style="font-size:.65rem;">Dif. R$</small><span id="tabelaDiffValor">—</span></td>
+              <td class="text-end amount"><small class="text-muted d-block" style="font-size:.65rem;">Dif. %</small><span id="tabelaDiffPct">—</span></td>
+            </tr>
           </tfoot>
         </table>
         </div>
@@ -130,7 +135,13 @@
           <tbody id="proposto-tbody"></tbody>
           <tfoot>
             <tr><td colspan="2">Nominal</td><td class="text-end amount" id="propostoNominal">—</td><td colspan="3"></td></tr>
-            <tr><td colspan="2">VPL</td><td class="text-end amount" id="propostoVpl">—</td><td colspan="3"></td></tr>
+            <tr>
+              <td colspan="2">VPL</td>
+              <td class="text-end amount" id="propostoVpl">—</td>
+              <td class="text-end amount"><small class="text-muted d-block" style="font-size:.65rem;">Dif. R$</small><span id="propostoDiffValor">—</span></td>
+              <td class="text-end amount"><small class="text-muted d-block" style="font-size:.65rem;">Dif. %</small><span id="propostoDiffPct">—</span></td>
+              <td></td>
+            </tr>
           </tfoot>
         </table>
         </div>
@@ -289,6 +300,16 @@
     document.getElementById('propostoVpl').textContent = fmtBRL(vplProposto);
     document.getElementById('cmpTabela').textContent = 'R$ ' + fmtBRL(vplTabela);
     document.getElementById('cmpProposto').textContent = 'R$ ' + fmtBRL(vplProposto);
+
+    var diffTabelaValor = nominalTabela - vplTabela;
+    var diffTabelaPct = nominalTabela ? (diffTabelaValor / nominalTabela * 100) : 0;
+    document.getElementById('tabelaDiffValor').textContent = fmtBRL(diffTabelaValor);
+    document.getElementById('tabelaDiffPct').textContent = diffTabelaPct.toFixed(2).replace('.', ',') + '%';
+
+    var diffPropostoValor = nominalProposto - vplProposto;
+    var diffPropostoPct = nominalProposto ? (diffPropostoValor / nominalProposto * 100) : 0;
+    document.getElementById('propostoDiffValor').textContent = fmtBRL(diffPropostoValor);
+    document.getElementById('propostoDiffPct').textContent = diffPropostoPct.toFixed(2).replace('.', ',') + '%';
 
     var diff = vplProposto - vplTabela;
     var diffPct = vplTabela ? (diff / vplTabela * 100) : 0;

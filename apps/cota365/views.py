@@ -3692,6 +3692,7 @@ def vpl_simulador(request, unidade):
             'tipo_label':             v.serie.get_tipo_display(),
             'quantidade':             v.serie.quantidade,
             'valor_parcela':          float(v.valor_parcela),
+            'valor_parcela_fmt':      _fmt_brl(float(v.valor_parcela)),
             'periodicidade':          v.serie.periodicidade,
             'periodicidade_label':    v.serie.get_periodicidade_display(),
             'primeiro_vencimento':    v.serie.primeiro_vencimento.isoformat(),
@@ -3701,11 +3702,15 @@ def vpl_simulador(request, unidade):
     ]
     unidade_obj = Unidade.objects.filter(unidade=unidade).first()
     tabela_ref = Tabela.objects.filter(unidade=unidade).order_by('-competencia').first()
+    valor_tabela_fmt = _fmt_brl(float(tabela_ref.valor_total)) if tabela_ref else None
+    area_privativa_fmt = _fmt_m2(float(unidade_obj.area_privativa)) if unidade_obj else None
 
     context = {
         'unidade':                unidade,
         'unidade_obj':            unidade_obj,
         'tabela_ref':             tabela_ref,
+        'valor_tabela_fmt':       valor_tabela_fmt,
+        'area_privativa_fmt':     area_privativa_fmt,
         'tabela_series':          tabela_series,
         'tabela_series_json':     json.dumps(tabela_series),
         'tipo_choices':           SerieCondicao.TIPO_CHOICES,
@@ -3819,9 +3824,9 @@ def vpl_pdf(request, unidade):
         t = Table(data, colWidths=col_widths, repeatRows=1)
         t.setStyle(TableStyle([
             ('BACKGROUND',    (0, 0), (-1, 0), NAVY),
-            ('ROWBACKGROUNDS',(0, 1), (-1, -2), [colors.white, LIGHT]),
-            ('BACKGROUND',    (0, -1), (-1, -1), TOTAL_BG),
-            ('FONTNAME',      (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('ROWBACKGROUNDS',(0, 1), (-1, -3), [colors.white, LIGHT]),
+            ('BACKGROUND',    (0, -2), (-1, -1), TOTAL_BG),
+            ('FONTNAME',      (0, -2), (-1, -1), 'Helvetica-Bold'),
             ('GRID',          (0, 0), (-1, -1), 0.4, BORDER),
             ('TOPPADDING',    (0, 0), (-1, -1), 4),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
@@ -3841,7 +3846,11 @@ def vpl_pdf(request, unidade):
                     td(l['tipo_label']), td(f"{l['quantidade']}x"), tdr(_fmt_brl(l['valor_parcela'])),
                     td(l['periodicidade_label']), td(l['primeiro_vencimento_br']),
                 ])
-            rows.append([tdb('Nominal / VPL'), '', tdrb(_fmt_brl(nominal)), '', tdrb(_fmt_brl(vpl))])
+            diff_valor = nominal - vpl
+            diff_pct = (diff_valor / nominal * 100) if nominal else 0.0
+            diff_pct_str = f'{diff_pct:.2f}%'.replace('.', ',')
+            rows.append([tdb('Nominal'), '', tdrb(_fmt_brl(nominal)), '', ''])
+            rows.append([tdb('VPL'), '', tdrb(_fmt_brl(vpl)), tdrb(_fmt_brl(diff_valor)), tdrb(diff_pct_str)])
             story.append(tbl(rows, cw))
         else:
             story.append(Paragraph('Nenhuma linha informada.', cell_s))
