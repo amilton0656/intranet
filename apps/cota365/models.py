@@ -69,6 +69,8 @@ class Venda(models.Model):
     valor_contrato  = models.FloatField(default=0)
     data_venda      = models.DateField(null=True, blank=True, db_index=True)
     obs_pos_venda   = models.CharField(max_length=200, blank=True)
+    telefone        = models.CharField(max_length=50, blank=True)
+    email           = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
         return f'#{self.numero} — {self.cliente}'

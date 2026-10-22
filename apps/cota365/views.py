@@ -206,6 +206,8 @@ def _load_vendas():
             'cliente':      v.cliente,
             'imobiliaria':  v.imobiliaria,
             'espacos':      v.espacos,
+            'telefone':     v.telefone,
+            'email':        v.email,
         }
         for v in Venda.objects.all()
     ]
@@ -999,6 +1001,8 @@ def _import_vendas(file_obj, nome, sha256=''):
     get_valor   = _col('Valor do contrato', 'Valor Contrato', 'VALOR DO CONTRATO')
     get_data    = _col('Data de Venda', 'Data Venda', 'DATA DE VENDA', 'DATA VENDA')
     get_obs     = _col('Observação Pós Venda', 'Observacao Pos Venda', 'OBS POS VENDA', 'Observação Pos Venda')
+    get_tel     = _col('Telefone', 'TELEFONE')
+    get_email   = _col('Email', 'E-mail', 'EMAIL', 'E-MAIL')
     for row in csv.DictReader(f, delimiter=';'):
         reserva_raw = row.get('Reserva', '')
         if not reserva_raw.strip():
@@ -1029,6 +1033,8 @@ def _import_vendas(file_obj, nome, sha256=''):
             valor_contrato  = _parse_float(get_valor(row).replace('R$', '')),
             data_venda      = data_venda,
             obs_pos_venda   = get_obs(row).strip(),
+            telefone        = get_tel(row).strip(),
+            email           = get_email(row).strip(),
         ))
     if not objs:
         raise ValueError('Nenhuma reserva válida encontrada.')
@@ -3290,6 +3296,158 @@ def vendas(request):
         ],
     }
     return render(request, 'cota365/vendas.html', context)
+
+
+def clientes(request):
+    sort     = request.GET.get('sort', 'cliente')
+    sort_dir = request.GET.get('dir', 'asc')
+
+    vendas_rows = _load_vendas()
+    vinculos    = _load_vinculos()
+    clientes_list = []
+    for v in vendas_rows:
+        if not v['cliente']:
+            continue
+        vinc = vinculos.get(v['unidade'], {})
+        clientes_list.append({
+            'cliente':    v['cliente'],
+            'telefone':   v['telefone'],
+            'email':      v['email'],
+            'unidade':    v['unidade'],
+            'garagens':   vinc.get('garagens', ''),
+            'hb':         vinc.get('hb', ''),
+        })
+
+    _SORT_KEYS = {
+        'cliente':   lambda x: x['cliente'].lower(),
+        'telefone':  lambda x: x['telefone'],
+        'email':     lambda x: x['email'].lower(),
+        'unidade':   lambda x: x['unidade'],
+        'garagens':  lambda x: x['garagens'],
+        'hb':        lambda x: x['hb'],
+    }
+    clientes_list.sort(key=_SORT_KEYS.get(sort, _SORT_KEYS['cliente']), reverse=(sort_dir == 'desc'))
+
+    context = {
+        'clientes':    clientes_list,
+        'n_clientes':  len(clientes_list),
+        'sort':        sort,
+        'sort_dir':    sort_dir,
+        'colums': [
+            ('cliente',   'CLIENTE'),
+            ('telefone',  'TELEFONE'),
+            ('email',     'EMAIL'),
+            ('unidade',   'UNIDADE'),
+            ('garagens',  'GARAGENS'),
+            ('hb',        'HOBBY BOXES'),
+        ],
+    }
+    return render(request, 'cota365/clientes.html', context)
+
+
+def export_clientes(request):
+    fmt = request.GET.get('format', 'xlsx')
+    vendas_rows = _load_vendas()
+    vinculos    = _load_vinculos()
+    clientes_list = []
+    for v in vendas_rows:
+        if not v['cliente']:
+            continue
+        vinc = vinculos.get(v['unidade'], {})
+        clientes_list.append({
+            'cliente':   v['cliente'],
+            'telefone':  v['telefone'],
+            'email':     v['email'],
+            'unidade':   v['unidade'],
+            'garagens':  vinc.get('garagens', ''),
+            'hb':        vinc.get('hb', ''),
+        })
+    clientes_list.sort(key=lambda x: x['cliente'].lower())
+
+    if fmt == 'pdf':
+        return _export_clientes_pdf(clientes_list)
+    return _export_clientes_xlsx(clientes_list)
+
+
+def _export_clientes_xlsx(clientes_list):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Lista de Clientes'
+
+    ws.merge_cells('A1:F1')
+    ws['A1'] = 'Cota 365 — Lista de Clientes'
+    ws['A1'].font = Font(bold=True, size=14)
+    ws['A1'].alignment = Alignment(horizontal='center')
+
+    ws.merge_cells('A2:F2')
+    ws['A2'] = f'Total de Clientes: {len(clientes_list)}'
+    ws['A2'].alignment = Alignment(horizontal='center')
+    ws['A2'].font = Font(bold=True)
+
+    headers = ['CLIENTE', 'TELEFONE', 'EMAIL', 'UNIDADE', 'GARAGENS', 'HOBBY BOXES']
+    widths  = [38, 18, 32, 12, 16, 16]
+    for col, (h, w) in enumerate(zip(headers, widths), 1):
+        cell = ws.cell(row=4, column=col, value=h)
+        cell.fill = _HEADER_FILL
+        cell.font = _HEADER_FONT
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border = _thin_border()
+        ws.column_dimensions[get_column_letter(col)].width = w
+
+    for i, c in enumerate(clientes_list):
+        row = 5 + i
+        fill = _ALT_FILL if i % 2 == 0 else PatternFill()
+        data = [c['cliente'], c['telefone'], c['email'], c['unidade'], c['garagens'], c['hb']]
+        for col, val in enumerate(data, 1):
+            cell = ws.cell(row=row, column=col, value=_xlsx_val(val))
+            cell.border = _thin_border()
+            cell.fill = fill
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    resp = HttpResponse(buf, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    resp['Content-Disposition'] = 'attachment; filename="lista_clientes.xlsx"'
+    return resp
+
+
+def _export_clientes_pdf(clientes_list):
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=landscape(A4),
+                            leftMargin=1.5*cm, rightMargin=1.5*cm,
+                            topMargin=1.5*cm, bottomMargin=1.5*cm)
+    styles = getSampleStyleSheet()
+    story = [
+        Paragraph('Cota 365 — Lista de Clientes',
+                  ParagraphStyle('title', parent=styles['Heading1'], fontSize=14, spaceAfter=4)),
+        Paragraph(f'Total de Clientes: {len(clientes_list)}',
+                  ParagraphStyle('sub', parent=styles['Normal'], fontSize=10, spaceAfter=12)),
+    ]
+
+    header = ['CLIENTE', 'TELEFONE', 'EMAIL', 'UNIDADE', 'GARAGENS', 'HOBBY BOXES']
+    data = [header]
+    for c in clientes_list:
+        data.append([c['cliente'], c['telefone'], c['email'], c['unidade'], c['garagens'], c['hb']])
+
+    t = Table(data, colWidths=[5.5*cm, 3*cm, 5.5*cm, 2.5*cm, 3*cm, 4.5*cm], repeatRows=1)
+    t.setStyle(TableStyle([
+        ('BACKGROUND',    (0, 0), (-1, 0), colors.HexColor('#1a1a2e')),
+        ('TEXTCOLOR',     (0, 0), (-1, 0), colors.white),
+        ('FONTNAME',      (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE',      (0, 0), (-1, 0), 8),
+        ('ALIGN',         (0, 0), (-1, -1), 'LEFT'),
+        ('FONTSIZE',      (0, 1), (-1, -1), 7),
+        ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+        ('GRID',          (0, 0), (-1, -1), 0.5, colors.HexColor('#dee2e6')),
+        ('TOPPADDING',    (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    story.append(t)
+    doc.build(story)
+    buf.seek(0)
+    resp = HttpResponse(buf, content_type='application/pdf')
+    resp['Content-Disposition'] = 'attachment; filename="lista_clientes.pdf"'
+    return resp
 
 
 def acessos_clientes(request):
