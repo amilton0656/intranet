@@ -3429,7 +3429,7 @@ def _export_clientes_pdf(clientes_list):
     for c in clientes_list:
         data.append([c['cliente'], c['telefone'], c['email'], c['unidade'], c['garagens'], c['hb']])
 
-    t = Table(data, colWidths=[5.5*cm, 3*cm, 5.5*cm, 2.5*cm, 3*cm, 4.5*cm], repeatRows=1)
+    t = Table(data, colWidths=[7.5*cm, 3*cm, 5.5*cm, 2.5*cm, 2*cm, 2.5*cm], repeatRows=1)
     t.setStyle(TableStyle([
         ('BACKGROUND',    (0, 0), (-1, 0), colors.HexColor('#1a1a2e')),
         ('TEXTCOLOR',     (0, 0), (-1, 0), colors.white),
