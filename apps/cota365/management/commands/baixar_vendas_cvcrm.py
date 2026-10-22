@@ -69,6 +69,10 @@ class Command(BaseCommand):
         parser.add_argument('--chrome-path', type=str, default=None)
         parser.add_argument('--debug-port', type=int, default=9222)
         parser.add_argument('--profile-dir', type=str, default=None)
+        parser.add_argument('--listar-colunas', action='store_true',
+                            help='Só navega até o relatório e lista o texto de todas as '
+                                 'colunas de exibição disponíveis (checkboxes), sem baixar nada. '
+                                 'Use pra descobrir o texto exato de uma coluna (ex: Telefone).')
 
     def handle(self, *args, **options):
         from playwright.sync_api import sync_playwright
@@ -117,6 +121,10 @@ class Command(BaseCommand):
                 input('Pressione ENTER após estar logado... ')
                 page.goto(RELATORIO_URL, wait_until='load', timeout=30000)
                 page.wait_for_timeout(2000)
+
+            if options['listar_colunas']:
+                self._listar_colunas(page)
+                return
 
             # ── Preenche o formulário ──────────────────────────────────────────
             self._preencher_formulario(page)
@@ -194,6 +202,31 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(
                 f'✓ vendas.csv salvo em: {output_path}  ({output_path.stat().st_size:,} bytes)'
             ))
+
+    def _listar_colunas(self, page):
+        """Lista TODOS os checkboxes da página, agrupados por atributo `name` —
+        pra descobrir em qual grupo (colunas_reserva[], ou outro) vive um campo
+        como Telefone, já que o formulário pode ter mais de um grupo de colunas."""
+        checkboxes = page.evaluate('''() => {
+            const out = [];
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                let texto = '';
+                const lbl = cb.closest('label') || (cb.id && document.querySelector(`label[for="${cb.id}"]`));
+                if (lbl) texto = lbl.textContent.trim();
+                out.push({name: cb.name || '(sem name)', id: cb.id, value: cb.value, texto: texto, checked: cb.checked});
+            });
+            return out;
+        }''')
+        por_grupo = {}
+        for c in checkboxes:
+            por_grupo.setdefault(c['name'], []).append(c)
+        self.stdout.write(self.style.SUCCESS(f'\n{len(checkboxes)} checkboxes encontrados, em {len(por_grupo)} grupos:\n'))
+        for nome_grupo, itens in por_grupo.items():
+            self.stdout.write(self.style.WARNING(f'── grupo name="{nome_grupo}" ({len(itens)} itens) ──'))
+            for c in itens:
+                marca = '✓' if c['checked'] else ' '
+                self.stdout.write(f"  [{marca}] id={c['id']!r:30} value={c['value']!r:10} texto={c['texto']!r}")
+        self.stdout.write('')
 
     def _preencher_formulario(self, page):
         import re as _re
@@ -273,31 +306,43 @@ class Command(BaseCommand):
         self.stdout.write(f'  Colunas marcadas: {marcadas}')
         page.wait_for_timeout(300)
 
-        # Marca "Observação Pós Venda" pelo texto do label (ID pode variar)
-        self.stdout.write('Marcando "Observação Pós Venda"...')
-        obs_marcada = page.evaluate('''() => {
-            const labels = Array.from(document.querySelectorAll('label'));
-            for (const lbl of labels) {
-                if (/observa[çc][aã]o.+p[oó]s.+venda/i.test(lbl.textContent)) {
-                    const cb = lbl.querySelector('input[type="checkbox"]')
-                        || (lbl.htmlFor && document.getElementById(lbl.htmlFor));
-                    if (cb && !cb.checked) {
-                        cb.click();
-                        return lbl.textContent.trim();
-                    } else if (cb && cb.checked) {
-                        return lbl.textContent.trim() + ' (já marcada)';
+        # Marca colunas extras pelo texto do label (os IDs variam/não são óbvios,
+        # igual "Observação Pós Venda" já era tratada antes)
+        colunas_por_label = [
+            (r'observa[çc][aã]o.+p[oó]s.+venda', 'Observação Pós Venda'),
+            (r'telefone', 'Telefone'),
+            (r'e[-\s]?mail', 'Email'),
+        ]
+        for padrao, nome in colunas_por_label:
+            self.stdout.write(f'Marcando "{nome}"...')
+            # O formulário tem mais de um grupo de checkboxes de coluna (ex:
+            # colunas_reserva[] pros dados da reserva, outro grupo pros dados
+            # do cliente/associado como Telefone/E-mail). Procura primeiro em
+            # colunas_reserva[]; se não achar, cai pra QUALQUER checkbox da
+            # página (mesma estratégia original, que já achava Telefone/E-mail).
+            resultado = page.evaluate('''(padrao) => {
+                const re = new RegExp(padrao, 'i');
+                function buscar(checkboxes) {
+                    for (const cb of checkboxes) {
+                        const lbl = cb.closest('label') || (cb.id && document.querySelector(`label[for="${cb.id}"]`));
+                        const texto = lbl ? lbl.textContent : '';
+                        if (re.test(texto)) {
+                            if (!cb.checked) { cb.click(); return texto.trim(); }
+                            return texto.trim() + ' (já marcada)';
+                        }
                     }
+                    return null;
                 }
-            }
-            return null;
-        }''')
-        if obs_marcada:
-            self.stdout.write(f'  ✓ {obs_marcada}')
-        else:
-            self.stdout.write(self.style.WARNING(
-                '  "Observação Pós Venda" não encontrada no formulário — verifique o nome exato.'
-            ))
-        page.wait_for_timeout(300)
+                return buscar(document.querySelectorAll('input[name="colunas_reserva[]"]'))
+                    || buscar(document.querySelectorAll('input[type="checkbox"]'));
+            }''', padrao)
+            if resultado:
+                self.stdout.write(f'  ✓ {resultado}')
+            else:
+                self.stdout.write(self.style.WARNING(
+                    f'  "{nome}" não encontrada no formulário — verifique o nome exato.'
+                ))
+            page.wait_for_timeout(300)
 
     def _preencher_data_por_label(self, page, label_txt, valor):
         """Encontra input pelo texto do label adjacente."""
