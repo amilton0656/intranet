@@ -1,0 +1,103 @@
+{% extends 'clientes/base.html' %}
+{% block title %}Importar — Clientes{% endblock %}
+
+{% block content %}
+
+<div class="clt-header">
+  <nav class="clt-breadcrumb">
+    <a href="{% url 'clientes:lista' %}">Clientes</a>
+    <span class="sep">/</span>Importar
+  </nav>
+  <h1>Importar Arquivos</h1>
+  <p>Exports do Sienge — cada importação atualiza (upsert) os registros do arquivo, sem apagar o restante.</p>
+</div>
+
+<div class="clt-cards">
+  <div class="clt-card">
+    <div class="clt-card-label">Clientes</div>
+    <div class="clt-card-value">{{ n_clientes }}</div>
+  </div>
+  <div class="clt-card card-vendas">
+    <div class="clt-card-label">Contratos de Venda</div>
+    <div class="clt-card-value">{{ n_vendas }}</div>
+  </div>
+  <div class="clt-card card-locacao">
+    <div class="clt-card-label">Contratos de Locação</div>
+    <div class="clt-card-value">{{ n_locacoes }}</div>
+  </div>
+</div>
+
+<div class="clt-section">
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="row g-3">
+    {% for arq in arquivos %}
+    <div class="col-12 col-lg-4">
+      <div class="card h-100 shadow-sm" style="border-radius:10px;">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="fw-bold">{{ arq.label }}</div>
+            {% if arq.ultimo %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="bi bi-check-circle me-1"></i>Importado
+              </span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                <i class="bi bi-dash-circle me-1"></i>Sem dados
+              </span>
+            {% endif %}
+          </div>
+          {% if arq.ultimo %}
+          <div class="text-muted mb-3" style="font-size:.78rem;">
+            <div><i class="bi bi-clock me-1"></i>{{ arq.ultimo }}</div>
+            <div><i class="bi bi-database me-1"></i>{{ arq.registros }} registros</div>
+            <div class="text-truncate" title="{{ arq.arquivo }}"><i class="bi bi-file-earmark-text me-1"></i>{{ arq.arquivo }}</div>
+          </div>
+          {% else %}
+          <div class="text-muted mb-3" style="font-size:.78rem;">
+            <i class="bi bi-exclamation-circle me-1"></i>Nenhuma importação realizada ainda.
+          </div>
+          {% endif %}
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="tipo" value="{{ arq.tipo }}">
+            <div class="input-group">
+              <input type="file" class="form-control form-control-sm" name="arquivo" accept=".csv" required>
+              <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-upload me-1"></i>Importar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="mt-4 p-3 rounded" style="background:#fff; border:1px solid #e2e6ea;">
+    <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-2"></i>Colunas esperadas por arquivo</h6>
+    <div class="row g-2" style="font-size:.78rem;">
+      <div class="col-md-4">
+        <div class="fw-semibold text-primary mb-1">clientes.csv</div>
+        <code>Situação; Código; Nome; Tipo pessoa; CNPJ/CPF; Data de nascimento; Telefone principal; E-mail; Código tipo cliente; Descrição tipo cliente; Município; UF</code>
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold text-primary mb-1">contratos.csv</div>
+        <code>Situação; Empresa; Empreendimento; Unidade; Cód.Cliente; Cliente; Contrato; Data Contrato; Valor Total; Tipo Venda; Corretor; Data Distrato</code>
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold text-primary mb-1">locações.csv</div>
+        <code>Situação contrato; Empresa; Empreendimento; Contrato; Cód. Cliente; Cliente; Unidade; Data do contrato; Valor do contrato; Valor parcela; Tempo locação; Data cancelamento</code>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

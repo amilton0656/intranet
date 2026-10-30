@@ -1,0 +1,103 @@
+{% extends 'clientes/base.html' %}
+{% block title %}Clientes — Grupo Cota{% endblock %}
+
+{% block content %}
+
+<div class="clt-header d-flex justify-content-between align-items-start flex-wrap">
+  <div>
+    <nav class="clt-breadcrumb">
+      <a href="{% url 'clientes:lista' %}">Clientes</a>
+    </nav>
+    <h1>Clientes — Grupo Cota</h1>
+    <p>Relação de cada cliente com unidades vendidas e locadas.</p>
+  </div>
+  <div class="d-flex gap-2 pt-1">
+    <a href="{% url 'clientes:exportar' %}?{{ request.GET.urlencode }}&format=xlsx" class="btn btn-outline-success btn-sm" target="_blank">
+      <i class="bi bi-file-earmark-excel me-1"></i>Excel
+    </a>
+    <a href="{% url 'clientes:exportar' %}?{{ request.GET.urlencode }}&format=pdf" class="btn btn-outline-danger btn-sm" target="_blank">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
+  </div>
+</div>
+
+<div class="clt-cards">
+  <div class="clt-card">
+    <div class="clt-card-label">Clientes (filtro atual)</div>
+    <div class="clt-card-value">{{ n_clientes }}</div>
+  </div>
+</div>
+
+<form class="clt-filter-bar" method="get">
+  <div class="clt-filter-field">
+    <label for="f-q">Nome / Código / CPF-CNPJ</label>
+    <input type="text" id="f-q" name="q" value="{{ filtros.q }}" placeholder="Buscar...">
+  </div>
+  <div class="clt-filter-field">
+    <label for="f-tipo">Tipo de Cliente</label>
+    <select id="f-tipo" name="tipo_cliente">
+      <option value="">Todos</option>
+      {% for t in tipos_cliente %}
+      <option value="{{ t }}" {% if filtros.tipo_cliente == t %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="clt-filter-field">
+    <label for="f-relacao">Relação</label>
+    <select id="f-relacao" name="relacao">
+      <option value="">Todos</option>
+      <option value="com_venda"   {% if filtros.relacao == 'com_venda' %}selected{% endif %}>Com venda</option>
+      <option value="com_locacao" {% if filtros.relacao == 'com_locacao' %}selected{% endif %}>Com locação</option>
+      <option value="ambos"       {% if filtros.relacao == 'ambos' %}selected{% endif %}>Com venda e locação</option>
+      <option value="nenhuma"     {% if filtros.relacao == 'nenhuma' %}selected{% endif %}>Sem venda nem locação</option>
+    </select>
+  </div>
+  <div class="clt-filter-actions">
+    <button type="submit" class="btn-clt-filter">Filtrar</button>
+    <a href="{% url 'clientes:lista' %}" class="btn-clt-clear">Limpar filtros</a>
+  </div>
+</form>
+
+<div class="clt-section">
+  {% if not clientes %}
+  <div class="clt-empty">
+    <i class="bi bi-inbox" style="font-size:2rem;"></i>
+    <p class="mt-2">Nenhum cliente encontrado com esses filtros.</p>
+  </div>
+  {% else %}
+  <div class="clt-table-wrap">
+    <table class="clt-table table mb-0">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nome</th>
+          <th>Tipo de Cliente</th>
+          <th>Telefone</th>
+          <th>Email</th>
+          <th class="num">Vendas</th>
+          <th class="num">Locações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in clientes %}
+        <tr class="clt-row-link" onclick="window.location='{% url 'clientes:detalhe' c.codigo %}'">
+          <td>{{ c.codigo }}</td>
+          <td><strong>{{ c.nome }}</strong></td>
+          <td>{{ c.tipo_cliente|default:"—" }}</td>
+          <td>{{ c.telefone|default:"—" }}</td>
+          <td>{{ c.email|default:"—" }}</td>
+          <td class="num">
+            <span class="clt-badge {% if c.n_vendas %}clt-badge-on{% else %}clt-badge-off{% endif %}">{{ c.n_vendas }}</span>
+          </td>
+          <td class="num">
+            <span class="clt-badge {% if c.n_locacoes %}clt-badge-on{% else %}clt-badge-off{% endif %}">{{ c.n_locacoes }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

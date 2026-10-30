@@ -1,0 +1,144 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Clientes{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="{% static 'intranet/css/navbar.css' %}">
+  <style>
+    :root {
+      --clt-navy:  #1a1a2e;
+      --clt-blue:  #0d6efd;
+      --clt-green: #198754;
+      --clt-light: #f4f7fb;
+    }
+    body { background: #eef1f6; font-family: 'Segoe UI', sans-serif; font-size: .88rem; }
+
+    #clt-navbar {
+      background: #A7A3AB !important;
+      padding: 0.6rem 1.5rem;
+    }
+    #clt-navbar .navbar-brand {
+      color: #282828 !important;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    #clt-navbar .nav-link {
+      color: rgba(40,40,40,.85) !important;
+      font-size: 0.82rem;
+      padding: 0.4rem 0.8rem !important;
+      border-radius: 6px;
+      transition: background .2s;
+    }
+    #clt-navbar .nav-link:hover,
+    #clt-navbar .nav-link.active {
+      background: rgba(0,0,0,.1);
+      color: #282828 !important;
+    }
+
+    .clt-header {
+      background: #fff; border-bottom: 3px solid var(--clt-navy);
+      padding: 1rem 1.5rem .8rem;
+    }
+    .clt-header h1 {
+      font-size: 1.15rem; font-weight: 800; color: var(--clt-navy); margin: 0 0 2px;
+      letter-spacing: .02em; text-transform: uppercase;
+    }
+    .clt-header p { font-size: .78rem; color: #6c757d; margin: 0; }
+    .clt-breadcrumb { font-size: .78rem; margin-bottom: 4px; }
+    .clt-breadcrumb a { color: #6c757d; text-decoration: none; }
+    .clt-breadcrumb a:hover { text-decoration: underline; }
+    .clt-breadcrumb .sep { color: #adb5bd; margin: 0 .35rem; }
+
+    .clt-cards { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1.25rem 1.5rem; }
+    .clt-card {
+      background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,.06);
+      padding: 1rem 1.4rem; flex: 1; min-width: 160px; border-top: 4px solid var(--clt-blue);
+    }
+    .clt-card.card-vendas { border-top-color: #c8a951; }
+    .clt-card.card-locacao { border-top-color: var(--clt-green); }
+    .clt-card-label {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+      color: #6c757d; margin-bottom: 4px;
+    }
+    .clt-card-value { font-size: 1.5rem; font-weight: 800; color: var(--clt-navy); }
+
+    .clt-section { margin: 0 1.5rem 1.5rem; }
+    .clt-table-wrap {
+      background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,.06); overflow: hidden;
+    }
+    .clt-table { font-size: .85rem; margin: 0; }
+    .clt-table thead th {
+      background: var(--clt-navy); color: #fff; font-size: .72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em; padding: .6rem .9rem; border: none;
+      white-space: nowrap;
+    }
+    .clt-table tbody td { padding: .55rem .9rem; border-bottom: 1px solid #eef1f6; vertical-align: middle; }
+    .clt-table tbody tr:last-child td { border-bottom: none; }
+    .clt-table tbody tr.clt-row-link { cursor: pointer; }
+    .clt-table tbody tr.clt-row-link:hover { background: #f4f7fb; }
+    .clt-table td.num, .clt-table th.num { text-align: right; }
+    .clt-badge { font-size: .72rem; padding: .2rem .55rem; border-radius: 20px; font-weight: 700; }
+    .clt-badge-on  { background: #d4edda; color: #155724; }
+    .clt-badge-off { background: #f1f3f5; color: #868e96; }
+    .clt-empty { padding: 3rem 1.5rem; text-align: center; color: #6c757d; }
+
+    .clt-filter-bar {
+      background: #fff; margin: 0 1.5rem 1.5rem; border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06); padding: .85rem 1.25rem;
+      display: flex; gap: .9rem; align-items: end; flex-wrap: wrap;
+    }
+    .clt-filter-field { display: flex; flex-direction: column; gap: .25rem; }
+    .clt-filter-field label {
+      font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+      color: #6c757d;
+    }
+    .clt-filter-field select, .clt-filter-field input {
+      font-size: .82rem; padding: .35rem .6rem; border: 1px solid #dee2e6; border-radius: 6px;
+      min-width: 170px;
+    }
+    .clt-filter-actions { display: flex; gap: .5rem; }
+    .btn-clt-filter {
+      background: var(--clt-navy); border: none; color: #fff; font-size: .82rem;
+      font-weight: 700; padding: .4rem 1rem; border-radius: 6px;
+    }
+    .btn-clt-clear {
+      font-size: .82rem; color: #6c757d; padding: .4rem .6rem; text-decoration: none;
+    }
+    .btn-clt-clear:hover { color: #495057; }
+
+    @media (max-width: 768px) {
+      .clt-filter-bar { flex-direction: column; align-items: stretch; }
+      .clt-filter-field select, .clt-filter-field input { width: 100%; min-width: 0; }
+      .clt-filter-actions { justify-content: space-between; }
+      .clt-section, .clt-filter-bar { margin-left: 1rem; margin-right: 1rem; }
+      .clt-table-wrap { overflow-x: auto; }
+    }
+
+    {% block extra_style %}{% endblock %}
+  </style>
+</head>
+<body>
+
+{% include 'intranet/intranet_navbar.html' %}
+
+<nav id="clt-navbar" class="navbar navbar-expand-lg">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{% url 'clientes:lista' %}">
+      <i class="bi bi-people me-2"></i>Clientes
+    </a>
+    <div class="d-flex gap-2">
+      <a class="nav-link" href="{% url 'clientes:lista' %}">Clientes</a>
+      <a class="nav-link" href="{% url 'clientes:importar' %}">Importar</a>
+    </div>
+  </div>
+</nav>
+
+{% block content %}{% endblock %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

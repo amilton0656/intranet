@@ -1,0 +1,112 @@
+{% extends 'clientes/base.html' %}
+{% block title %}{{ cliente.nome }} — Clientes{% endblock %}
+
+{% block content %}
+
+<div class="clt-header">
+  <nav class="clt-breadcrumb">
+    <a href="{% url 'clientes:lista' %}">Clientes</a>
+    <span class="sep">/</span>{{ cliente.nome }}
+  </nav>
+  <h1>{{ cliente.nome }}</h1>
+  <p>Código {{ cliente.codigo }} · {{ cliente.get_tipo_pessoa_display|default:"—" }}{% if cliente.tipo_cliente %} · {{ cliente.tipo_cliente }}{% endif %}</p>
+</div>
+
+<div class="clt-cards">
+  <div class="clt-card">
+    <div class="clt-card-label">CPF/CNPJ</div>
+    <div class="clt-card-value" style="font-size:1rem;">{{ cliente.cpf_cnpj|default:"—" }}</div>
+  </div>
+  <div class="clt-card">
+    <div class="clt-card-label">Telefone</div>
+    <div class="clt-card-value" style="font-size:1rem;">{{ cliente.telefone|default:"—" }}</div>
+  </div>
+  <div class="clt-card">
+    <div class="clt-card-label">Email</div>
+    <div class="clt-card-value" style="font-size:1rem;">{{ cliente.email|default:"—" }}</div>
+  </div>
+  <div class="clt-card card-vendas">
+    <div class="clt-card-label">Unidades Vendidas</div>
+    <div class="clt-card-value">{{ vendas|length }}</div>
+  </div>
+  <div class="clt-card card-locacao">
+    <div class="clt-card-label">Unidades Locadas</div>
+    <div class="clt-card-value">{{ locacoes|length }}</div>
+  </div>
+</div>
+
+<div class="clt-section">
+  <div class="clt-table-wrap mb-2">
+    <table class="clt-table table mb-0">
+      <thead>
+        <tr>
+          <th colspan="7" style="background:#c8a951;color:#1a1a2e;">Unidades Vendidas</th>
+        </tr>
+        <tr>
+          <th>Empresa</th>
+          <th>Empreendimento</th>
+          <th>Unidade</th>
+          <th>Contrato</th>
+          <th>Data</th>
+          <th class="num">Valor</th>
+          <th>Situação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in vendas %}
+        <tr>
+          <td>{{ v.nome_empresa }}</td>
+          <td>{{ v.nome_empreendimento }}</td>
+          <td>{{ v.unidade }}</td>
+          <td>{{ v.numero_contrato }}</td>
+          <td>{{ v.data_contrato|date:"d/m/Y"|default:"—" }}</td>
+          <td class="num">{{ v.valor_total_fmt }}</td>
+          <td>
+            <span class="clt-badge {% if v.situacao == 'Emitido' %}clt-badge-on{% else %}clt-badge-off{% endif %}">{{ v.situacao|default:"—" }}</span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-3">Nenhuma unidade vendida.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="clt-table-wrap">
+    <table class="clt-table table mb-0">
+      <thead>
+        <tr>
+          <th colspan="7" style="background:var(--clt-green);">Unidades Locadas</th>
+        </tr>
+        <tr>
+          <th>Empresa</th>
+          <th>Empreendimento</th>
+          <th>Unidade</th>
+          <th>Contrato</th>
+          <th>Data</th>
+          <th class="num">Valor</th>
+          <th>Situação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in locacoes %}
+        <tr>
+          <td>{{ l.nome_empresa }}</td>
+          <td>{{ l.nome_empreendimento }}</td>
+          <td>{{ l.unidade }}</td>
+          <td>{{ l.numero_contrato }}</td>
+          <td>{{ l.data_contrato|date:"d/m/Y"|default:"—" }}</td>
+          <td class="num">{{ l.valor_contrato_fmt }}</td>
+          <td>
+            <span class="clt-badge {% if l.situacao == 'Emitido' %}clt-badge-on{% else %}clt-badge-off{% endif %}">{{ l.situacao|default:"—" }}</span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-3">Nenhuma unidade locada.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

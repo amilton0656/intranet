@@ -32,5 +32,6 @@ urlpatterns = [
     path('viabilidade/', include('apps.viabilidade.urls', namespace='viabilidade')),
     path('assistente/', include('apps.assistente.urls', namespace='assistente')),
     path('faturamento/', include('apps.faturamento.urls', namespace='faturamento')),
+    path('clientes/', include('apps.clientes.urls', namespace='clientes')),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]

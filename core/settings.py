@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'apps.viabilidade',
     'apps.assistente',
     'apps.faturamento',
+    'apps.clientes',
 ]
 
 MIDDLEWARE = [
