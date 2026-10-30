@@ -2,7 +2,7 @@ import io
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q
+from django.db.models import Count, Exists, OuterRef, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -50,6 +50,13 @@ def _filtrar_clientes(request):
     if tipo_cliente:
         qs = qs.filter(tipo_cliente=tipo_cliente)
 
+    empreendimento = request.GET.get('empreendimento', '').strip()
+    if empreendimento:
+        qs = qs.filter(
+            Exists(ContratoVenda.objects.filter(cliente_id=OuterRef('pk'), nome_empreendimento=empreendimento))
+            | Exists(ContratoLocacao.objects.filter(cliente_id=OuterRef('pk'), nome_empreendimento=empreendimento))
+        )
+
     relacao = request.GET.get('relacao', '').strip()
     if relacao == 'com_venda':
         qs = qs.filter(n_vendas__gt=0)
@@ -69,14 +76,20 @@ def lista(request):
     tipos_cliente = list(
         Cliente.objects.exclude(tipo_cliente='').values_list('tipo_cliente', flat=True).distinct().order_by('tipo_cliente')
     )
+    empreendimentos = sorted(set(
+        list(ContratoVenda.objects.exclude(nome_empreendimento='').values_list('nome_empreendimento', flat=True).distinct())
+        + list(ContratoLocacao.objects.exclude(nome_empreendimento='').values_list('nome_empreendimento', flat=True).distinct())
+    ))
     context = {
-        'clientes':      clientes,
-        'n_clientes':    clientes.count(),
-        'tipos_cliente': tipos_cliente,
+        'clientes':         clientes,
+        'n_clientes':       clientes.count(),
+        'tipos_cliente':    tipos_cliente,
+        'empreendimentos':  empreendimentos,
         'filtros': {
-            'q':            request.GET.get('q', ''),
-            'tipo_cliente': request.GET.get('tipo_cliente', ''),
-            'relacao':      request.GET.get('relacao', ''),
+            'q':              request.GET.get('q', ''),
+            'tipo_cliente':   request.GET.get('tipo_cliente', ''),
+            'empreendimento': request.GET.get('empreendimento', ''),
+            'relacao':        request.GET.get('relacao', ''),
         },
     }
     return render(request, 'clientes/lista.html', context)

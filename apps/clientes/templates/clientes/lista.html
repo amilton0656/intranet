@@ -43,6 +43,15 @@
     </select>
   </div>
   <div class="clt-filter-field">
+    <label for="f-emp">Empreendimento</label>
+    <select id="f-emp" name="empreendimento">
+      <option value="">Todos</option>
+      {% for e in empreendimentos %}
+      <option value="{{ e }}" {% if filtros.empreendimento == e %}selected{% endif %}>{{ e }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="clt-filter-field">
     <label for="f-relacao">Relação</label>
     <select id="f-relacao" name="relacao">
       <option value="">Todos</option>
