@@ -820,3 +820,244 @@ Traceback (most recent call last):
     )
 django.db.models.deletion.ProtectedError: ("Cannot delete some instances of model 'Unidade' because they are referenced through protected foreign keys: 'UnidadeProposta.unidade'.", {<UnidadeProposta: PROP-2026-0001 — COTA 365 — Único — 1102>, <UnidadeProposta: PROP-2026-0002 — COTA 365 — Único — 210>, <UnidadeProposta: PROP-2026-0001 — COTA 365 — Único — 1010>, <UnidadeProposta: PROP-2026-0001 — COTA 365 — Único — G65>, <UnidadeProposta: PROP-2026-0001 — COTA 365 — Único — HB70>})
 2026-06-02 12:45:23,545 ERROR django.server "POST /incorporadora/empreendimentos/1/unidades/importar-csv/ HTTP/1.1" 500 135347
+2026-07-23 09:35:04,974 WARNING django.request Not Found: /favicon.ico
+2026-07-23 09:35:04,977 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5842
+2026-07-23 09:35:52,851 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=988bf9c6854ccf237f90ec4163dc00a776fcec9bc6129dd954f6836bfcd7931d registros=1855
+2026-07-23 09:36:01,215 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=e564dd74cbfc65459a1eb0832a0e38f473f6405ed46b32e200f11b1fb6df411b registros=134
+2026-07-23 09:36:17,005 INFO apps.cota365.views cota365 import ok | tipo=tabela arquivo=tabela.csv sha256=6205c8c1dfca99e4e5c3a18e042969a47cdeea7e5aca3b23dfdc0fb032aa0cba registros=180
+2026-07-23 09:36:35,152 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=988bf9c6854ccf237f90ec4163dc00a776fcec9bc6129dd954f6836bfcd7931d registros=1855
+2026-07-23 09:36:50,240 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=e564dd74cbfc65459a1eb0832a0e38f473f6405ed46b32e200f11b1fb6df411b registros=134
+2026-07-23 09:37:05,820 INFO apps.cota365.views cota365 import ok | tipo=tabela arquivo=tabela.csv sha256=6205c8c1dfca99e4e5c3a18e042969a47cdeea7e5aca3b23dfdc0fb032aa0cba registros=180
+2026-07-23 09:37:16,869 INFO apps.cota365.views cota365 import ok | tipo=vendas arquivo=vendas.csv sha256=18a4cdc499584ddb9df93aaf5d8390245b8d2423f3e1ffc8067576bde3ac58d7 registros=46
+2026-07-23 09:37:26,444 INFO apps.cota365.views cota365 import ok | tipo=fluxo arquivo=fluxo.csv sha256=46327b29ccc5301e0d7c6c09661ec440884610bf5661dafd2f902ffd6eddb82a registros=46
+2026-07-23 09:37:37,107 INFO apps.cota365.views cota365 import ok | tipo=comissoes arquivo=comissoes.csv sha256=bea26469a75ab1c616e0f8cb080b014c010353478a07a4cb8de6627c80cb5aaf registros=11
+2026-07-23 10:28:09,948 ERROR django.security.DisallowedHost Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\http\request.py", line 202, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+2026-07-23 10:30:21,642 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=988bf9c6854ccf237f90ec4163dc00a776fcec9bc6129dd954f6836bfcd7931d registros=1855
+2026-07-23 10:30:29,677 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=e564dd74cbfc65459a1eb0832a0e38f473f6405ed46b32e200f11b1fb6df411b registros=134
+2026-07-23 14:50:50,293 INFO apps.cota365.views cota365 import ok | tipo=vendas arquivo=vendas.csv sha256=bb7456ea4ab094f743931e34ad7fd7589eca449f4e29acec0ecff585e9f36f75 registros=37
+2026-07-23 14:51:10,720 INFO apps.cota365.views cota365 import ok | tipo=fluxo arquivo=fluxo.csv sha256=46327b29ccc5301e0d7c6c09661ec440884610bf5661dafd2f902ffd6eddb82a registros=46
+2026-07-23 14:51:25,575 INFO apps.cota365.views cota365 import ok | tipo=comissoes arquivo=comissoes.csv sha256=bea26469a75ab1c616e0f8cb080b014c010353478a07a4cb8de6627c80cb5aaf registros=0
+2026-07-23 17:26:29,201 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=026ea101490fbfecdd388f65d24fea3c0ac515b843b396822ffbaa061919a37a registros=1907
+2026-07-23 17:26:36,944 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=0ecff3650e999a738a1dbf7bfedf52b34304856d8fafdb6d8bf0d7e9ece4cfc6 registros=135
+2026-07-23 17:26:56,109 INFO apps.cota365.views cota365 import ok | tipo=tabela arquivo=tabela.csv sha256=baabbd75c1ec3ac7741d853c5b21f007ad97c19603210857260a605e32ffefcf registros=180
+2026-07-23 17:27:04,564 INFO apps.cota365.views cota365 import ok | tipo=vendas arquivo=vendas.csv sha256=da0687d4b17f4b9b706884e8583d6981b3811865ccc522de29feef508b0cd48c registros=47
+2026-07-23 17:27:13,001 INFO apps.cota365.views cota365 import ok | tipo=fluxo arquivo=fluxo.csv sha256=3822b5123101c187e708932ea9a7e7f916c900e9cacbbfca6ef668e07443ef36 registros=47
+2026-07-23 17:27:20,957 INFO apps.cota365.views cota365 import ok | tipo=comissoes arquivo=comissoes.csv sha256=9210809f246210bbd3626f3f20e39b877de895a6d7ba62548d3f473609646284 registros=4
+2026-07-28 10:16:28,184 WARNING django.request Not Found: /favicon.ico
+2026-07-28 10:16:28,185 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5842
+2026-07-28 13:16:03,540 WARNING django.request Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-07-28 13:16:03,541 WARNING django.server "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 5953
+2026-07-28 13:21:04,618 WARNING django.request Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-07-28 13:21:04,728 WARNING django.server "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 5953
+2026-07-28 17:05:11,696 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=0a3902e32f9b54dd0cd1712110812857452e37be3fad3530b89d3fe825205d5e registros=2086
+2026-07-28 17:05:18,625 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=a87da8ee6386a4095881d842f92c51fa98e93d274ad15990cc40ef47da50bfd8 registros=140
+2026-07-28 17:05:32,850 INFO apps.cota365.views cota365 import ok | tipo=tabela arquivo=tabela.csv sha256=34980f413f7e912635a968d83c9c6ebe2e7d2b7a7952deb2c14601d2efab46a0 registros=180
+2026-07-28 17:05:44,027 INFO apps.cota365.views cota365 import ok | tipo=vendas arquivo=vendas.csv sha256=d3326f6e979abee691a2a9ef3c3d6b5dcada244a4c5298f77ea0f617c6173f79 registros=51
+2026-07-28 17:05:52,778 INFO apps.cota365.views cota365 import ok | tipo=fluxo arquivo=fluxo.csv sha256=99e831f4f7b6b07eac94e788c5eac155a1596dfc86dcdd470de7844a63339ec2 registros=51
+2026-07-28 17:06:01,898 INFO apps.cota365.views cota365 import ok | tipo=comissoes arquivo=comissoes.csv sha256=f3d539f10d8ee87c34c9139b3df26dbe4c3389dd307a05abab6f4b128db77df5 registros=6
+2026-07-28 17:06:09,164 INFO apps.cota365.views cota365 import ok | tipo=acessos arquivo=acessos.csv sha256=9807de84c6d208d2854d18bfc8773e8bb272b47ec102d4f5443a4c3c7710fa71 registros=10
+2026-07-30 09:21:26,240 WARNING django.request Not Found: /favicon.ico
+2026-07-30 09:21:26,241 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5842
+2026-07-31 14:40:57,604 WARNING django.request Not Found: /favicon.ico
+2026-07-31 14:40:57,606 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5842
+2026-07-31 14:41:15,240 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=98766845423e0b492f5cce156da875605d28fafa2ab626286cc4c231375198db registros=2157
+2026-07-31 14:41:22,947 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=a87da8ee6386a4095881d842f92c51fa98e93d274ad15990cc40ef47da50bfd8 registros=140
+2026-07-31 14:41:41,286 INFO apps.cota365.views cota365 import ok | tipo=tabela arquivo=tabela.csv sha256=5df1ecf36be89eaf0ff7c644ea6e852fcbb6930ddfbb3e1ca917324bdb3201a5 registros=180
+2026-07-31 14:41:50,886 INFO apps.cota365.views cota365 import ok | tipo=vendas arquivo=vendas.csv sha256=734386d5a4faeded46a01e2585b1e541ef962631df39c8f34451e8ea6b164e6a registros=53
+2026-07-31 14:41:59,816 INFO apps.cota365.views cota365 import ok | tipo=fluxo arquivo=fluxo.csv sha256=d27700c17c9aefd20c0b5eaa636167bb3da3d5960a1b44f91ecb6c133bbc77fd registros=53
+2026-07-31 14:42:08,137 INFO apps.cota365.views cota365 import ok | tipo=comissoes arquivo=comissoes.csv sha256=fa42bfb2c04f999d2ae13875a37641a9a5fdeaca243bcc27ac995aa3706c790b registros=2
+2026-08-03 14:25:30,574 WARNING django.request Not Found: /media/downloads/MAX & FLORA - loca\xe7\xe3o.pdf
+2026-08-03 14:25:30,577 WARNING django.server "GET /media/downloads/MAX%20&%20FLORA%20-%20loca%C3%A7%C3%A3o.pdf HTTP/1.1" 404 6197
+2026-08-03 14:25:30,791 WARNING django.request Not Found: /favicon.ico
+2026-08-03 14:25:30,793 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 5842
+2026-08-03 14:25:41,090 WARNING django.request Not Found: /media/downloads/BLISS LIVING - bancaria.pdf
+2026-08-03 14:25:41,091 WARNING django.server "GET /media/downloads/BLISS%20LIVING%20-%20bancaria.pdf HTTP/1.1" 404 6171
+2026-08-05 09:51:14,806 ERROR django.security.DisallowedHost Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\http\request.py", line 202, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+2026-08-05 09:52:26,073 WARNING django.request Not Found: /favicon.ico
+2026-08-05 09:52:26,074 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6113
+2026-08-05 13:33:28,444 WARNING django.request Not Found: /favicon.ico
+2026-08-05 13:33:28,446 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6267
+2026-08-07 09:31:44,191 WARNING django.request Not Found: /favicon.ico
+2026-08-07 09:31:44,193 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6267
+2026-08-07 09:32:09,517 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=3b62bd6fdbdd3484797fe4d58929d762da902bd6ab7b853eecd59d974de18881 registros=2149
+2026-08-07 09:32:16,539 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=045d6e1371bd4919b88bb464d6eb36e47e346cc54c0528bc924c96a7f79b5f85 registros=149
+2026-08-07 09:32:39,501 INFO apps.cota365.views cota365 import ok | tipo=tabela arquivo=tabela.csv sha256=90205b9cdf3570e8bc00564109ad1a35b688e478e2158af40f7b62a11790709e registros=180
+2026-08-07 09:33:10,438 INFO apps.cota365.views cota365 import ok | tipo=tabela arquivo=tabela.csv sha256=90205b9cdf3570e8bc00564109ad1a35b688e478e2158af40f7b62a11790709e registros=180
+2026-08-07 09:33:21,814 INFO apps.cota365.views cota365 import ok | tipo=vendas arquivo=vendas.csv sha256=734386d5a4faeded46a01e2585b1e541ef962631df39c8f34451e8ea6b164e6a registros=53
+2026-08-07 09:33:32,793 INFO apps.cota365.views cota365 import ok | tipo=fluxo arquivo=fluxo.csv sha256=d27700c17c9aefd20c0b5eaa636167bb3da3d5960a1b44f91ecb6c133bbc77fd registros=53
+2026-08-07 09:33:42,137 INFO apps.cota365.views cota365 import ok | tipo=comissoes arquivo=comissoes.csv sha256=fa42bfb2c04f999d2ae13875a37641a9a5fdeaca243bcc27ac995aa3706c790b registros=0
+2026-08-07 09:33:49,528 INFO apps.cota365.views cota365 import ok | tipo=acessos arquivo=acessos.csv sha256=36d67ec68e3ab1105043bdacea57a5d9bdaeb3e672c4922eb05a441ce794ede1 registros=10
+2026-08-11 15:06:09,812 WARNING django.request Not Found: /favicon.ico
+2026-08-11 15:06:09,814 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6267
+2026-08-11 15:06:53,088 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=68b8cc3073a23ca6e79bb2fca9a4ca905c77fcc99cd7afe76615002c183d99f5 registros=2216
+2026-08-11 15:07:02,598 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=0dd6db30eb05c8c47b8948f8cbd2ce8a3a33f102ce4b3cdfb4606993eaeb42d2 registros=177
+2026-08-11 15:07:20,128 INFO apps.cota365.views cota365 import ok | tipo=tabela arquivo=tabela.csv sha256=6a3ba74f8ace1c174833ec4c0ea3a16f30fb51e1cfac35bfc82f1a7d93dcf7d4 registros=180
+2026-08-11 15:07:29,856 INFO apps.cota365.views cota365 import ok | tipo=vendas arquivo=vendas.csv sha256=89a7d1f60b8c43eb5d20e05e022e043ba840e31b160d31f0e400b2ab17451a71 registros=55
+2026-08-11 15:07:39,309 INFO apps.cota365.views cota365 import ok | tipo=fluxo arquivo=fluxo.csv sha256=28c6f9325344896ac3842492ba1230b942378165560922e0037b91ed67f27adc registros=55
+2026-08-11 15:07:48,902 INFO apps.cota365.views cota365 import ok | tipo=comissoes arquivo=comissoes.csv sha256=83355982529375a767fe9de230eb236766f9286f9cc32d10d15843a6e7aeec4a registros=3
+2026-08-11 15:07:56,689 INFO apps.cota365.views cota365 import ok | tipo=acessos arquivo=acessos.csv sha256=7514d90f31f35452e8c9b2f28aa87ecdb0ea1a64b143a5dc6383b4e158a5a813 registros=10
+2026-08-11 17:34:35,928 WARNING django.request Not Found: /favicon.ico
+2026-08-11 17:34:35,930 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6267
+2026-08-26 12:39:51,871 WARNING django.request Not Found: /favicon.ico
+2026-08-26 12:39:51,872 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6422
+2026-08-26 12:52:46,724 INFO apps.cota365.views cota365 import ok | tipo=faturamento arquivo=faturamento.csv sha256=332ecbd7a59bd713bab848c83db11712d223902771b65a96288a0e50984a01a4 registros=412
+2026-08-27 09:38:23,763 WARNING django.request Not Found: /favicon.ico
+2026-08-27 09:38:23,823 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6422
+2026-08-27 09:38:41,604 ERROR apps.cota365.views cota365 import erro | tipo=faturamento arquivo=faturamento.csv
+Traceback (most recent call last):
+  File "C:\newway\intranet\apps\cota365\views.py", line 1880, in importar
+    n, stats = _IMPORTERS[tipo](arquivo, arquivo.name, sha256)
+               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\apps\cota365\views.py", line 1469, in _import_faturamento
+    raise ValueError('Nenhum recebimento válido encontrado no arquivo.')
+ValueError: Nenhum recebimento válido encontrado no arquivo.
+2026-08-27 09:39:52,399 ERROR apps.cota365.views cota365 import erro | tipo=faturamento arquivo=faturamento.csv
+Traceback (most recent call last):
+  File "C:\newway\intranet\apps\cota365\views.py", line 1880, in importar
+    n, stats = _IMPORTERS[tipo](arquivo, arquivo.name, sha256)
+               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\newway\intranet\apps\cota365\views.py", line 1469, in _import_faturamento
+    raise ValueError('Nenhum recebimento válido encontrado no arquivo.')
+ValueError: Nenhum recebimento válido encontrado no arquivo.
+2026-08-27 09:43:39,534 INFO apps.cota365.views cota365 import ok | tipo=faturamento arquivo=faturamento.csv sha256=f31712eb39e49e32c99f5bb4da2e13c73a8c85a2b41d4b66774f4b2579b11d01 registros=425
+2026-08-27 10:23:01,612 ERROR django.request Internal Server Error: /cota365/dashboard/
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\newway\intranet\apps\cota365\views.py", line 2095, in dashboard
+    ano_totals[str(yr)] += monthly_rec.get(key, 0.0) + monthly_pend.get(key, 0.0)
+                                              ^^^^^^^^^^^^^^^^^
+KeyError: (2026, 5)
+2026-08-27 10:23:01,617 ERROR django.server "GET /cota365/dashboard/ HTTP/1.1" 500 92401
+2026-08-27 10:24:12,102 ERROR django.request Internal Server Error: /cota365/dashboard/
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\newway\intranet\apps\cota365\views.py", line 2095, in dashboard
+    ano_totals[str(yr)] += monthly_rec.get(key, 0.0) + monthly_pend.get(key, 0.0)
+                                              ^^^^^^^^^^^^^^^^^
+KeyError: (2026, 5)
+2026-08-27 10:24:12,104 ERROR django.server "GET /cota365/dashboard/ HTTP/1.1" 500 92538
+2026-08-27 10:31:36,746 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=0f383df4fac32cc741aa46223e8edbeba7bcf774db730cbc826985bc2b8ac040 registros=2656
+2026-08-27 10:31:43,490 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=6e5dab867cbcfe00e9e6b7c2044fdb4c87fa8d2de7c7efc6842b1d9470130425 registros=1503
+2026-08-27 10:33:45,946 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=0f383df4fac32cc741aa46223e8edbeba7bcf774db730cbc826985bc2b8ac040 registros=2656
+2026-08-27 10:33:52,604 ERROR apps.cota365.views cota365 import erro | tipo=recebidas arquivo=recebido.csv
+Traceback (most recent call last):
+  File "C:\newway\intranet\apps\cota365\views.py", line 1880, in importar
+    n, stats = _IMPORTERS[tipo](arquivo, arquivo.name, sha256)
+               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Amilton\AppData\Local\Programs\Python\Python313\Lib\contextlib.py", line 85, in inner
+    return func(*args, **kwds)
+  File "C:\newway\intranet\apps\cota365\views.py", line 1387, in _import_recebidas
+    _validar_colunas(reader.fieldnames, [
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+        ('NumeroDoTitulo',),
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+        ('NomeDoCliente',),
+        ^^^^^^^^^^^^^^^^^^^
+    ], nome)
+    ^^^^^^^^
+  File "C:\newway\intranet\apps\cota365\views.py", line 810, in _validar_colunas
+    raise ValueError(
+    ...<2 lines>...
+    )
+ValueError: Arquivo "recebido.csv" com colunas obrigatórias ausentes: "NumeroDoTitulo", "DataDeVencimento", "DataDaBaixa", "NumeroDaParcela", "CodigoDoTipoDeCondicao", "ValorLiquido", "NomeDoCliente"
+2026-08-27 10:36:31,528 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=b8b6678fe9c873ff85f58cfea5cb790ba5dc6e9f9e8b1cc8bdaa9f8787136394 registros=2346
+2026-08-27 10:36:40,915 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=2600b16ca35138c20d3ae41e6c1755848106f23a45a788c0458d90aed994daff registros=200
+2026-08-27 17:03:02,911 INFO apps.cota365.views cota365 import ok | tipo=fat_areceber arquivo=fat_areceber.csv sha256=435bcec7ef5f0d95684673128fafc92d5b488a3d19e0e387f07aa1922018d01e registros=2791
+2026-08-28 15:28:21,393 WARNING django.request Not Found: /favicon.ico
+2026-08-28 15:28:21,429 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6422
+2026-08-28 16:14:45,552 INFO apps.cota365.views cota365 import ok | tipo=faturamento arquivo=fat_recebido.csv sha256=9753216c9dc82cf9c0235e294eff1b41dfaacb36cb170fff7d4d2faaae8c4401 registros=1671
+2026-08-28 16:14:59,304 INFO apps.cota365.views cota365 import ok | tipo=fat_areceber arquivo=fat_areceber.csv sha256=435bcec7ef5f0d95684673128fafc92d5b488a3d19e0e387f07aa1922018d01e registros=2791
+2026-08-28 16:39:52,708 WARNING django.request Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-08-28 16:39:52,724 WARNING django.server "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 6533
+2026-08-28 16:44:36,965 WARNING django.request Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-08-28 16:44:36,968 WARNING django.server "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 6533
+2026-08-28 16:45:31,306 WARNING django.request Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-08-28 16:45:31,313 WARNING django.server "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 6533
+2026-09-02 09:20:03,719 WARNING django.request Not Found: /favicon.ico
+2026-09-02 09:20:03,721 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6422
+2026-09-02 09:20:18,914 INFO apps.cota365.views cota365 import ok | tipo=a_receber arquivo=areceber.csv sha256=614f79758c08206e8629699655b215fcb2fe412d8160c8a9fedb5d85a131c673 registros=2386
+2026-09-02 09:20:26,142 INFO apps.cota365.views cota365 import ok | tipo=recebidas arquivo=recebido.csv sha256=e6d57d72bdaa8a8305ddfb26648283f407a89c14b6c3addd49afcfbd1ba240ec registros=202
+2026-09-02 09:20:57,903 INFO apps.cota365.views cota365 import ok | tipo=tabela arquivo=tabela.csv sha256=604f39c37c2fe12043e3a2763536969f3db788b9c77a386989f2efb1bf6e052f registros=180
+2026-09-02 09:21:10,653 INFO apps.cota365.views cota365 import ok | tipo=vendas arquivo=vendas.csv sha256=a6b0754d9110af5f93f1bf087d72a9922e2f3bdc0c6cd0a4ff74277344c3a5f2 registros=59
+2026-09-02 09:21:27,642 INFO apps.cota365.views cota365 import ok | tipo=fluxo arquivo=fluxo.csv sha256=2c66a5187ebf50112d0555b128be6a5cc7a76af7cc7a636fb5ca18d5e1f8bf92 registros=59
+2026-09-02 09:21:39,755 INFO apps.cota365.views cota365 import ok | tipo=comissoes arquivo=comissoes.csv sha256=7f60bde6ac640fd35e7e382f08672fdf333f1921a32fa4122b8603e947125eea registros=10
+2026-09-02 09:21:50,383 INFO apps.cota365.views cota365 import ok | tipo=acessos arquivo=acessos.csv sha256=ba545bd67f2efc7076957e27b60e661437f0de0e3eeeafc9b7c3b65b8c627b9f registros=10
+2026-09-02 09:22:01,583 INFO apps.cota365.views cota365 import ok | tipo=faturamento arquivo=fat_recebido.csv sha256=069455fd8c8518d9bfa8c9eed650f6b12fddcc502391293f372475703fd4e084 registros=1674
+2026-09-02 09:22:13,540 INFO apps.cota365.views cota365 import ok | tipo=fat_areceber arquivo=fat_areceber.csv sha256=5aa9c734f38d32c3a18c64bd34c87029fbf639b0a8301e4c462dd07f5f261cc6 registros=2830
+2026-09-02 09:44:36,920 WARNING django.request Not Found: /favicon.ico
+2026-09-02 09:44:36,921 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6422
+2026-09-04 15:57:57,302 WARNING django.request Not Found: /favicon.ico
+2026-09-04 15:57:57,303 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6422
+2026-09-04 16:11:02,598 INFO apps.cota365.views cota365 import ok | tipo=condicao_pagamento arquivo=tab studios.csv sha256=0ac3f701abe8523a7d3a38102b3bbc11499edc8ddb8e4ec846487d977c74b846 registros=93
+2026-09-04 16:11:14,838 INFO apps.cota365.views cota365 import ok | tipo=condicao_pagamento arquivo=tab 2d.csv sha256=5958b7be5bfa964321aec4ef79c9ca6898b9c4859b357b00a27ce44f5261ccce registros=87
+2026-09-04 16:23:09,620 WARNING django.security.csrf Forbidden (CSRF cookie not set.): /cota365/vpl/204/pdf/
+2026-09-04 16:23:09,621 WARNING django.server "POST /cota365/vpl/204/pdf/ HTTP/1.1" 403 2901
+2026-09-04 17:04:48,090 WARNING django.request Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-09-04 17:04:48,094 WARNING django.server "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 6533
+2026-09-04 17:06:12,449 WARNING django.request Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-09-04 17:06:12,450 WARNING django.server "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 6533
+2026-09-08 10:07:39,450 WARNING django.request Not Found: /favicon.ico
+2026-09-08 10:07:39,452 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6422
+2026-09-11 08:50:44,592 WARNING django.request Not Found: /assistente/pesquisa/
+2026-09-11 08:50:44,593 WARNING django.server "GET /assistente/pesquisa/ HTTP/1.1" 404 6556
+2026-09-11 08:51:01,409 ERROR django.security.DisallowedHost Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+  File "C:\newway\intranet\.venv\Lib\site-packages\django\http\request.py", line 202, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+2026-09-11 08:51:17,151 WARNING django.request Not Found: /bliss/unidades-full/pdf/
+2026-09-11 08:51:17,151 WARNING django.server "GET /bliss/unidades-full/pdf/ HTTP/1.1" 404 11648
+2026-10-05 11:29:05,826 WARNING django.request Not Found: /favicon.ico
+2026-10-05 11:29:05,829 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6422
+2026-10-07 13:37:09,609 WARNING django.request Not Found: /favicon.ico
+2026-10-07 13:37:09,611 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6422
+2026-10-07 16:00:24,796 WARNING django.request Not Found: /favicon.ico
+2026-10-07 16:00:24,797 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6422
+2026-10-14 14:46:34,306 WARNING django.request Not Found: /favicon.ico
+2026-10-14 14:46:34,309 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6422
+2026-10-15 16:51:54,764 WARNING django.request Not Found: /favicon.ico
+2026-10-15 16:51:54,775 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6422
+2026-10-15 16:53:17,297 INFO apps.cota365.views cota365 import ok | tipo=condicao_pagamento arquivo=relatorios_tabeladepreco_1792084028.csv sha256=07673b0e74581a6bde694028a80d1bd3c49a69773362cf4b0d49332aedc400a5 registros=180
+2026-10-15 16:56:30,828 INFO apps.cota365.views cota365 import ok | tipo=condicao_pagamento arquivo=relatorios_tabeladepreco_1792084028.csv sha256=07673b0e74581a6bde694028a80d1bd3c49a69773362cf4b0d49332aedc400a5 registros=180
+2026-10-15 17:07:26,347 INFO apps.cota365.views cota365 import ok | tipo=condicao_pagamento arquivo=tabela geral.csv sha256=07673b0e74581a6bde694028a80d1bd3c49a69773362cf4b0d49332aedc400a5 registros=180
+2026-10-16 07:51:44,600 WARNING django.request Not Found: /favicon.ico
+2026-10-16 07:51:44,602 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6422
+2026-10-22 13:51:10,348 WARNING django.request Not Found: /favicon.ico
+2026-10-22 13:51:10,356 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6422
+2026-10-22 13:55:37,958 INFO apps.cota365.views cota365 import ok | tipo=vendas arquivo=vendas.csv sha256=f024b3a61e68c0486371cba43be0dc7aee8dc35b11b742e5a68b15bf4be92aec registros=68
+2026-10-22 14:12:01,453 INFO apps.cota365.views cota365 import ok | tipo=vendas arquivo=vendas.csv sha256=868a9b6adda0bbf2c1218a3d6653685f21411c26473419cc9ddb628c2293fcb8 registros=68
+2026-10-30 09:33:50,660 WARNING django.request Not Found: /favicon.ico
+2026-10-30 09:33:50,661 WARNING django.server "GET /favicon.ico HTTP/1.1" 404 6574

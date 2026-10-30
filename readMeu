@@ -29,11 +29,18 @@ python manage.py baixar_tabela_cvcrm
 python manage.py baixar_vendas_cvcrm
 python manage.py baixar_fluxo_cvcrm
 python manage.py baixar_comissoes_cvcrm
+python manage.py baixar_log_acesso_cvcrm
 python manage.py baixar_tudo_cvcrm
 
+python manage.py baixar_tudo_tabelas_cvcrm
+python scripts/sincronizar_tabelas.py
 
+python manage.py baixar_tabela_bliss_cvcrm
+python scripts/sincronizar_tabelas.py --arquivo "BLISS"
+python scripts/sincronizar_tabelas.py
 
+python manage.py baixar_tudo_tabelas_cvcrm
+python scripts\sincronizar_tabelas.py
+(atualiza na VPS)
 
-
-
-scp "cartorio.xlsx" amilton@apicota.com.br:/var/www/intranet/
+python manage.py importar_maxflora

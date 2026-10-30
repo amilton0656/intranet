@@ -10,6 +10,7 @@ O script:
   3. Faz login na intranet e envia cada arquivo para /uploads/pdfs/
 """
 
+import os
 import re
 import sys
 import getpass
@@ -25,11 +26,21 @@ try:
 except ImportError:
     sys.exit("Instale o requests:  pip install requests")
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # sem python-dotenv, INTRANET_USUARIO/INTRANET_SENHA só funcionam se já estiverem no ambiente
+
 # ── Configurações ──────────────────────────────────────────────────────────────
 
 PASTA_ORIGEM = Path(r"G:\Meu Drive\_intranet\tabelas")
 INTRANET_URL = "https://apicota.com.br"   # sem barra no final
-USUARIO      = ""   # deixe vazio para perguntar na execução
+
+# Login: lido de INTRANET_USUARIO / INTRANET_SENHA no .env, se existirem.
+# Sem isso no .env, pergunta interativamente (usuário) e via getpass (senha).
+USUARIO = os.environ.get("INTRANET_USUARIO", "")
+SENHA   = os.environ.get("INTRANET_SENHA", "")
 
 # ── Regex que detecta qualquer mês/ano no final do nome ───────────────────────
 
@@ -132,7 +143,9 @@ def main():
         return
 
     usuario_login = USUARIO or input("\nUsuário: ").strip()
-    senha = getpass.getpass(f"Senha de '{usuario_login}': ")
+    senha = SENHA or getpass.getpass(f"Senha de '{usuario_login}': ")
+    if USUARIO and SENHA:
+        print(f"\nUsando credenciais do .env (usuário: {usuario_login})")
 
     session = requests.Session()
 
