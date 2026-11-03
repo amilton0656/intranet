@@ -190,6 +190,25 @@
                 </li>
                 {% endif %}
 
+                {% if menu_principal.marketing %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle me-4" href="#" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        Marketing
+                    </a>
+                    <ul class="dropdown-menu">
+                        {% for item in menu_principal.marketing %}
+                        <li>
+                            <a class="dropdown-item" href="{{ item.url }}">
+                                {% if item.icon %}<i class="bi {{ item.icon }} me-2"></i>{% endif %}
+                                {{ item.label }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                {% endif %}
+
                 {% if menu_principal.admin %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle me-4" href="#" role="button"
