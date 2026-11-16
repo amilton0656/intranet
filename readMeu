@@ -1,5 +1,5 @@
 .\.venv\Scripts\activate
-source .venv/bin/activate
+cd /var/www/intranetcd 
 py manage.py runserver 8001
 
 pip install django python-dotenv psycopg2-binary
