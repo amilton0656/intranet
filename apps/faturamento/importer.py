@@ -194,17 +194,19 @@ def recalcular_contratos():
             d['data_emissao_min'] = r['data_emissao']
 
     pendente = defaultdict(lambda: {
-        'nome_empresa': '', 'nome_cliente': '',
+        'nome_empresa': '', 'nome_cliente': '', 'numero_unidade': '',
         'valor_pendente': Decimal('0'), 'vencimento_min': None,
     })
     for r in ParcelaPendente.objects.values(
         'codigo_empresa', 'nome_empresa', 'numero_titulo', 'nome_cliente',
-        'valor_original', 'vencimento',
+        'numero_unidade', 'valor_original', 'vencimento',
     ):
         key = (r['codigo_empresa'], r['numero_titulo'])
         d = pendente[key]
         d['nome_empresa'] = r['nome_empresa']
         d['nome_cliente'] = r['nome_cliente']
+        if r['numero_unidade']:
+            d['numero_unidade'] = r['numero_unidade']
         d['valor_pendente'] += r['valor_original']
         if r['vencimento'] and (not d['vencimento_min'] or r['vencimento'] < d['vencimento_min']):
             d['vencimento_min'] = r['vencimento']
@@ -219,10 +221,16 @@ def recalcular_contratos():
 
         nome_empresa = (rec and rec['nome_empresa']) or (pend and pend['nome_empresa']) or ''
         nome_cliente = (rec and rec['nome_cliente']) or (pend and pend['nome_cliente']) or ''
-        # sem nenhuma baixa ainda pra saber o plano financeiro: assume venda
-        # (é o padrão observado pra contratos novos sem baixa — locação não
-        # costuma aparecer como título zerado).
-        categoria = (rec and rec['categoria']) or Recebimento.INCORPORACAO
+        # Sem nenhuma baixa ainda pra saber o plano financeiro: tenta inferir
+        # pela unidade (unidades "Loja NN" são os boxes do Mall Boutique,
+        # sempre locação — ver contrato 222/VANESSA, classificado errado como
+        # venda por não ter nenhum recebimento ainda). Na ausência desse
+        # indício, assume venda (padrão observado pra contratos novos sem
+        # baixa em unidades residenciais/comerciais normais).
+        categoria = rec['categoria'] if rec else None
+        if not categoria:
+            unidade = (pend and pend['numero_unidade']) or ''
+            categoria = Recebimento.LOCACAO if unidade.strip().lower().startswith('loja') else Recebimento.INCORPORACAO
         codigo_centro_custo = (rec and rec['codigo_centro_custo']) or ''
         nome_centro_custo = (rec and rec['nome_centro_custo']) or ''
         valor_recebido = rec['valor_recebido'] if rec else Decimal('0')
